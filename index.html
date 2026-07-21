@@ -11,8 +11,10 @@
       --bg: #121212;
       --card-bg: #1e1e1e;
       --primary: #8b5cf6;
+      --primary-hover: #7c3aed;
       --text: #ffffff;
       --text-muted: #a1a1aa;
+      --border: #27272a;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -24,22 +26,22 @@
     header {
       padding: 16px;
       background: var(--card-bg);
-      border-bottom: 1px solid #27272a;
+      border-bottom: 1px solid var(--border);
       text-align: center;
     }
     .container { padding: 16px; }
     .card {
       background: var(--card-bg);
-      padding: 16px;
-      border-radius: 8px;
-      border: 1px solid #27272a;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
       margin-bottom: 16px;
     }
     input, button {
       width: 100%;
       padding: 12px;
-      margin-top: 8px;
-      border-radius: 6px;
+      margin-top: 10px;
+      border-radius: 8px;
       border: 1px solid #3f3f46;
       background: #27272a;
       color: white;
@@ -50,7 +52,9 @@
       border: none;
       font-weight: bold;
       cursor: pointer;
+      transition: background 0.2s;
     }
+    button:active { background: var(--primary-hover); }
     .bottom-nav {
       position: fixed;
       bottom: 0;
@@ -60,8 +64,15 @@
       display: flex;
       justify-content: space-around;
       align-items: center;
-      border-top: 1px solid #27272a;
+      border-top: 1px solid var(--border);
     }
+    .status-msg {
+      margin-top: 12px;
+      font-size: 14px;
+      text-align: center;
+    }
+    .error { color: #f87171; }
+    .success { color: #4ade80; }
     .hidden { display: none; }
   </style>
 </head>
@@ -74,19 +85,35 @@
   <main class="container">
     <!-- Auth Card -->
     <div id="auth-section" class="card">
-      <h2>Account Login</h2>
+      <h2 id="auth-title">Account Login / Sign Up</h2>
+      
+      <input type="text" id="username" placeholder="Character Name (e.g. Sir Robin)">
       <input type="email" id="email" placeholder="Email Address">
       <input type="password" id="password" placeholder="Password">
-      <button onclick="handleSignUp()">Sign Up</button>
-      <button onclick="handleSignIn()" style="background:#3f3f46; margin-top:8px;">Sign In</button>
-      <p id="auth-status" style="margin-top:8px; color:var(--text-muted); font-size:14px;"></p>
+      
+      <button onclick="handleSignUp()">Create Account</button>
+      <button onclick="handleSignIn()" style="background:#3f3f46;">Log In</button>
+      
+      <div id="auth-status" class="status-msg"></div>
     </div>
 
-    <!-- Dashboard Card (Visible after login) -->
+    <!-- Profile Dashboard (Visible after login) -->
     <div id="dashboard-section" class="card hidden">
       <h2>Player Profile</h2>
-      <p id="user-display" style="margin-top:8px;"></p>
-      <button onclick="handleSignOut()" style="background:#ef4444; margin-top:16px;">Sign Out</button>
+      <p id="user-display" style="margin-top:8px; font-weight: bold; color: var(--primary);"></p>
+      
+      <div style="margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div style="background:#27272a; padding:12px; border-radius:8px; text-align:center;">
+          <small style="color:var(--text-muted)">Gold</small>
+          <p id="profile-gold" style="font-size:20px; font-weight:bold;">0</p>
+        </div>
+        <div style="background:#27272a; padding:12px; border-radius:8px; text-align:center;">
+          <small style="color:var(--text-muted)">Quest Points</small>
+          <p id="profile-qp" style="font-size:20px; font-weight:bold;">0</p>
+        </div>
+      </div>
+
+      <button onclick="handleSignOut()" style="background:#ef4444; margin-top:20px;">Sign Out</button>
     </div>
   </main>
 
@@ -97,57 +124,99 @@
   </nav>
 
   <script>
-    // Live Supabase Project Credentials
     const SUPABASE_URL = "https://evsknkezkbramsnzisvn.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_3f9t-xXsEqWntgPm9fz-ow_m7fMVt5b";
     
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Auth Handlers
     async function handleSignUp() {
-      const email = document.getElementById('email').value;
+      const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
+      const username = document.getElementById('username').value.trim();
       const status = document.getElementById('auth-status');
+
+      if (!email || !password || !username) {
+        status.className = "status-msg error";
+        status.innerText = "Please fill in all fields (Character Name, Email, Password).";
+        return;
+      }
+
+      status.className = "status-msg";
       status.innerText = "Creating account...";
 
-      const { data, error } = await supabaseClient.auth.signUp({ email, password });
-      if (error) status.innerText = error.message;
-      else status.innerText = "Check your email for verification, or sign in!";
+      // 1. Create auth user with username metadata
+      const { data, error } = await supabaseClient.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+          data: { username: username }
+        }
+      });
+
+      if (error) {
+        status.className = "status-msg error";
+        status.innerText = error.message;
+      } else {
+        status.className = "status-msg success";
+        status.innerText = "Account created! Signing you in...";
+        // Auto sign in after registration
+        handleSignIn();
+      }
     }
 
     async function handleSignIn() {
-      const email = document.getElementById('email').value;
+      const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
       const status = document.getElementById('auth-status');
-      status.innerText = "Signing in...";
+
+      status.className = "status-msg";
+      status.innerText = "Logging in...";
 
       const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      
       if (error) {
+        status.className = "status-msg error";
         status.innerText = error.message;
       } else {
-        updateUI(data.user);
+        loadUserProfile(data.user);
       }
+    }
+
+    async function loadUserProfile(user) {
+      // Fetch profile stats from database
+      const { data: profile, error } = await supabaseClient
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      updateUI(user, profile);
     }
 
     async function handleSignOut() {
       await supabaseClient.auth.signOut();
-      updateUI(null);
+      updateUI(null, null);
     }
 
-    function updateUI(user) {
+    function updateUI(user, profile) {
       if (user) {
         document.getElementById('auth-section').classList.add('hidden');
         document.getElementById('dashboard-section').classList.remove('hidden');
-        document.getElementById('user-display').innerText = "Logged in as: " + user.email;
+        
+        const displayName = profile?.username || user.user_metadata?.username || user.email;
+        document.getElementById('user-display').innerText = "Welcome, " + displayName;
+        document.getElementById('profile-gold').innerText = profile?.gold || 0;
+        document.getElementById('profile-qp').innerText = profile?.quest_points || 0;
       } else {
         document.getElementById('auth-section').classList.remove('hidden');
         document.getElementById('dashboard-section').classList.add('hidden');
+        document.getElementById('auth-status').innerText = "";
       }
     }
 
     // Check existing session on load
     supabaseClient.auth.getSession().then(({ data: { session } }) => {
-      if (session) updateUI(session.user);
+      if (session) loadUserProfile(session.user);
     });
   </script>
 </body>
