@@ -41,6 +41,49 @@
       margin-bottom: 16px;
     }
 
+    /* Stats Grid */
+    .stats-grid {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+    .stat-box {
+      background: #27272a;
+      padding: 10px 6px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-box small { color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    .stat-box p { font-size: 18px; font-weight: bold; margin-top: 4px; }
+
+    /* Bio Section */
+    .bio-box {
+      background: #27272a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #e4e4e7;
+      white-space: pre-wrap;
+    }
+    textarea.bio-input {
+      width: 100%;
+      background: #18181b;
+      border: 1px solid var(--primary);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 10px;
+      font-family: inherit;
+      font-size: 14px;
+      margin-top: 10px;
+      resize: vertical;
+      min-height: 90px;
+    }
+
+    /* Items & Grid Layouts */
     .item-grid {
       display: grid;
       grid-template-columns: 1fr;
@@ -77,15 +120,19 @@
       border-radius: 20px;
     }
 
+    /* Buttons */
     .btn {
       width: 100%;
-      padding: 12px;
+      padding: 10px;
       border-radius: 8px;
       border: none;
       font-weight: bold;
-      font-size: 15px;
+      font-size: 14px;
       cursor: pointer;
+      margin-top: 12px;
     }
+    .btn-secondary { background: #3f3f46; color: white; }
+    .btn-primary { background: var(--primary); color: white; }
     .btn-danger { background: #ef4444; color: white; margin-top: 20px; }
     .btn-buy {
       background: var(--gold);
@@ -104,6 +151,7 @@
       cursor: not-allowed;
     }
 
+    /* Bottom Nav */
     .bottom-nav {
       position: fixed;
       bottom: 0;
@@ -148,16 +196,36 @@
     <section id="tab-profile" class="tab-view">
       <div class="card">
         <h2>Player Profile</h2>
-        <p id="user-display" style="margin-top:8px; font-weight: bold; color: var(--primary); font-size: 20px;">Loading...</p>
+        <p id="user-display" style="margin-top:6px; font-weight: bold; color: var(--primary); font-size: 20px;">Loading...</p>
         
-        <div style="margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-          <div style="background:#27272a; padding:12px; border-radius:8px; text-align:center;">
-            <small style="color:var(--text-muted)">Gold</small>
-            <p id="profile-gold" style="font-size:22px; font-weight:bold; color:var(--gold);">0</p>
+        <!-- Stats Row -->
+        <div class="stats-grid">
+          <div class="stat-box">
+            <small>Gold</small>
+            <p id="profile-gold" style="color:var(--gold);">0</p>
           </div>
-          <div style="background:#27272a; padding:12px; border-radius:8px; text-align:center;">
-            <small style="color:var(--text-muted)">Quest Points</small>
-            <p id="profile-qp" style="font-size:22px; font-weight:bold;">0</p>
+          <div class="stat-box">
+            <small>Quest Pts</small>
+            <p id="profile-qp">0</p>
+          </div>
+          <div class="stat-box">
+            <small>Monsters</small>
+            <p id="profile-monsters" style="color:#38bdf8;">0</p>
+          </div>
+        </div>
+
+        <!-- Character Lore / Bio Section -->
+        <div style="margin-top: 20px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="font-size:15px; color:var(--text-muted);">Character Lore</h3>
+            <button id="edit-bio-btn" onclick="toggleBioEdit()" style="background:none; border:none; color:var(--primary); font-weight:bold; cursor:pointer; font-size:13px;">Edit</button>
+          </div>
+
+          <div id="bio-display" class="bio-box">No lore written yet. Tap Edit to add your backstory!</div>
+          
+          <div id="bio-edit-container" class="hidden">
+            <textarea id="bio-input-field" class="bio-input" placeholder="Write your character's backstory or persona details..."></textarea>
+            <button class="btn btn-primary" onclick="saveBio()">Save Lore</button>
           </div>
         </div>
 
@@ -247,13 +315,53 @@
       document.getElementById('profile-gold').innerText = currentGold;
       document.getElementById('shop-gold-display').innerText = currentGold;
       document.getElementById('profile-qp').innerText = profile?.quest_points || 0;
+      document.getElementById('profile-monsters').innerText = profile?.monster_shifts || 0;
+
+      // Load Bio
+      const userBio = profile?.bio || "No lore written yet. Tap Edit to add your backstory!";
+      document.getElementById('bio-display').innerText = userBio;
+      document.getElementById('bio-input-field').value = profile?.bio || "";
 
       // 2. Fetch Shop & Inventory
       fetchShopItems();
       fetchUserInventory();
     }
 
-    // Fetch Shop Items from Supabase
+    // Bio Toggle & Save
+    function toggleBioEdit() {
+      const displayBox = document.getElementById('bio-display');
+      const editBox = document.getElementById('bio-edit-container');
+      const editBtn = document.getElementById('edit-bio-btn');
+
+      if (editBox.classList.contains('hidden')) {
+        editBox.classList.remove('hidden');
+        displayBox.classList.add('hidden');
+        editBtn.innerText = "Cancel";
+      } else {
+        editBox.classList.add('hidden');
+        displayBox.classList.remove('hidden');
+        editBtn.innerText = "Edit";
+      }
+    }
+
+    async function saveBio() {
+      const newBio = document.getElementById('bio-input-field').value.trim();
+
+      const { error } = await supabaseClient
+        .from('profiles')
+        .update({ bio: newBio })
+        .eq('id', currentUser.id);
+
+      if (error) {
+        alert("Failed to save lore: " + error.message);
+        return;
+      }
+
+      document.getElementById('bio-display').innerText = newBio || "No lore written yet. Tap Edit to add your backstory!";
+      toggleBioEdit();
+    }
+
+    // Fetch Shop Items
     async function fetchShopItems() {
       const shopContainer = document.getElementById('shop-list');
       const { data: items, error } = await supabaseClient
@@ -283,7 +391,7 @@
       `).join('');
     }
 
-    // Fetch User Inventory from Supabase
+    // Fetch Inventory
     async function fetchUserInventory() {
       const invContainer = document.getElementById('inventory-list');
       const { data: inventory, error } = await supabaseClient
@@ -308,7 +416,7 @@
       `).join('');
     }
 
-    // Handle Item Purchases
+    // Buy Item Logic
     async function buyItem(itemId, name, description, price) {
       if (currentGold < price) {
         alert("You don't have enough Gold for this!");
@@ -317,7 +425,6 @@
 
       const newGold = currentGold - price;
 
-      // A. Deduct Gold from Profile
       const { error: profileError } = await supabaseClient
         .from('profiles')
         .update({ gold: newGold })
@@ -328,7 +435,6 @@
         return;
       }
 
-      // B. Check if user already owns this item
       const { data: existingItem } = await supabaseClient
         .from('user_inventory')
         .select('*')
@@ -337,13 +443,11 @@
         .maybeSingle();
 
       if (existingItem) {
-        // Increment quantity
         await supabaseClient
           .from('user_inventory')
           .update({ quantity: existingItem.quantity + 1 })
           .eq('id', existingItem.id);
       } else {
-        // Add new item to pouch
         await supabaseClient
           .from('user_inventory')
           .insert({
@@ -354,7 +458,6 @@
           });
       }
 
-      // C. Refresh UI
       initDashboard();
     }
 
