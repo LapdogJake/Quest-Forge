@@ -142,7 +142,7 @@
     /* QM Sub-Navigation Tabs */
     .qm-subnav {
       display: flex;
-      gap: 6px;
+      gap: 4px;
       background: #18181b;
       padding: 4px;
       border-radius: 8px;
@@ -152,15 +152,16 @@
     }
     .qm-subnav-btn {
       flex: 1;
-      padding: 8px 12px;
+      padding: 8px 6px;
       border: none;
       background: transparent;
       color: var(--text-muted);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: bold;
       border-radius: 6px;
       cursor: pointer;
       text-align: center;
+      white-space: nowrap;
     }
     .qm-subnav-btn.active {
       background: var(--primary);
@@ -339,7 +340,8 @@
         <!-- Sub-Tab Nav Buttons -->
         <div class="qm-subnav">
           <button id="qm-subnav-create" class="qm-subnav-btn active" onclick="switchQMSubTab('create')">➕ Forge Quest</button>
-          <button id="qm-subnav-library" class="qm-subnav-btn" onclick="switchQMSubTab('library')">📜 Quest Library & Deploy</button>
+          <button id="qm-subnav-library" class="qm-subnav-btn" onclick="switchQMSubTab('library')">📜 Quest Library</button>
+          <button id="qm-subnav-queues" class="qm-subnav-btn" onclick="switchQMSubTab('queues')">⚔️ Live Queues</button>
         </div>
 
         <!-- SUB-TAB 1: QUEST CREATOR -->
@@ -422,21 +424,20 @@
           <button class="btn btn-primary" onclick="createQuest()">🚀 Save to Library & Deploy</button>
         </div>
 
-        <!-- SUB-TAB 2: LIBRARY & DEPLOYMENT -->
+        <!-- SUB-TAB 2: QUEST LIBRARY -->
         <div id="qm-subtab-library" class="hidden">
-          
-          <!-- Live Party Queues Section -->
-          <h3 class="section-title" style="color:var(--gold); border-bottom:1px solid var(--border); padding-bottom:6px;">⚔️ Live Party Queues</h3>
-          <div id="qm-queue-list">
-            <p class="empty-state">No party queues waiting on the field.</p>
-          </div>
-
-          <!-- All Quests Catalog -->
-          <h3 class="section-title" style="margin-top:24px; border-bottom:1px solid var(--border); padding-bottom:6px;">📜 Deployable Quest Library</h3>
+          <h3 class="section-title" style="color:var(--primary); border-bottom:1px solid var(--border); padding-bottom:6px;">📜 Deployable Quest Library</h3>
           <div id="qm-quest-list">
             <p class="empty-state">Loading quest catalog...</p>
           </div>
+        </div>
 
+        <!-- SUB-TAB 3: LIVE PARTY QUEUES -->
+        <div id="qm-subtab-queues" class="hidden">
+          <h3 class="section-title" style="color:var(--gold); border-bottom:1px solid var(--border); padding-bottom:6px;">⚔️ Live Party Queues</h3>
+          <div id="qm-queue-list">
+            <p class="empty-state">No party queues currently waiting on the field.</p>
+          </div>
         </div>
 
       </div>
@@ -477,21 +478,27 @@
       document.getElementById(`nav-${tabName}`).classList.add('active');
     }
 
-    // QM Panel Sub-Tab Switcher (Forge vs Library)
+    // QM Panel Sub-Tab Switcher (Forge vs Library vs Queues)
     function switchQMSubTab(subTabName) {
       document.getElementById('qm-subtab-create').classList.add('hidden');
       document.getElementById('qm-subtab-library').classList.add('hidden');
+      document.getElementById('qm-subtab-queues').classList.add('hidden');
+
       document.getElementById('qm-subnav-create').classList.remove('active');
       document.getElementById('qm-subnav-library').classList.remove('active');
+      document.getElementById('qm-subnav-queues').classList.remove('active');
 
       if (subTabName === 'create') {
         document.getElementById('qm-subtab-create').classList.remove('hidden');
         document.getElementById('qm-subnav-create').classList.add('active');
-      } else {
+      } else if (subTabName === 'library') {
         document.getElementById('qm-subtab-library').classList.remove('hidden');
         document.getElementById('qm-subnav-library').classList.add('active');
-        fetchQMQueues();
         fetchQMQuests();
+      } else if (subTabName === 'queues') {
+        document.getElementById('qm-subtab-queues').classList.remove('hidden');
+        document.getElementById('qm-subnav-queues').classList.add('active');
+        fetchQMQueues();
       }
     }
 
@@ -723,7 +730,7 @@
       fetchQuests();
     }
 
-    // QM Engine: Fetch Queues & Library
+    // QM Engine: Fetch Queues
     async function fetchQMQueues() {
       const container = document.getElementById('qm-queue-list');
       
@@ -734,7 +741,7 @@
         .order('created_at', { ascending: true });
 
       if (!queues || queues.length === 0) {
-        container.innerHTML = `<p class="empty-state">No party queues currently waiting.</p>`;
+        container.innerHTML = `<p class="empty-state">No party queues currently waiting on the field.</p>`;
         return;
       }
 
@@ -798,6 +805,7 @@
       await supabaseClient.from('quest_queues').update({ status: 'completed' }).eq('id', queueId);
       alert("🎉 Squad rewarded and quest queue closed!");
       initDashboard();
+      fetchQMQueues();
     }
 
     // QM Library View & Deployment Toggles
