@@ -112,7 +112,6 @@
     .quest-rewards {
       display: flex;
       gap: 10px;
-      margin-top: 10px;
       font-size: 12px;
       font-weight: bold;
     }
@@ -170,7 +169,16 @@
       border: none;
       font-weight: bold;
       cursor: pointer;
-      margin-top: 10px;
+    }
+    .btn-complete {
+      background: var(--success);
+      color: #000;
+      padding: 8px 16px;
+      font-size: 13px;
+      border-radius: 6px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
     }
     .btn-buy {
       background: var(--gold);
@@ -427,28 +435,32 @@
       const activeContainer = document.getElementById('active-quests-list');
       const availableContainer = document.getElementById('available-quests-list');
 
-      // Fetch user's accepted quests
+      // Fetch user's active/accepted quests
       const { data: userQuests } = await supabaseClient
         .from('user_quests')
         .select('*, quests(*)')
         .eq('user_id', currentUser.id);
 
       const acceptedQuestIds = userQuests ? userQuests.map(uq => uq.quest_id) : [];
+      const activeQuests = userQuests ? userQuests.filter(uq => uq.status === 'accepted') : [];
 
       // Render Active Quests
-      if (!userQuests || userQuests.length === 0) {
-        activeContainer.innerHTML = `<p class="empty-state">No quests in progress. Accept one below!</p>`;
+      if (!activeQuests || activeQuests.length === 0) {
+        activeContainer.innerHTML = `<p class="empty-state">No active quests. Accept one below!</p>`;
       } else {
-        activeContainer.innerHTML = userQuests.map(uq => `
+        activeContainer.innerHTML = activeQuests.map(uq => `
           <div class="quest-card">
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
               <h4>${uq.quests.title}</h4>
               <span class="status-badge">In Progress</span>
             </div>
-            <p>${uq.quests.description || ''}</p>
-            <div class="quest-rewards">
-              <span class="reward-gold">🪙 +${uq.quests.reward_gold} Gold</span>
-              <span class="reward-qp">⭐ +${uq.quests.reward_qp} QP</span>
+            <p style="margin-top:6px;">${uq.quests.description || ''}</p>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+              <div class="quest-rewards">
+                <span class="reward-gold">🪙 +${uq.quests.reward_gold} Gold</span>
+                <span class="reward-qp">⭐ +${uq.quests.reward_qp} QP</span>
+              </div>
+              <button class="btn-complete" onclick="completeQuest('${uq.id}', ${uq.quests.reward_gold}, ${uq.quests.reward_qp})">Complete</button>
             </div>
           </div>
         `).join('');
@@ -466,19 +478,19 @@
         return;
       }
 
-      // Filter out quests user already accepted
+      // Filter out quests user already accepted or completed
       const availableQuests = allQuests.filter(q => !acceptedQuestIds.includes(q.id));
 
       if (availableQuests.length === 0) {
-        availableContainer.innerHTML = `<p class="empty-state">You have accepted all available quests!</p>`;
+        availableContainer.innerHTML = `<p class="empty-state">You have accepted or completed all available quests!</p>`;
         return;
       }
 
       availableContainer.innerHTML = availableQuests.map(q => `
         <div class="quest-card">
           <h4>${q.title}</h4>
-          <p>${q.description || ''}</p>
-          <div style="display:flex; justify-content:space-between; align-items:center;">
+          <p style="margin-top:6px;">${q.description || ''}</p>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
             <div class="quest-rewards">
               <span class="reward-gold">🪙 +${q.reward_gold} Gold</span>
               <span class="reward-qp">⭐ +${q.reward_qp} QP</span>
@@ -505,6 +517,44 @@
       }
 
       fetchQuests();
+    }
+
+    // Complete Quest Action & Claim Rewards
+    async function completeQuest(userQuestId, rewardGold, rewardQp) {
+      // 1. Get existing user stats
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('gold, quest_points')
+        .eq('id', currentUser.id)
+        .single();
+
+      const updatedGold = (profile?.gold || 0) + rewardGold;
+      const updatedQp = (profile?.quest_points || 0) + rewardQp;
+
+      // 2. Add rewards to profile
+      const { error: profileError } = await supabaseClient
+        .from('profiles')
+        .update({ gold: updatedGold, quest_points: updatedQp })
+        .eq('id', currentUser.id);
+
+      if (profileError) {
+        alert("Failed to pay out rewards: " + profileError.message);
+        return;
+      }
+
+      // 3. Mark quest as completed
+      const { error: questError } = await supabaseClient
+        .from('user_quests')
+        .update({ status: 'completed' })
+        .eq('id', userQuestId);
+
+      if (questError) {
+        alert("Failed to update quest status: " + questError.message);
+        return;
+      }
+
+      // 4. Refresh entire dashboard to update stats & shop buttons
+      initDashboard();
     }
 
     // Fetch Shop Items
