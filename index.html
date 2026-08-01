@@ -73,7 +73,7 @@
       white-space: pre-wrap;
     }
 
-    /* Cards & Form Elements */
+    /* Cards & Components */
     .item-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 12px; }
     .item-card {
       background: #27272a;
@@ -111,6 +111,7 @@
     .badge-threat-loot { background: #713f12; color: #facc15; }
     .badge-threat-death { background: #7f1d1d; color: #f87171; }
     .badge-type { background: #27272a; color: #e4e4e7; border: 1px solid #3f3f46; }
+    .badge-queue-active { background: #0284c7; color: #e0f2fe; }
 
     .quest-rewards { display: flex; gap: 10px; font-size: 12px; font-weight: bold; }
     .reward-gold { color: var(--gold); }
@@ -125,6 +126,26 @@
       padding: 4px 8px;
       border-radius: 6px;
       text-transform: uppercase;
+    }
+
+    /* Queue Box */
+    .queue-box {
+      background: #18181b;
+      border: 1px solid #3f3f46;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+    .queue-box h5 { font-size: 13px; color: #a1a1aa; margin-bottom: 6px; text-transform: uppercase; }
+    .party-member-tag {
+      display: inline-block;
+      background: #27272a;
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      margin-right: 4px;
+      margin-bottom: 4px;
     }
 
     /* Forms */
@@ -143,7 +164,7 @@
     .form-control:focus { border-color: var(--primary); outline: none; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-    /* Scenario Card (Hidden Content) */
+    /* Scenario Card */
     .scenario-card-box {
       background: #2e1065;
       border: 1px dashed #a855f7;
@@ -170,6 +191,7 @@
     .btn-danger { background: var(--danger); color: white; margin-top: 20px; }
     .btn-accept { background: var(--primary); color: white; padding: 8px 16px; font-size: 13px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
     .btn-complete { background: var(--success); color: #000; padding: 8px 16px; font-size: 13px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
+    .btn-secondary { background: #3f3f46; color: white; padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
 
     /* Bottom Nav */
     .bottom-nav {
@@ -263,7 +285,7 @@
         <h2>Quest Board</h2>
         <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Park day missions & bounties</p>
 
-        <h3 class="section-title">Active Quests</h3>
+        <h3 class="section-title">Active Quests & Queues</h3>
         <div id="active-quests-list">
           <p class="empty-state">Loading active quests...</p>
         </div>
@@ -291,15 +313,21 @@
     <section id="tab-admin" class="tab-view hidden">
       <div class="card">
         <h2>👑 Questmaster Control</h2>
-        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Forge new park missions & manage scenario cards</p>
+        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Manage group queues, scenario cards & forge quests</p>
+
+        <!-- Live Group Queues Section -->
+        <h3 class="section-title" style="color:var(--gold); border-bottom:1px solid var(--border); padding-bottom:6px;">⚔️ Live Party Queues</h3>
+        <div id="qm-queue-list">
+          <p class="empty-state">No party queues waiting.</p>
+        </div>
 
         <!-- Quest Creator Form -->
-        <div style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px;">
+        <div style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px;">
           <h3 style="font-size: 16px; margin-bottom: 12px; color: var(--primary);">Forge New Quest</h3>
           
           <div class="form-group">
             <label>Quest Title</label>
-            <input type="text" id="qm-title" class="form-control" placeholder="e.g. Slay the Goblin Chieftain">
+            <input type="text" id="qm-title" class="form-control" placeholder="e.g. Defend the Siege Engine">
           </div>
 
           <div class="form-row">
@@ -313,7 +341,7 @@
               </select>
             </div>
             <div class="form-group">
-              <label>Type</label>
+              <label>Participation</label>
               <select id="qm-type" class="form-control">
                 <option value="Solo">Solo</option>
                 <option value="Group">Group</option>
@@ -335,7 +363,6 @@
               <select id="qm-verification" class="form-control">
                 <option value="Quest Master">Quest Master</option>
                 <option value="Honor">Honor</option>
-                <option value="Player">Player</option>
               </select>
             </div>
           </div>
@@ -343,17 +370,17 @@
           <div class="form-row">
             <div class="form-group">
               <label>Gold Reward</label>
-              <input type="number" id="qm-gold" class="form-control" value="20">
+              <input type="number" id="qm-gold" class="form-control" value="25">
             </div>
             <div class="form-group">
               <label>QP Reward</label>
-              <input type="number" id="qm-qp" class="form-control" value="10">
+              <input type="number" id="qm-qp" class="form-control" value="15">
             </div>
           </div>
 
           <div class="form-group">
             <label>Prerequisites / Requirements</label>
-            <input type="text" id="qm-requirements" class="form-control" placeholder="e.g. Must be Class: Assassin or 5+ QP">
+            <input type="text" id="qm-requirements" class="form-control" placeholder="e.g. Min 3 players">
           </div>
 
           <div class="form-group">
@@ -374,8 +401,8 @@
           <button class="btn btn-primary" onclick="createQuest()">🚀 Push Quest to Park Board</button>
         </div>
 
-        <!-- QM Quest Inspection -->
-        <h3 class="section-title" style="margin-top:24px;">Active Live Quests & Secret Cards</h3>
+        <!-- QM All Published Quests -->
+        <h3 class="section-title" style="margin-top:24px;">All Published Quests</h3>
         <div id="qm-quest-list">
           <p class="empty-state">Loading published quests...</p>
         </div>
@@ -426,7 +453,6 @@
 
       currentUser = session.user;
 
-      // Fetch Profile
       const { data: profile } = await supabaseClient
         .from('profiles')
         .select('*')
@@ -441,15 +467,14 @@
       document.getElementById('profile-qp').innerText = profile?.quest_points || 0;
       document.getElementById('profile-monsters').innerText = profile?.monster_shifts || 0;
 
-      // Show QM Admin tab if role is questmaster or admin
       if (profile?.role === 'questmaster' || profile?.role === 'admin') {
         document.getElementById('nav-admin').classList.remove('hidden');
         document.getElementById('role-badge').innerText = profile.role.toUpperCase();
         document.getElementById('role-badge').style.display = 'inline-block';
+        fetchQMQueues();
         fetchQMQuests();
       }
 
-      // Load Bio
       document.getElementById('bio-display').innerText = profile?.bio || "No lore written yet. Tap Edit to add your backstory!";
       document.getElementById('bio-input-field').value = profile?.bio || "";
 
@@ -457,7 +482,277 @@
       fetchUserInventory();
     }
 
-    // Questmaster: Create and Push Quest
+    // Fetch Public Quests & Queues
+    async function fetchQuests() {
+      const activeContainer = document.getElementById('active-quests-list');
+      const availableContainer = document.getElementById('available-quests-list');
+
+      // Fetch User's Solo Active Quests
+      const { data: userQuests } = await supabaseClient
+        .from('user_quests')
+        .select('*, quests(*)')
+        .eq('user_id', currentUser.id);
+
+      const acceptedQuestIds = userQuests ? userQuests.map(uq => uq.quest_id) : [];
+      const activeSoloQuests = userQuests ? userQuests.filter(uq => uq.status === 'accepted') : [];
+
+      // Fetch User's Group Queues
+      const { data: myQueueMemberships } = await supabaseClient
+        .from('queue_members')
+        .select('queue_id, quest_queues(*, quests(*))')
+        .eq('user_id', currentUser.id);
+
+      const activeGroupQueues = myQueueMemberships 
+        ? myQueueMemberships
+            .map(qm => qm.quest_queues)
+            .filter(q => q && (q.status === 'waiting' || q.status === 'active'))
+        : [];
+
+      // Render Active Section
+      let activeHTML = '';
+      
+      activeSoloQuests.forEach(uq => {
+        activeHTML += renderSoloQuestCard(uq.quests, true, uq.id);
+      });
+
+      for (let qq of activeGroupQueues) {
+        const { data: members } = await supabaseClient
+          .from('queue_members')
+          .select('user_id, profiles(username)')
+          .eq('queue_id', qq.id);
+
+        const memberNames = members ? members.map(m => m.profiles?.username || 'Warrior') : [];
+        activeHTML += renderGroupQueueCard(qq.quests, qq, memberNames);
+      }
+
+      activeContainer.innerHTML = activeHTML || `<p class="empty-state">No active solo quests or party queues.</p>`;
+
+      // Fetch Available Board Quests
+      const { data: allQuests } = await supabaseClient
+        .from('quests')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (!allQuests || allQuests.length === 0) {
+        availableContainer.innerHTML = `<p class="empty-state">No quests available on the board.</p>`;
+        return;
+      }
+
+      // Filter available quests
+      const availableQuests = allQuests.filter(q => q.repeatable || !acceptedQuestIds.includes(q.id));
+
+      if (availableQuests.length === 0) {
+        availableContainer.innerHTML = `<p class="empty-state">You have accepted or queued for all available quests!</p>`;
+        return;
+      }
+
+      availableContainer.innerHTML = availableQuests.map(q => renderAvailableQuestCard(q)).join('');
+    }
+
+    // Render Helpers
+    function renderSoloQuestCard(q, isActive, userQuestId) {
+      const threatClass = q.threat_level === 'Safe' ? 'badge-threat-safe' : (q.threat_level === 'Loot Drop' ? 'badge-threat-loot' : 'badge-threat-death');
+      return `
+        <div class="quest-card">
+          <div class="tag-container">
+            <span class="badge badge-combat">${q.category || 'Combat'}</span>
+            <span class="badge badge-type">Solo</span>
+            <span class="badge ${threatClass}">${q.threat_level || 'Safe'}</span>
+          </div>
+          <h4>${q.title}</h4>
+          <p>${q.description || ''}</p>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+            <div class="quest-rewards">
+              <span class="reward-gold">🪙 +${q.reward_gold} Gold</span>
+              <span class="reward-qp">⭐ +${q.reward_qp} QP</span>
+            </div>
+            <button class="btn-complete" onclick="completeQuest('${userQuestId}', ${q.reward_gold}, ${q.reward_qp})">Complete</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderGroupQueueCard(q, queue, members) {
+      const isStatusActive = queue.status === 'active';
+      return `
+        <div class="quest-card" style="border:1px solid var(--primary);">
+          <div class="tag-container">
+            <span class="badge badge-type">Group Quest</span>
+            <span class="badge ${isStatusActive ? 'badge-queue-active' : 'badge-threat-loot'}">
+              ${isStatusActive ? '⚔️ Encounter Live!' : '⏳ In Queue'}
+            </span>
+          </div>
+          <h4>${q.title}</h4>
+          <p>${q.description || ''}</p>
+          <div class="queue-box">
+            <h5>Party Members (${members.length}):</h5>
+            <div>${members.map(m => `<span class="party-member-tag">👤 ${m}</span>`).join('')}</div>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+            <div class="quest-rewards">
+              <span class="reward-gold">🪙 +${q.reward_gold} Gold</span>
+              <span class="reward-qp">⭐ +${q.reward_qp} QP</span>
+            </div>
+            <button class="btn-secondary" onclick="leaveQueue('${queue.id}')">Leave Queue</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAvailableQuestCard(q) {
+      const threatClass = q.threat_level === 'Safe' ? 'badge-threat-safe' : (q.threat_level === 'Loot Drop' ? 'badge-threat-loot' : 'badge-threat-death');
+      const isGroup = q.participation_type === 'Group';
+
+      return `
+        <div class="quest-card">
+          <div class="tag-container">
+            <span class="badge badge-combat">${q.category || 'Combat'}</span>
+            <span class="badge badge-type">${q.participation_type || 'Solo'}</span>
+            <span class="badge ${threatClass}">${q.threat_level || 'Safe'}</span>
+          </div>
+          <h4>${q.title}</h4>
+          ${q.requirements ? `<p style="color:var(--warning); font-size:12px; margin-bottom:4px;"><strong>Req:</strong> ${q.requirements}</p>` : ''}
+          <p>${q.description || ''}</p>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+            <div class="quest-rewards">
+              <span class="reward-gold">🪙 +${q.reward_gold} Gold</span>
+              <span class="reward-qp">⭐ +${q.reward_qp} QP</span>
+            </div>
+            ${isGroup 
+              ? `<button class="btn-accept" style="background:var(--warning);" onclick="joinOrCreateGroupQueue('${q.id}')">Join / Start Party</button>`
+              : `<button class="btn-accept" onclick="acceptQuest('${q.id}')">Accept Solo</button>`
+            }
+          </div>
+        </div>
+      `;
+    }
+
+    // Party Queue Logic
+    async function joinOrCreateGroupQueue(questId) {
+      // 1. Check if an active open queue exists
+      const { data: existingQueues } = await supabaseClient
+        .from('quest_queues')
+        .select('*')
+        .eq('quest_id', questId)
+        .eq('status', 'waiting')
+        .limit(1);
+
+      let queueId = null;
+
+      if (existingQueues && existingQueues.length > 0) {
+        queueId = existingQueues[0].id;
+      } else {
+        // Create new queue
+        const { data: newQueue, error } = await supabaseClient
+          .from('quest_queues')
+          .insert({ quest_id: questId, leader_id: currentUser.id, status: 'waiting' })
+          .select()
+          .single();
+
+        if (error) { alert("Error creating party queue: " + error.message); return; }
+        queueId = newQueue.id;
+      }
+
+      // Add user to party queue members
+      const { error: joinError } = await supabaseClient
+        .from('queue_members')
+        .insert({ queue_id: queueId, user_id: currentUser.id });
+
+      if (joinError && !joinError.message.includes('duplicate')) {
+        alert("Error joining queue: " + joinError.message);
+        return;
+      }
+
+      alert("⚔️ You joined the Party Queue! Keep an eye out for QM deployment.");
+      fetchQuests();
+    }
+
+    async function leaveQueue(queueId) {
+      await supabaseClient.from('queue_members').delete().eq('queue_id', queueId).eq('user_id', currentUser.id);
+      fetchQuests();
+    }
+
+    // QM Queue Management Engine
+    async function fetchQMQueues() {
+      const container = document.getElementById('qm-queue-list');
+      
+      const { data: queues } = await supabaseClient
+        .from('quest_queues')
+        .select('*, quests(*), queue_members(*, profiles(id, username, gold, quest_points))')
+        .in('status', ['waiting', 'active'])
+        .order('created_at', { ascending: true });
+
+      if (!queues || queues.length === 0) {
+        container.innerHTML = `<p class="empty-state">No party queues currently waiting.</p>`;
+        return;
+      }
+
+      container.innerHTML = queues.map(qq => {
+        const members = qq.queue_members ? qq.queue_members.map(m => m.profiles) : [];
+        const isLive = qq.status === 'active';
+
+        return `
+          <div class="quest-card" style="border: 1px solid ${isLive ? 'var(--success)' : 'var(--gold)'};">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <h4>${qq.quests.title}</h4>
+              <span class="badge ${isLive ? 'badge-threat-safe' : 'badge-threat-loot'}">${qq.status.toUpperCase()}</span>
+            </div>
+
+            <div class="queue-box">
+              <h5>Registered Squad (${members.length}):</h5>
+              <div>${members.map(m => `<span class="party-member-tag">👤 ${m?.username || 'Warrior'}</span>`).join('')}</div>
+            </div>
+
+            ${qq.quests.scenario_card ? `
+              <div class="scenario-card-box">
+                <h5>🔒 Hidden Scenario Card</h5>
+                <p>${qq.quests.scenario_card}</p>
+              </div>
+            ` : ''}
+
+            <div style="display:flex; gap:8px; margin-top:12px;">
+              ${!isLive ? `
+                <button class="btn-accept" style="width:50%;" onclick="qmSetQueueStatus('${qq.id}', 'active')">🚀 Launch Scenario</button>
+              ` : ''}
+              <button class="btn-complete" style="width:${isLive ? '100%' : '50%'};" 
+                onclick="qmCompleteAndPayGroup('${qq.id}', ${qq.quests.reward_gold}, ${qq.quests.reward_qp}, ${JSON.stringify(members.map(m => m.id)).replace(/"/g, '&quot;')})">
+                🪙 Award & Complete Squad
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function qmSetQueueStatus(queueId, status) {
+      await supabaseClient.from('quest_queues').update({ status }).eq('id', queueId);
+      fetchQMQueues();
+      fetchQuests();
+    }
+
+    async function qmCompleteAndPayGroup(queueId, rewardGold, rewardQp, memberIds) {
+      if (!confirm(`Award +${rewardGold} Gold & +${rewardQp} QP to all ${memberIds.length} players in the squad?`)) return;
+
+      // Pay out each profile in the group queue
+      for (let userId of memberIds) {
+        const { data: p } = await supabaseClient.from('profiles').select('gold, quest_points').eq('id', userId).single();
+        if (p) {
+          await supabaseClient.from('profiles').update({
+            gold: (p.gold || 0) + rewardGold,
+            quest_points: (p.quest_points || 0) + rewardQp
+          }).eq('id', userId);
+        }
+      }
+
+      // Mark queue completed
+      await supabaseClient.from('quest_queues').update({ status: 'completed' }).eq('id', queueId);
+
+      alert("🎉 Squad rewarded and quest queue closed!");
+      initDashboard();
+    }
+
+    // Quest Creation & General Handlers
     async function createQuest() {
       const title = document.getElementById('qm-title').value.trim();
       const category = document.getElementById('qm-category').value;
@@ -471,160 +766,47 @@
       const scenario_card = document.getElementById('qm-scenario').value.trim();
       const repeatable = document.getElementById('qm-repeatable').checked;
 
-      if (!title) {
-        alert("Please enter a Quest Title.");
-        return;
-      }
+      if (!title) { alert("Please enter a Quest Title."); return; }
 
-      const { error } = await supabaseClient
-        .from('quests')
-        .insert({
-          title,
-          category,
-          participation_type,
-          threat_level,
-          verification_method,
-          reward_gold,
-          reward_qp,
-          requirements,
-          description,
-          scenario_card,
-          repeatable,
-          is_active: true
-        });
+      const { error } = await supabaseClient.from('quests').insert({
+        title, category, participation_type, threat_level, verification_method,
+        reward_gold, reward_qp, requirements, description, scenario_card, repeatable, is_active: true
+      });
 
-      if (error) {
-        alert("Failed to push quest: " + error.message);
-        return;
-      }
+      if (error) { alert("Failed to push quest: " + error.message); return; }
 
-      alert(`⚔️ Quest "${title}" successfully published to the Park Board!`);
-
-      // Reset form
+      alert(`⚔️ Quest "${title}" published to the Board!`);
       document.getElementById('qm-title').value = '';
       document.getElementById('qm-description').value = '';
       document.getElementById('qm-scenario').value = '';
-      document.getElementById('qm-requirements').value = '';
 
       fetchQuests();
       fetchQMQuests();
     }
 
-    // Fetch Quests for Public Board
-    async function fetchQuests() {
-      const activeContainer = document.getElementById('active-quests-list');
-      const availableContainer = document.getElementById('available-quests-list');
-
-      const { data: userQuests } = await supabaseClient
-        .from('user_quests')
-        .select('*, quests(*)')
-        .eq('user_id', currentUser.id);
-
-      const acceptedQuestIds = userQuests ? userQuests.map(uq => uq.quest_id) : [];
-      const activeQuests = userQuests ? userQuests.filter(uq => uq.status === 'accepted') : [];
-
-      // Render Active Quests
-      if (!activeQuests || activeQuests.length === 0) {
-        activeContainer.innerHTML = `<p class="empty-state">No active quests. Accept one below!</p>`;
-      } else {
-        activeContainer.innerHTML = activeQuests.map(uq => renderQuestCard(uq.quests, true, uq.id)).join('');
-      }
-
-      // Fetch Available Public Quests
-      const { data: allQuests } = await supabaseClient
-        .from('quests')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
-
-      if (!allQuests || allQuests.length === 0) {
-        availableContainer.innerHTML = `<p class="empty-state">No quests available on the board.</p>`;
-        return;
-      }
-
-      const availableQuests = allQuests.filter(q => q.repeatable || !acceptedQuestIds.includes(q.id));
-
-      if (availableQuests.length === 0) {
-        availableContainer.innerHTML = `<p class="empty-state">You have accepted all available quests!</p>`;
-        return;
-      }
-
-      availableContainer.innerHTML = availableQuests.map(q => renderQuestCard(q, false)).join('');
-    }
-
-    // Helper: Render Quest Card Badges & Info
-    function renderQuestCard(q, isActive, userQuestId = null) {
-      const threatClass = q.threat_level === 'Safe' ? 'badge-threat-safe' : 
-                         (q.threat_level === 'Loot Drop' ? 'badge-threat-loot' : 'badge-threat-death');
-      
-      const categoryClass = q.category === 'Crafting' ? 'badge-crafting' : 
-                           (q.category === 'Social' ? 'badge-social' : 'badge-combat');
-
-      return `
-        <div class="quest-card">
-          <div class="tag-container">
-            <span class="badge ${categoryClass}">${q.category || 'Combat'}</span>
-            <span class="badge badge-type">${q.participation_type || 'Solo'}</span>
-            <span class="badge ${threatClass}">${q.threat_level || 'Safe'}</span>
-            ${q.repeatable ? '<span class="badge badge-type">🔁 Repeatable</span>' : ''}
-          </div>
-          
-          <h4>${q.title}</h4>
-          ${q.requirements ? `<p style="color:var(--warning); font-size:12px; margin-bottom:4px;"><strong>Req:</strong> ${q.requirements}</p>` : ''}
-          <p>${q.description || ''}</p>
-          
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
-            <div class="quest-rewards">
-              <span class="reward-gold">🪙 +${q.reward_gold} Gold</span>
-              <span class="reward-qp">⭐ +${q.reward_qp} QP</span>
-            </div>
-            ${isActive 
-              ? `<button class="btn-complete" onclick="completeQuest('${userQuestId}', ${q.reward_gold}, ${q.reward_qp})">Complete</button>`
-              : `<button class="btn-accept" onclick="acceptQuest('${q.id}')">Accept Quest</button>`
-            }
-          </div>
-        </div>
-      `;
-    }
-
-    // Fetch QM View of All Quests (including hidden scenario cards)
     async function fetchQMQuests() {
       const container = document.getElementById('qm-quest-list');
-      const { data: quests } = await supabaseClient
-        .from('quests')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const { data: quests } = await supabaseClient.from('quests').select('*').order('created_at', { ascending: false });
 
       if (!quests || quests.length === 0) {
-        container.innerHTML = `<p class="empty-state">No published quests yet.</p>`;
+        container.innerHTML = `<p class="empty-state">No published quests.</p>`;
         return;
       }
 
       container.innerHTML = quests.map(q => `
         <div class="quest-card">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div style="display:flex; justify-content:space-between;">
             <h4>${q.title}</h4>
-            <span class="badge badge-type">${q.is_active ? 'Active' : 'Disabled'}</span>
+            <span class="badge badge-type">${q.participation_type}</span>
           </div>
-          <p><strong>Public Lore:</strong> ${q.description || 'None'}</p>
-          
-          ${q.scenario_card ? `
-            <div class="scenario-card-box">
-              <h5>🔒 Secret Scenario Card (QM/Monster)</h5>
-              <p>${q.scenario_card}</p>
-            </div>
-          ` : ''}
+          <p style="margin-top:4px;">${q.description || ''}</p>
         </div>
       `).join('');
     }
 
-    // Accept & Complete Actions
     async function acceptQuest(questId) {
-      const { error } = await supabaseClient
-        .from('user_quests')
-        .insert({ user_id: currentUser.id, quest_id: questId, status: 'accepted' });
-
-      if (error) { alert("Failed to accept quest: " + error.message); return; }
+      const { error } = await supabaseClient.from('user_quests').insert({ user_id: currentUser.id, quest_id: questId, status: 'accepted' });
+      if (error) { alert("Error accepting quest: " + error.message); return; }
       fetchQuests();
     }
 
@@ -640,7 +822,6 @@
       initDashboard();
     }
 
-    // Bio Toggle & Save
     function toggleBioEdit() {
       const displayBox = document.getElementById('bio-display');
       const editBox = document.getElementById('bio-edit-container');
@@ -657,7 +838,6 @@
       toggleBioEdit();
     }
 
-    // Fetch Inventory
     async function fetchUserInventory() {
       const invContainer = document.getElementById('inventory-list');
       const { data: inventory } = await supabaseClient.from('user_inventory').select('*').eq('user_id', currentUser.id);
