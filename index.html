@@ -14,13 +14,14 @@
       --text-muted: #a1a1aa;
       --border: #27272a;
       --gold: #eab308;
+      --success: #22c55e;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       background-color: var(--bg);
       color: var(--text);
       font-family: system-ui, -apple-system, sans-serif;
-      padding-bottom: 80px;
+      padding-bottom: 85px;
     }
     header {
       padding: 16px;
@@ -57,7 +58,7 @@
     .stat-box small { color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; }
     .stat-box p { font-size: 18px; font-weight: bold; margin-top: 4px; }
 
-    /* Bio Section */
+    /* Bio Box */
     .bio-box {
       background: #27272a;
       border: 1px solid var(--border);
@@ -83,7 +84,7 @@
       min-height: 90px;
     }
 
-    /* Items & Grid Layouts */
+    /* Items & Quest Cards */
     .item-grid {
       display: grid;
       grid-template-columns: 1fr;
@@ -99,8 +100,25 @@
       justify-content: space-between;
       align-items: center;
     }
-    .item-info h4 { font-size: 16px; color: var(--text); }
-    .item-info p { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+    .quest-card {
+      background: #27272a;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .quest-card h4 { font-size: 16px; color: var(--text); margin-bottom: 4px; }
+    .quest-card p { font-size: 13px; color: var(--text-muted); line-height: 1.4; }
+    .quest-rewards {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .reward-gold { color: var(--gold); }
+    .reward-qp { color: var(--primary); }
+
     .item-badge {
       background: var(--primary);
       color: white;
@@ -119,6 +137,16 @@
       padding: 4px 10px;
       border-radius: 20px;
     }
+    .status-badge {
+      background: #14532d;
+      border: 1px solid var(--success);
+      color: var(--success);
+      font-size: 11px;
+      font-weight: bold;
+      padding: 4px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+    }
 
     /* Buttons */
     .btn {
@@ -131,9 +159,19 @@
       cursor: pointer;
       margin-top: 12px;
     }
-    .btn-secondary { background: #3f3f46; color: white; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-danger { background: #ef4444; color: white; margin-top: 20px; }
+    .btn-accept {
+      background: var(--primary);
+      color: white;
+      padding: 8px 16px;
+      font-size: 13px;
+      border-radius: 6px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
     .btn-buy {
       background: var(--gold);
       color: #000;
@@ -168,7 +206,7 @@
       background: none;
       border: none;
       color: var(--text-muted);
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       cursor: pointer;
       display: flex;
@@ -182,6 +220,7 @@
 
     .hidden { display: none !important; }
     .empty-state { text-align: center; color: var(--text-muted); padding: 20px; font-size: 14px; }
+    .section-title { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin: 16px 0 8px 0; }
   </style>
 </head>
 <body>
@@ -214,7 +253,7 @@
           </div>
         </div>
 
-        <!-- Character Lore / Bio Section -->
+        <!-- Lore Section -->
         <div style="margin-top: 20px;">
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3 style="font-size:15px; color:var(--text-muted);">Character Lore</h3>
@@ -233,7 +272,25 @@
       </div>
     </section>
 
-    <!-- 2. INVENTORY TAB -->
+    <!-- 2. QUESTS TAB -->
+    <section id="tab-quests" class="tab-view hidden">
+      <div class="card">
+        <h2>Quest Board</h2>
+        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Park day missions & bounties</p>
+
+        <h3 class="section-title">Active Quests</h3>
+        <div id="active-quests-list">
+          <p class="empty-state">Loading active quests...</p>
+        </div>
+
+        <h3 class="section-title">Available Quests</h3>
+        <div id="available-quests-list">
+          <p class="empty-state">Loading quest board...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. INVENTORY TAB -->
     <section id="tab-inventory" class="tab-view hidden">
       <div class="card">
         <h2>Your Pouch</h2>
@@ -245,7 +302,7 @@
       </div>
     </section>
 
-    <!-- 3. SHOP TAB -->
+    <!-- 4. SHOP TAB -->
     <section id="tab-shop" class="tab-view hidden">
       <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -267,8 +324,11 @@
     <button class="nav-btn active" id="nav-profile" onclick="switchTab('profile')">
       👤 <span>Profile</span>
     </button>
+    <button class="nav-btn" id="nav-quests" onclick="switchTab('quests')">
+      ⚔️ <span>Quests</span>
+    </button>
     <button class="nav-btn" id="nav-inventory" onclick="switchTab('inventory')">
-      🎒 <span>Inventory</span>
+      🎒 <span>Pouch</span>
     </button>
     <button class="nav-btn" id="nav-shop" onclick="switchTab('shop')">
       🪙 <span>Shop</span>
@@ -322,7 +382,8 @@
       document.getElementById('bio-display').innerText = userBio;
       document.getElementById('bio-input-field').value = profile?.bio || "";
 
-      // 2. Fetch Shop & Inventory
+      // 2. Fetch Quests, Shop & Inventory
+      fetchQuests();
       fetchShopItems();
       fetchUserInventory();
     }
@@ -359,6 +420,91 @@
 
       document.getElementById('bio-display').innerText = newBio || "No lore written yet. Tap Edit to add your backstory!";
       toggleBioEdit();
+    }
+
+    // Fetch Quests
+    async function fetchQuests() {
+      const activeContainer = document.getElementById('active-quests-list');
+      const availableContainer = document.getElementById('available-quests-list');
+
+      // Fetch user's accepted quests
+      const { data: userQuests } = await supabaseClient
+        .from('user_quests')
+        .select('*, quests(*)')
+        .eq('user_id', currentUser.id);
+
+      const acceptedQuestIds = userQuests ? userQuests.map(uq => uq.quest_id) : [];
+
+      // Render Active Quests
+      if (!userQuests || userQuests.length === 0) {
+        activeContainer.innerHTML = `<p class="empty-state">No quests in progress. Accept one below!</p>`;
+      } else {
+        activeContainer.innerHTML = userQuests.map(uq => `
+          <div class="quest-card">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <h4>${uq.quests.title}</h4>
+              <span class="status-badge">In Progress</span>
+            </div>
+            <p>${uq.quests.description || ''}</p>
+            <div class="quest-rewards">
+              <span class="reward-gold">🪙 +${uq.quests.reward_gold} Gold</span>
+              <span class="reward-qp">⭐ +${uq.quests.reward_qp} QP</span>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // Fetch all public active quests
+      const { data: allQuests } = await supabaseClient
+        .from('quests')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (!allQuests || allQuests.length === 0) {
+        availableContainer.innerHTML = `<p class="empty-state">No quests available on the board.</p>`;
+        return;
+      }
+
+      // Filter out quests user already accepted
+      const availableQuests = allQuests.filter(q => !acceptedQuestIds.includes(q.id));
+
+      if (availableQuests.length === 0) {
+        availableContainer.innerHTML = `<p class="empty-state">You have accepted all available quests!</p>`;
+        return;
+      }
+
+      availableContainer.innerHTML = availableQuests.map(q => `
+        <div class="quest-card">
+          <h4>${q.title}</h4>
+          <p>${q.description || ''}</p>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="quest-rewards">
+              <span class="reward-gold">🪙 +${q.reward_gold} Gold</span>
+              <span class="reward-qp">⭐ +${q.reward_qp} QP</span>
+            </div>
+            <button class="btn-accept" onclick="acceptQuest('${q.id}')">Accept Quest</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Accept Quest Action
+    async function acceptQuest(questId) {
+      const { error } = await supabaseClient
+        .from('user_quests')
+        .insert({
+          user_id: currentUser.id,
+          quest_id: questId,
+          status: 'accepted'
+        });
+
+      if (error) {
+        alert("Failed to accept quest: " + error.message);
+        return;
+      }
+
+      fetchQuests();
     }
 
     // Fetch Shop Items
