@@ -15,6 +15,8 @@
       --border: #27272a;
       --gold: #eab308;
       --success: #22c55e;
+      --danger: #ef4444;
+      --warning: #f97316;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -70,27 +72,9 @@
       color: #e4e4e7;
       white-space: pre-wrap;
     }
-    textarea.bio-input {
-      width: 100%;
-      background: #18181b;
-      border: 1px solid var(--primary);
-      color: var(--text);
-      border-radius: 8px;
-      padding: 10px;
-      font-family: inherit;
-      font-size: 14px;
-      margin-top: 10px;
-      resize: vertical;
-      min-height: 90px;
-    }
 
-    /* Items & Quest Cards */
-    .item-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 12px;
-      margin-top: 12px;
-    }
+    /* Cards & Form Elements */
+    .item-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 12px; }
     .item-card {
       background: #27272a;
       border: 1px solid var(--border);
@@ -107,35 +91,31 @@
       padding: 16px;
       margin-bottom: 12px;
     }
-    .quest-card h4 { font-size: 16px; color: var(--text); margin-bottom: 4px; }
+    .quest-card h4 { font-size: 16px; color: var(--text); margin-bottom: 6px; }
     .quest-card p { font-size: 13px; color: var(--text-muted); line-height: 1.4; }
-    .quest-rewards {
-      display: flex;
-      gap: 10px;
-      font-size: 12px;
+
+    /* Tags & Badges */
+    .tag-container { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+    .badge {
+      font-size: 10px;
       font-weight: bold;
+      padding: 3px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
+    .badge-combat { background: #451a03; color: #f97316; border: 1px solid #7c2d12; }
+    .badge-crafting { background: #14532d; color: #4ade80; border: 1px solid #166534; }
+    .badge-social { background: #1e1b4b; color: #818cf8; border: 1px solid #3730a3; }
+    .badge-threat-safe { background: #064e3b; color: #34d399; }
+    .badge-threat-loot { background: #713f12; color: #facc15; }
+    .badge-threat-death { background: #7f1d1d; color: #f87171; }
+    .badge-type { background: #27272a; color: #e4e4e7; border: 1px solid #3f3f46; }
+
+    .quest-rewards { display: flex; gap: 10px; font-size: 12px; font-weight: bold; }
     .reward-gold { color: var(--gold); }
     .reward-qp { color: var(--primary); }
 
-    .item-badge {
-      background: var(--primary);
-      color: white;
-      font-weight: bold;
-      font-size: 12px;
-      padding: 4px 10px;
-      border-radius: 20px;
-      white-space: nowrap;
-    }
-    .price-badge {
-      background: #222012;
-      border: 1px solid var(--gold);
-      color: var(--gold);
-      font-weight: bold;
-      font-size: 13px;
-      padding: 4px 10px;
-      border-radius: 20px;
-    }
     .status-badge {
       background: #14532d;
       border: 1px solid var(--success);
@@ -146,6 +126,34 @@
       border-radius: 6px;
       text-transform: uppercase;
     }
+
+    /* Forms */
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 12px; font-weight: bold; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; }
+    .form-control {
+      width: 100%;
+      background: #18181b;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 10px;
+      font-family: inherit;
+      font-size: 14px;
+    }
+    .form-control:focus { border-color: var(--primary); outline: none; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* Scenario Card (Hidden Content) */
+    .scenario-card-box {
+      background: #2e1065;
+      border: 1px dashed #a855f7;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 10px;
+      font-size: 13px;
+      color: #f3e8ff;
+    }
+    .scenario-card-box h5 { color: #c084fc; font-size: 12px; text-transform: uppercase; margin-bottom: 4px; }
 
     /* Buttons */
     .btn {
@@ -159,43 +167,9 @@
       margin-top: 12px;
     }
     .btn-primary { background: var(--primary); color: white; }
-    .btn-danger { background: #ef4444; color: white; margin-top: 20px; }
-    .btn-accept {
-      background: var(--primary);
-      color: white;
-      padding: 8px 16px;
-      font-size: 13px;
-      border-radius: 6px;
-      border: none;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .btn-complete {
-      background: var(--success);
-      color: #000;
-      padding: 8px 16px;
-      font-size: 13px;
-      border-radius: 6px;
-      border: none;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .btn-buy {
-      background: var(--gold);
-      color: #000;
-      padding: 8px 16px;
-      width: auto;
-      font-size: 14px;
-      border-radius: 6px;
-      border: none;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .btn-buy:disabled {
-      background: #4b5563;
-      color: #9ca3af;
-      cursor: not-allowed;
-    }
+    .btn-danger { background: var(--danger); color: white; margin-top: 20px; }
+    .btn-accept { background: var(--primary); color: white; padding: 8px 16px; font-size: 13px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
+    .btn-complete { background: var(--success); color: #000; padding: 8px 16px; font-size: 13px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
 
     /* Bottom Nav */
     .bottom-nav {
@@ -242,7 +216,10 @@
     <!-- 1. PROFILE TAB -->
     <section id="tab-profile" class="tab-view">
       <div class="card">
-        <h2>Player Profile</h2>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h2>Player Profile</h2>
+          <span id="role-badge" class="badge badge-type" style="display:none;">Questmaster</span>
+        </div>
         <p id="user-display" style="margin-top:6px; font-weight: bold; color: var(--primary); font-size: 20px;">Loading...</p>
         
         <!-- Stats Row -->
@@ -271,7 +248,7 @@
           <div id="bio-display" class="bio-box">No lore written yet. Tap Edit to add your backstory!</div>
           
           <div id="bio-edit-container" class="hidden">
-            <textarea id="bio-input-field" class="bio-input" placeholder="Write your character's backstory or persona details..."></textarea>
+            <textarea id="bio-input-field" class="form-control" style="margin-top:10px; min-height:90px;" placeholder="Write your backstory..."></textarea>
             <button class="btn btn-primary" onclick="saveBio()">Save Lore</button>
           </div>
         </div>
@@ -310,17 +287,97 @@
       </div>
     </section>
 
-    <!-- 4. SHOP TAB -->
-    <section id="tab-shop" class="tab-view hidden">
+    <!-- 4. QUESTMASTER ADMIN PANEL TAB -->
+    <section id="tab-admin" class="tab-view hidden">
       <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <h2>Park Shop</h2>
-          <span class="price-badge">🪙 <span id="shop-gold-display">0</span> Gold</span>
-        </div>
-        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Available items from the Questmaster</p>
+        <h2>👑 Questmaster Control</h2>
+        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Forge new park missions & manage scenario cards</p>
 
-        <div class="item-grid" id="shop-list">
-          <p class="empty-state">Loading market items...</p>
+        <!-- Quest Creator Form -->
+        <div style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px;">
+          <h3 style="font-size: 16px; margin-bottom: 12px; color: var(--primary);">Forge New Quest</h3>
+          
+          <div class="form-group">
+            <label>Quest Title</label>
+            <input type="text" id="qm-title" class="form-control" placeholder="e.g. Slay the Goblin Chieftain">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Category</label>
+              <select id="qm-category" class="form-control">
+                <option value="Combat">Combat</option>
+                <option value="Crafting">Crafting</option>
+                <option value="Arts & Sciences">Arts & Sciences</option>
+                <option value="Social">Social</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Type</label>
+              <select id="qm-type" class="form-control">
+                <option value="Solo">Solo</option>
+                <option value="Group">Group</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Threat Level</label>
+              <select id="qm-threat" class="form-control">
+                <option value="Safe">Safe</option>
+                <option value="Loot Drop">Loot Drop</option>
+                <option value="Permanent Death">Permanent Death</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Verification</label>
+              <select id="qm-verification" class="form-control">
+                <option value="Quest Master">Quest Master</option>
+                <option value="Honor">Honor</option>
+                <option value="Player">Player</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Gold Reward</label>
+              <input type="number" id="qm-gold" class="form-control" value="20">
+            </div>
+            <div class="form-group">
+              <label>QP Reward</label>
+              <input type="number" id="qm-qp" class="form-control" value="10">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Prerequisites / Requirements</label>
+            <input type="text" id="qm-requirements" class="form-control" placeholder="e.g. Must be Class: Assassin or 5+ QP">
+          </div>
+
+          <div class="form-group">
+            <label>Public Description (Player-Facing)</label>
+            <textarea id="qm-description" class="form-control" style="min-height:70px;" placeholder="Public lore objectives..."></textarea>
+          </div>
+
+          <div class="form-group" style="background:#27272a; padding:10px; border-radius:8px; border:1px dashed var(--primary);">
+            <label style="color:#c084fc;">🔒 Hidden Scenario Card (QM & Monster Only)</label>
+            <textarea id="qm-scenario" class="form-control" style="min-height:80px;" placeholder="Battlefield setup, true secret objectives, monster role templates..."></textarea>
+          </div>
+
+          <div class="form-group" style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="qm-repeatable" style="width:18px; height:18px;">
+            <label for="qm-repeatable" style="margin:0; cursor:pointer;">Repeatable Quest</label>
+          </div>
+
+          <button class="btn btn-primary" onclick="createQuest()">🚀 Push Quest to Park Board</button>
+        </div>
+
+        <!-- QM Quest Inspection -->
+        <h3 class="section-title" style="margin-top:24px;">Active Live Quests & Secret Cards</h3>
+        <div id="qm-quest-list">
+          <p class="empty-state">Loading published quests...</p>
         </div>
       </div>
     </section>
@@ -338,8 +395,8 @@
     <button class="nav-btn" id="nav-inventory" onclick="switchTab('inventory')">
       🎒 <span>Pouch</span>
     </button>
-    <button class="nav-btn" id="nav-shop" onclick="switchTab('shop')">
-      🪙 <span>Shop</span>
+    <button class="nav-btn hidden" id="nav-admin" onclick="switchTab('admin')">
+      👑 <span>QM Panel</span>
     </button>
   </nav>
 
@@ -349,7 +406,7 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let currentUser = null;
-    let currentGold = 0;
+    let currentProfile = null;
 
     function switchTab(tabName) {
       document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
@@ -369,73 +426,95 @@
 
       currentUser = session.user;
 
-      // 1. Fetch Profile
+      // Fetch Profile
       const { data: profile } = await supabaseClient
         .from('profiles')
         .select('*')
         .eq('id', currentUser.id)
         .single();
 
+      currentProfile = profile;
       const displayName = profile?.username || currentUser.user_metadata?.username || currentUser.email;
-      currentGold = profile?.gold || 0;
 
       document.getElementById('user-display').innerText = displayName;
-      document.getElementById('profile-gold').innerText = currentGold;
-      document.getElementById('shop-gold-display').innerText = currentGold;
+      document.getElementById('profile-gold').innerText = profile?.gold || 0;
       document.getElementById('profile-qp').innerText = profile?.quest_points || 0;
       document.getElementById('profile-monsters').innerText = profile?.monster_shifts || 0;
 
+      // Show QM Admin tab if role is questmaster or admin
+      if (profile?.role === 'questmaster' || profile?.role === 'admin') {
+        document.getElementById('nav-admin').classList.remove('hidden');
+        document.getElementById('role-badge').innerText = profile.role.toUpperCase();
+        document.getElementById('role-badge').style.display = 'inline-block';
+        fetchQMQuests();
+      }
+
       // Load Bio
-      const userBio = profile?.bio || "No lore written yet. Tap Edit to add your backstory!";
-      document.getElementById('bio-display').innerText = userBio;
+      document.getElementById('bio-display').innerText = profile?.bio || "No lore written yet. Tap Edit to add your backstory!";
       document.getElementById('bio-input-field').value = profile?.bio || "";
 
-      // 2. Fetch Quests, Shop & Inventory
       fetchQuests();
-      fetchShopItems();
       fetchUserInventory();
     }
 
-    // Bio Toggle & Save
-    function toggleBioEdit() {
-      const displayBox = document.getElementById('bio-display');
-      const editBox = document.getElementById('bio-edit-container');
-      const editBtn = document.getElementById('edit-bio-btn');
+    // Questmaster: Create and Push Quest
+    async function createQuest() {
+      const title = document.getElementById('qm-title').value.trim();
+      const category = document.getElementById('qm-category').value;
+      const participation_type = document.getElementById('qm-type').value;
+      const threat_level = document.getElementById('qm-threat').value;
+      const verification_method = document.getElementById('qm-verification').value;
+      const reward_gold = parseInt(document.getElementById('qm-gold').value) || 0;
+      const reward_qp = parseInt(document.getElementById('qm-qp').value) || 0;
+      const requirements = document.getElementById('qm-requirements').value.trim();
+      const description = document.getElementById('qm-description').value.trim();
+      const scenario_card = document.getElementById('qm-scenario').value.trim();
+      const repeatable = document.getElementById('qm-repeatable').checked;
 
-      if (editBox.classList.contains('hidden')) {
-        editBox.classList.remove('hidden');
-        displayBox.classList.add('hidden');
-        editBtn.innerText = "Cancel";
-      } else {
-        editBox.classList.add('hidden');
-        displayBox.classList.remove('hidden');
-        editBtn.innerText = "Edit";
-      }
-    }
-
-    async function saveBio() {
-      const newBio = document.getElementById('bio-input-field').value.trim();
-
-      const { error } = await supabaseClient
-        .from('profiles')
-        .update({ bio: newBio })
-        .eq('id', currentUser.id);
-
-      if (error) {
-        alert("Failed to save lore: " + error.message);
+      if (!title) {
+        alert("Please enter a Quest Title.");
         return;
       }
 
-      document.getElementById('bio-display').innerText = newBio || "No lore written yet. Tap Edit to add your backstory!";
-      toggleBioEdit();
+      const { error } = await supabaseClient
+        .from('quests')
+        .insert({
+          title,
+          category,
+          participation_type,
+          threat_level,
+          verification_method,
+          reward_gold,
+          reward_qp,
+          requirements,
+          description,
+          scenario_card,
+          repeatable,
+          is_active: true
+        });
+
+      if (error) {
+        alert("Failed to push quest: " + error.message);
+        return;
+      }
+
+      alert(`⚔️ Quest "${title}" successfully published to the Park Board!`);
+
+      // Reset form
+      document.getElementById('qm-title').value = '';
+      document.getElementById('qm-description').value = '';
+      document.getElementById('qm-scenario').value = '';
+      document.getElementById('qm-requirements').value = '';
+
+      fetchQuests();
+      fetchQMQuests();
     }
 
-    // Fetch Quests
+    // Fetch Quests for Public Board
     async function fetchQuests() {
       const activeContainer = document.getElementById('active-quests-list');
       const availableContainer = document.getElementById('available-quests-list');
 
-      // Fetch user's active/accepted quests
       const { data: userQuests } = await supabaseClient
         .from('user_quests')
         .select('*, quests(*)')
@@ -448,25 +527,10 @@
       if (!activeQuests || activeQuests.length === 0) {
         activeContainer.innerHTML = `<p class="empty-state">No active quests. Accept one below!</p>`;
       } else {
-        activeContainer.innerHTML = activeQuests.map(uq => `
-          <div class="quest-card">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-              <h4>${uq.quests.title}</h4>
-              <span class="status-badge">In Progress</span>
-            </div>
-            <p style="margin-top:6px;">${uq.quests.description || ''}</p>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
-              <div class="quest-rewards">
-                <span class="reward-gold">🪙 +${uq.quests.reward_gold} Gold</span>
-                <span class="reward-qp">⭐ +${uq.quests.reward_qp} QP</span>
-              </div>
-              <button class="btn-complete" onclick="completeQuest('${uq.id}', ${uq.quests.reward_gold}, ${uq.quests.reward_qp})">Complete</button>
-            </div>
-          </div>
-        `).join('');
+        activeContainer.innerHTML = activeQuests.map(uq => renderQuestCard(uq.quests, true, uq.id)).join('');
       }
 
-      // Fetch all public active quests
+      // Fetch Available Public Quests
       const { data: allQuests } = await supabaseClient
         .from('quests')
         .select('*')
@@ -478,187 +542,140 @@
         return;
       }
 
-      // Filter out quests user already accepted or completed
-      const availableQuests = allQuests.filter(q => !acceptedQuestIds.includes(q.id));
+      const availableQuests = allQuests.filter(q => q.repeatable || !acceptedQuestIds.includes(q.id));
 
       if (availableQuests.length === 0) {
-        availableContainer.innerHTML = `<p class="empty-state">You have accepted or completed all available quests!</p>`;
+        availableContainer.innerHTML = `<p class="empty-state">You have accepted all available quests!</p>`;
         return;
       }
 
-      availableContainer.innerHTML = availableQuests.map(q => `
+      availableContainer.innerHTML = availableQuests.map(q => renderQuestCard(q, false)).join('');
+    }
+
+    // Helper: Render Quest Card Badges & Info
+    function renderQuestCard(q, isActive, userQuestId = null) {
+      const threatClass = q.threat_level === 'Safe' ? 'badge-threat-safe' : 
+                         (q.threat_level === 'Loot Drop' ? 'badge-threat-loot' : 'badge-threat-death');
+      
+      const categoryClass = q.category === 'Crafting' ? 'badge-crafting' : 
+                           (q.category === 'Social' ? 'badge-social' : 'badge-combat');
+
+      return `
         <div class="quest-card">
+          <div class="tag-container">
+            <span class="badge ${categoryClass}">${q.category || 'Combat'}</span>
+            <span class="badge badge-type">${q.participation_type || 'Solo'}</span>
+            <span class="badge ${threatClass}">${q.threat_level || 'Safe'}</span>
+            ${q.repeatable ? '<span class="badge badge-type">🔁 Repeatable</span>' : ''}
+          </div>
+          
           <h4>${q.title}</h4>
-          <p style="margin-top:6px;">${q.description || ''}</p>
+          ${q.requirements ? `<p style="color:var(--warning); font-size:12px; margin-bottom:4px;"><strong>Req:</strong> ${q.requirements}</p>` : ''}
+          <p>${q.description || ''}</p>
+          
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
             <div class="quest-rewards">
               <span class="reward-gold">🪙 +${q.reward_gold} Gold</span>
               <span class="reward-qp">⭐ +${q.reward_qp} QP</span>
             </div>
-            <button class="btn-accept" onclick="acceptQuest('${q.id}')">Accept Quest</button>
+            ${isActive 
+              ? `<button class="btn-complete" onclick="completeQuest('${userQuestId}', ${q.reward_gold}, ${q.reward_qp})">Complete</button>`
+              : `<button class="btn-accept" onclick="acceptQuest('${q.id}')">Accept Quest</button>`
+            }
           </div>
+        </div>
+      `;
+    }
+
+    // Fetch QM View of All Quests (including hidden scenario cards)
+    async function fetchQMQuests() {
+      const container = document.getElementById('qm-quest-list');
+      const { data: quests } = await supabaseClient
+        .from('quests')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!quests || quests.length === 0) {
+        container.innerHTML = `<p class="empty-state">No published quests yet.</p>`;
+        return;
+      }
+
+      container.innerHTML = quests.map(q => `
+        <div class="quest-card">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <h4>${q.title}</h4>
+            <span class="badge badge-type">${q.is_active ? 'Active' : 'Disabled'}</span>
+          </div>
+          <p><strong>Public Lore:</strong> ${q.description || 'None'}</p>
+          
+          ${q.scenario_card ? `
+            <div class="scenario-card-box">
+              <h5>🔒 Secret Scenario Card (QM/Monster)</h5>
+              <p>${q.scenario_card}</p>
+            </div>
+          ` : ''}
         </div>
       `).join('');
     }
 
-    // Accept Quest Action
+    // Accept & Complete Actions
     async function acceptQuest(questId) {
       const { error } = await supabaseClient
         .from('user_quests')
-        .insert({
-          user_id: currentUser.id,
-          quest_id: questId,
-          status: 'accepted'
-        });
+        .insert({ user_id: currentUser.id, quest_id: questId, status: 'accepted' });
 
-      if (error) {
-        alert("Failed to accept quest: " + error.message);
-        return;
-      }
-
+      if (error) { alert("Failed to accept quest: " + error.message); return; }
       fetchQuests();
     }
 
-    // Complete Quest Action & Claim Rewards
     async function completeQuest(userQuestId, rewardGold, rewardQp) {
-      // 1. Get existing user stats
-      const { data: profile } = await supabaseClient
-        .from('profiles')
-        .select('gold, quest_points')
-        .eq('id', currentUser.id)
-        .single();
+      const { data: profile } = await supabaseClient.from('profiles').select('gold, quest_points').eq('id', currentUser.id).single();
 
-      const updatedGold = (profile?.gold || 0) + rewardGold;
-      const updatedQp = (profile?.quest_points || 0) + rewardQp;
+      await supabaseClient.from('profiles').update({ 
+        gold: (profile?.gold || 0) + rewardGold, 
+        quest_points: (profile?.quest_points || 0) + rewardQp 
+      }).eq('id', currentUser.id);
 
-      // 2. Add rewards to profile
-      const { error: profileError } = await supabaseClient
-        .from('profiles')
-        .update({ gold: updatedGold, quest_points: updatedQp })
-        .eq('id', currentUser.id);
-
-      if (profileError) {
-        alert("Failed to pay out rewards: " + profileError.message);
-        return;
-      }
-
-      // 3. Mark quest as completed
-      const { error: questError } = await supabaseClient
-        .from('user_quests')
-        .update({ status: 'completed' })
-        .eq('id', userQuestId);
-
-      if (questError) {
-        alert("Failed to update quest status: " + questError.message);
-        return;
-      }
-
-      // 4. Refresh entire dashboard to update stats & shop buttons
+      await supabaseClient.from('user_quests').update({ status: 'completed' }).eq('id', userQuestId);
       initDashboard();
     }
 
-    // Fetch Shop Items
-    async function fetchShopItems() {
-      const shopContainer = document.getElementById('shop-list');
-      const { data: items, error } = await supabaseClient
-        .from('shop_items')
-        .select('*')
-        .order('price', { ascending: true });
+    // Bio Toggle & Save
+    function toggleBioEdit() {
+      const displayBox = document.getElementById('bio-display');
+      const editBox = document.getElementById('bio-edit-container');
+      const editBtn = document.getElementById('edit-bio-btn');
+      editBox.classList.toggle('hidden');
+      displayBox.classList.toggle('hidden');
+      editBtn.innerText = editBox.classList.contains('hidden') ? "Edit" : "Cancel";
+    }
 
-      if (error || !items || items.length === 0) {
-        shopContainer.innerHTML = `<p class="empty-state">No items currently available in the shop.</p>`;
-        return;
-      }
-
-      shopContainer.innerHTML = items.map(item => `
-        <div class="item-card">
-          <div class="item-info">
-            <h4>${item.name}</h4>
-            <p>${item.description || ''}</p>
-            <span style="color:var(--gold); font-weight:bold; font-size:13px; display:inline-block; margin-top:4px;">
-              🪙 ${item.price} Gold
-            </span>
-          </div>
-          <button class="btn-buy" ${currentGold < item.price ? 'disabled' : ''} 
-            onclick="buyItem('${item.id}', '${escapeQuotes(item.name)}', '${escapeQuotes(item.description || '')}', ${item.price})">
-            ${currentGold < item.price ? 'Need Gold' : 'Buy'}
-          </button>
-        </div>
-      `).join('');
+    async function saveBio() {
+      const newBio = document.getElementById('bio-input-field').value.trim();
+      await supabaseClient.from('profiles').update({ bio: newBio }).eq('id', currentUser.id);
+      document.getElementById('bio-display').innerText = newBio || "No lore written yet. Tap Edit to add your backstory!";
+      toggleBioEdit();
     }
 
     // Fetch Inventory
     async function fetchUserInventory() {
       const invContainer = document.getElementById('inventory-list');
-      const { data: inventory, error } = await supabaseClient
-        .from('user_inventory')
-        .select('*')
-        .eq('user_id', currentUser.id)
-        .order('created_at', { ascending: false });
+      const { data: inventory } = await supabaseClient.from('user_inventory').select('*').eq('user_id', currentUser.id);
 
-      if (error || !inventory || inventory.length === 0) {
-        invContainer.innerHTML = `<p class="empty-state">Your pouch is currently empty. Buy items from the Park Shop!</p>`;
+      if (!inventory || inventory.length === 0) {
+        invContainer.innerHTML = `<p class="empty-state">Your pouch is currently empty.</p>`;
         return;
       }
 
       invContainer.innerHTML = inventory.map(item => `
         <div class="item-card">
-          <div class="item-info">
+          <div>
             <h4>${item.item_name}</h4>
             <p>${item.description || ''}</p>
           </div>
-          <span class="item-badge">x${item.quantity}</span>
+          <span class="badge badge-type">x${item.quantity}</span>
         </div>
       `).join('');
-    }
-
-    // Buy Item Logic
-    async function buyItem(itemId, name, description, price) {
-      if (currentGold < price) {
-        alert("You don't have enough Gold for this!");
-        return;
-      }
-
-      const newGold = currentGold - price;
-
-      const { error: profileError } = await supabaseClient
-        .from('profiles')
-        .update({ gold: newGold })
-        .eq('id', currentUser.id);
-
-      if (profileError) {
-        alert("Failed to update gold: " + profileError.message);
-        return;
-      }
-
-      const { data: existingItem } = await supabaseClient
-        .from('user_inventory')
-        .select('*')
-        .eq('user_id', currentUser.id)
-        .eq('item_name', name)
-        .maybeSingle();
-
-      if (existingItem) {
-        await supabaseClient
-          .from('user_inventory')
-          .update({ quantity: existingItem.quantity + 1 })
-          .eq('id', existingItem.id);
-      } else {
-        await supabaseClient
-          .from('user_inventory')
-          .insert({
-            user_id: currentUser.id,
-            item_name: name,
-            description: description,
-            quantity: 1
-          });
-      }
-
-      initDashboard();
-    }
-
-    function escapeQuotes(str) {
-      return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
     }
 
     async function handleSignOut() {
