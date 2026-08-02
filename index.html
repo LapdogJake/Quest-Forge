@@ -368,7 +368,7 @@
 
         <h3 class="section-title" style="color:var(--monster);">👹 Active Monster Role</h3>
         <div id="active-monster-assignment">
-          <p class="empty-state">You are not currently in a monster queue.</p>
+          <p class="empty-state">You are not currently volunteered for a monster encounter.</p>
         </div>
 
         <h3 class="section-title">⚔️ Field Encounters Requesting Monsters</h3>
@@ -725,7 +725,7 @@
         : `<p class="empty-state">No available larpie quests.</p>`;
     }
 
-    // Fetch Monster Callboard
+    // Fetch Monster Callboard (Pulls Active Combat Quests directly)
     async function fetchMonsterEncounters() {
       const activeMonsterContainer = document.getElementById('active-monster-assignment');
       const availableMonsterContainer = document.getElementById('available-monster-encounters');
@@ -752,33 +752,35 @@
         activeMonsterContainer.innerHTML = `<p class="empty-state">You are not currently volunteered for a monster encounter.</p>`;
       }
 
-      const { data: queues } = await supabaseClient
-        .from('quest_queues')
-        .select('*, quests(*)')
-        .in('status', ['waiting', 'active']);
+      // Fetch all Active Combat Quests from catalog
+      const { data: combatQuests } = await supabaseClient
+        .from('quests')
+        .select('*')
+        .eq('is_active', true)
+        .eq('category', 'Combat');
 
-      if (!queues || queues.length === 0) {
+      if (!combatQuests || combatQuests.length === 0) {
         availableMonsterContainer.innerHTML = `<p class="empty-state">No live battles currently requesting monster volunteers.</p>`;
         return;
       }
 
-      availableMonsterContainer.innerHTML = queues.map(qq => {
-        if (!qq.quests) return '';
-        const isBattleLocked = !!activeBattleQuest;
+      const isBattleLocked = !!activeBattleQuest;
 
+      availableMonsterContainer.innerHTML = combatQuests.map(q => {
         return `
           <div class="quest-card">
             <div class="tag-container">
               <span class="badge badge-monster">👹 Monster Line Open</span>
-              <span class="badge badge-type">${qq.quests.participation_type}</span>
+              <span class="badge badge-type">${q.participation_type || 'Group'}</span>
+              <span class="badge badge-combat">${q.threat_level || 'Safe'}</span>
             </div>
-            <h4>${qq.quests.title}</h4>
-            <p>${qq.quests.description || ''}</p>
+            <h4>${q.title}</h4>
+            <p>${q.description || ''}</p>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
               <span class="reward-qp">⭐ +1 Monster Shift Credit</span>
               ${isBattleLocked 
                 ? `<button class="btn-secondary" disabled style="opacity:0.6;">Battle Slot Full</button>`
-                : `<button class="btn-accept" style="background:var(--monster);" onclick="claimMonsterRole('${qq.id}', 'Standard Monster')">Join Monster Line</button>`
+                : `<button class="btn-accept" style="background:var(--monster);" onclick="claimMonsterRole('${q.id}', 'Standard Monster')">Join Monster Line</button>`
               }
             </div>
           </div>
@@ -865,12 +867,37 @@
       `;
     }
 
-    async function claimMonsterRole(queueId, roleName) {
+    async function claimMonsterRole(questId, roleName) {
       if (activeBattleQuest) {
         alert("⚠️ Your Battle Slot is already occupied by a Combat quest or another Monster assignment!");
         return;
       }
 
+      // Check if a queue already exists for this quest
+      const { data: existingQueues } = await supabaseClient
+        .from('quest_queues')
+        .select('*')
+        .eq('quest_id', questId)
+        .eq('status', 'waiting')
+        .limit(1);
+
+      let queueId = null;
+
+      if (existingQueues && existingQueues.length > 0) {
+        queueId = existingQueues[0].id;
+      } else {
+        // Automatically spin up the live field queue if monster joins first
+        const { data: newQueue, error: queueError } = await supabaseClient
+          .from('quest_queues')
+          .insert({ quest_id: questId, status: 'waiting' })
+          .select()
+          .single();
+
+        if (queueError) { alert("Error opening encounter line: " + queueError.message); return; }
+        queueId = newQueue.id;
+      }
+
+      // Join the monster line for this queue
       const { error } = await supabaseClient.from('encounter_monsters').insert({
         queue_id: queueId,
         user_id: currentUser.id,
@@ -884,6 +911,9 @@
       await fetchUserSlotState();
       fetchMonsterEncounters();
       fetchQuests();
+      if (currentProfile?.role === 'questmaster' || currentProfile?.role === 'admin') {
+        fetchQMQueues();
+      }
     }
 
     async function abandonMonsterRole(claimId) {
@@ -891,6 +921,9 @@
       await fetchUserSlotState();
       fetchMonsterEncounters();
       fetchQuests();
+      if (currentProfile?.role === 'questmaster' || currentProfile?.role === 'admin') {
+        fetchQMQueues();
+      }
     }
 
     async function joinOrCreateGroupQueue(questId) {
@@ -933,12 +966,18 @@
       alert("⚔️ Joined PC Line! Battle Slot locked.");
       await fetchUserSlotState();
       fetchQuests();
+      if (currentProfile?.role === 'questmaster' || currentProfile?.role === 'admin') {
+        fetchQMQueues();
+      }
     }
 
     async function leaveQueue(queueId) {
       await supabaseClient.from('queue_members').delete().eq('queue_id', queueId).eq('user_id', currentUser.id);
       await fetchUserSlotState();
       fetchQuests();
+      if (currentProfile?.role === 'questmaster' || currentProfile?.role === 'admin') {
+        fetchQMQueues();
+      }
     }
 
     // QM LIVE QUEUES PANEL WITH DUAL-LINE TRACKING
