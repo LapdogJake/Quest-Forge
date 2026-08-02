@@ -18,6 +18,7 @@
       --success: #22c55e;
       --danger: #ef4444;
       --warning: #f97316;
+      --monster: #dc2626;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -45,9 +46,28 @@
       margin-bottom: 16px;
     }
 
+    /* Dual-Slot Status Banner */
+    .slot-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .slot-box {
+      background: #18181b;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+    }
+    .slot-box h5 { font-size: 11px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+    .slot-status { font-size: 12px; font-weight: bold; }
+    .slot-occupied { color: var(--warning); }
+    .slot-free { color: var(--success); }
+
     /* Stats Grid */
     .stats-grid {
-      margin-top: 16px;
+      margin-top: 14px;
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
       gap: 8px;
@@ -67,7 +87,7 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 12px;
-      margin-top: 16px;
+      margin-top: 14px;
       font-size: 14px;
       line-height: 1.5;
       color: #e4e4e7;
@@ -106,8 +126,8 @@
       letter-spacing: 0.5px;
     }
     .badge-combat { background: #451a03; color: #f97316; border: 1px solid #7c2d12; }
-    .badge-crafting { background: #14532d; color: #4ade80; border: 1px solid #166534; }
-    .badge-social { background: #1e1b4b; color: #818cf8; border: 1px solid #3730a3; }
+    .badge-larpie { background: #14532d; color: #4ade80; border: 1px solid #166534; }
+    .badge-monster { background: #7f1d1d; color: #f87171; border: 1px solid #991b1b; }
     .badge-threat-safe { background: #064e3b; color: #34d399; }
     .badge-threat-loot { background: #713f12; color: #facc15; }
     .badge-threat-death { background: #7f1d1d; color: #f87171; }
@@ -119,7 +139,7 @@
     .reward-gold { color: var(--gold); }
     .reward-qp { color: var(--primary); }
 
-    /* Queue Box */
+    /* Queue & Monster Box */
     .queue-box {
       background: #18181b;
       border: 1px solid #3f3f46;
@@ -163,10 +183,7 @@
       text-align: center;
       white-space: nowrap;
     }
-    .qm-subnav-btn.active {
-      background: var(--primary);
-      color: white;
-    }
+    .qm-subnav-btn.active { background: var(--primary); color: white; }
 
     /* Form Styling */
     .form-group { margin-bottom: 12px; }
@@ -208,6 +225,7 @@
       margin-top: 12px;
     }
     .btn-primary { background: var(--primary); color: white; }
+    .btn-monster { background: var(--monster); color: white; }
     .btn-danger { background: var(--danger); color: white; margin-top: 20px; }
     .btn-accept { background: var(--primary); color: white; padding: 8px 14px; font-size: 13px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
     .btn-complete { background: var(--success); color: #000; padding: 8px 14px; font-size: 13px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
@@ -232,21 +250,22 @@
       background: none;
       border: none;
       color: var(--text-muted);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       cursor: pointer;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
+      gap: 3px;
       flex: 1;
-      padding: 8px 0;
+      padding: 6px 0;
     }
     .nav-btn.active { color: var(--primary); }
+    .nav-btn.active-monster { color: var(--monster); }
 
     .hidden { display: none !important; }
     .empty-state { text-align: center; color: var(--text-muted); padding: 20px; font-size: 14px; }
-    .section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin: 16px 0 8px 0; }
+    .section-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin: 16px 0 8px 0; }
   </style>
 </head>
 <body>
@@ -266,6 +285,18 @@
         </div>
         <p id="user-display" style="margin-top:6px; font-weight: bold; color: var(--primary); font-size: 20px;">Loading...</p>
         
+        <!-- Dual Slot Holder -->
+        <div class="slot-container">
+          <div class="slot-box">
+            <h5>⚔️ Battle Slot</h5>
+            <span id="slot-battle-status" class="slot-status slot-free">Available</span>
+          </div>
+          <div class="slot-box">
+            <h5>📜 Larpie Slot</h5>
+            <span id="slot-larpie-status" class="slot-status slot-free">Available</span>
+          </div>
+        </div>
+
         <!-- Stats Row -->
         <div class="stats-grid">
           <div class="stat-box">
@@ -301,25 +332,48 @@
       </div>
     </section>
 
-    <!-- 2. QUESTS TAB -->
+    <!-- 2. QUESTS TAB (PC BOARD) -->
     <section id="tab-quests" class="tab-view hidden">
       <div class="card">
-        <h2>Quest Board</h2>
-        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Park day missions & bounties</p>
+        <h2>Adventurer Quest Board</h2>
+        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">1 Battle Quest & 1 Larpie Quest allowed at a time</p>
 
-        <h3 class="section-title">Active Quests & Party Queues</h3>
+        <h3 class="section-title">Your Active Quests</h3>
         <div id="active-quests-list">
           <p class="empty-state">Loading active quests...</p>
         </div>
 
-        <h3 class="section-title">Available Quests</h3>
-        <div id="available-quests-list">
-          <p class="empty-state">Loading quest board...</p>
+        <h3 class="section-title">⚔️ Battle Quests (Combat)</h3>
+        <div id="available-combat-quests">
+          <p class="empty-state">Loading battle board...</p>
+        </div>
+
+        <h3 class="section-title">📜 Larpie Quests (Crafting / RP / A&S)</h3>
+        <div id="available-larpie-quests">
+          <p class="empty-state">Loading non-combat board...</p>
         </div>
       </div>
     </section>
 
-    <!-- 3. INVENTORY TAB -->
+    <!-- 3. MONSTERS TAB (MONSTER VOLUNTEERS & SCENARIO CARDS) -->
+    <section id="tab-monsters" class="tab-view hidden">
+      <div class="card" style="border-top: 4px solid var(--monster);">
+        <h2>👹 Monster Callboard</h2>
+        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Volunteer for live field encounters & unlock scenario secrets</p>
+
+        <h3 class="section-title" style="color:var(--monster);">👹 Active Monster Assignment</h3>
+        <div id="active-monster-assignment">
+          <p class="empty-state">You are not currently volunteered for a monster encounter.</p>
+        </div>
+
+        <h3 class="section-title">⚔️ Live Field Encounters Needing Monsters</h3>
+        <div id="available-monster-encounters">
+          <p class="empty-state">No live battles currently requesting monster volunteers.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. INVENTORY TAB -->
     <section id="tab-inventory" class="tab-view hidden">
       <div class="card">
         <h2>Your Pouch</h2>
@@ -331,13 +385,12 @@
       </div>
     </section>
 
-    <!-- 4. QUESTMASTER ADMIN PANEL TAB -->
+    <!-- 5. QUESTMASTER CONTROL TAB -->
     <section id="tab-admin" class="tab-view hidden">
       <div class="card">
         <h2>👑 Questmaster Control</h2>
         <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Forge quests & manage park day deployments</p>
 
-        <!-- Sub-Tab Nav Buttons -->
         <div class="qm-subnav">
           <button id="qm-subnav-create" class="qm-subnav-btn active" onclick="switchQMSubTab('create')">➕ Forge Quest</button>
           <button id="qm-subnav-library" class="qm-subnav-btn" onclick="switchQMSubTab('library')">📜 Quest Library</button>
@@ -357,10 +410,10 @@
             <div class="form-group">
               <label>Category</label>
               <select id="qm-category" class="form-control">
-                <option value="Combat">Combat</option>
-                <option value="Crafting">Crafting</option>
-                <option value="Arts & Sciences">Arts & Sciences</option>
-                <option value="Social">Social</option>
+                <option value="Combat">Combat (Battle Slot)</option>
+                <option value="Crafting">Crafting (Larpie Slot)</option>
+                <option value="Arts & Sciences">Arts & Sciences (Larpie Slot)</option>
+                <option value="Social">Social / RP (Larpie Slot)</option>
               </select>
             </div>
             <div class="form-group">
@@ -412,7 +465,7 @@
           </div>
 
           <div class="form-group" style="background:#27272a; padding:10px; border-radius:8px; border:1px dashed var(--primary);">
-            <label style="color:#c084fc;">🔒 Hidden Scenario Card (QM & Monster Only)</label>
+            <label style="color:#c084fc;">🔒 Hidden Scenario Card & Monster Stat Block</label>
             <textarea id="qm-scenario" class="form-control" style="min-height:80px;" placeholder="Battlefield setup, true secret objectives, monster role templates..."></textarea>
           </div>
 
@@ -426,7 +479,7 @@
 
         <!-- SUB-TAB 2: QUEST LIBRARY -->
         <div id="qm-subtab-library" class="hidden">
-          <h3 class="section-title" style="color:var(--primary); border-bottom:1px solid var(--border); padding-bottom:6px;">📜 Deployable Quest Library</h3>
+          <h3 class="section-title" style="color:var(--primary);">📜 Deployable Quest Library</h3>
           <div id="qm-quest-list">
             <p class="empty-state">Loading quest catalog...</p>
           </div>
@@ -434,7 +487,7 @@
 
         <!-- SUB-TAB 3: LIVE PARTY QUEUES -->
         <div id="qm-subtab-queues" class="hidden">
-          <h3 class="section-title" style="color:var(--gold); border-bottom:1px solid var(--border); padding-bottom:6px;">⚔️ Live Party Queues</h3>
+          <h3 class="section-title" style="color:var(--gold);">⚔️ Live Party Queues</h3>
           <div id="qm-queue-list">
             <p class="empty-state">No party queues currently waiting on the field.</p>
           </div>
@@ -453,6 +506,9 @@
     <button class="nav-btn" id="nav-quests" onclick="switchTab('quests')">
       ⚔️ <span>Quests</span>
     </button>
+    <button class="nav-btn" id="nav-monsters" onclick="switchTab('monsters')">
+      👹 <span>Monsters</span>
+    </button>
     <button class="nav-btn" id="nav-inventory" onclick="switchTab('inventory')">
       🎒 <span>Pouch</span>
     </button>
@@ -468,17 +524,25 @@
 
     let currentUser = null;
     let currentProfile = null;
+    let activeBattleQuest = null;
+    let activeLarpieQuest = null;
+    let activeMonsterClaim = null;
 
     // Main Tab Switcher
     function switchTab(tabName) {
       document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
-      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active', 'active-monster'));
 
       document.getElementById(`tab-${tabName}`).classList.remove('hidden');
-      document.getElementById(`nav-${tabName}`).classList.add('active');
+      const activeBtn = document.getElementById(`nav-${tabName}`);
+      if (tabName === 'monsters') {
+        activeBtn.classList.add('active-monster');
+      } else {
+        activeBtn.classList.add('active');
+      }
     }
 
-    // QM Panel Sub-Tab Switcher (Forge vs Library vs Queues)
+    // QM Panel Sub-Tab Switcher
     function switchQMSubTab(subTabName) {
       document.getElementById('qm-subtab-create').classList.add('hidden');
       document.getElementById('qm-subtab-library').classList.add('hidden');
@@ -537,16 +601,72 @@
       document.getElementById('bio-display').innerText = profile?.bio || "No lore written yet. Tap Edit to add your backstory!";
       document.getElementById('bio-input-field').value = profile?.bio || "";
 
+      await fetchUserSlotState();
       fetchQuests();
+      fetchMonsterEncounters();
       fetchUserInventory();
     }
 
-    // Fetch Public Board Quests
+    // Evaluate Active Battle & Larpie Slots
+    async function fetchUserSlotState() {
+      // 1. Fetch User Solo & Group Quests
+      const { data: userQuests } = await supabaseClient
+        .from('user_quests')
+        .select('*, quests(*)')
+        .eq('user_id', currentUser.id)
+        .eq('status', 'accepted');
+
+      const { data: queueMemberships } = await supabaseClient
+        .from('queue_members')
+        .select('queue_id, quest_queues(*, quests(*))')
+        .eq('user_id', currentUser.id);
+
+      // 2. Fetch Active Monster Claim
+      const { data: monsterClaims } = await supabaseClient
+        .from('encounter_monsters')
+        .select('*, quest_queues(*, quests(*))')
+        .eq('user_id', currentUser.id)
+        .eq('status', 'claimed');
+
+      activeMonsterClaim = (monsterClaims && monsterClaims.length > 0) ? monsterClaims[0] : null;
+
+      // Classify Battle vs Larpie
+      const activeSoloBattle = userQuests?.find(uq => uq.quests?.category === 'Combat');
+      const activeGroupBattle = queueMemberships?.find(qm => qm.quest_queues?.status !== 'completed');
+      
+      activeBattleQuest = activeSoloBattle || activeGroupBattle || activeMonsterClaim;
+      activeLarpieQuest = userQuests?.find(uq => uq.quests?.category !== 'Combat');
+
+      // Update Profile Status Indicators
+      const battleStatusEl = document.getElementById('slot-battle-status');
+      const larpieStatusEl = document.getElementById('slot-larpie-status');
+
+      if (activeMonsterClaim) {
+        battleStatusEl.innerText = "👹 Monster Role";
+        battleStatusEl.className = "slot-status slot-occupied";
+      } else if (activeBattleQuest) {
+        battleStatusEl.innerText = "⚔️ In Battle";
+        battleStatusEl.className = "slot-status slot-occupied";
+      } else {
+        battleStatusEl.innerText = "🟢 Available";
+        battleStatusEl.className = "slot-status slot-free";
+      }
+
+      if (activeLarpieQuest) {
+        larpieStatusEl.innerText = "📜 Active Quest";
+        larpieStatusEl.className = "slot-status slot-occupied";
+      } else {
+        larpieStatusEl.innerText = "🟢 Available";
+        larpieStatusEl.className = "slot-status slot-free";
+      }
+    }
+
+    // Fetch Public Board Quests (Combat vs Larpie)
     async function fetchQuests() {
       const activeContainer = document.getElementById('active-quests-list');
-      const availableContainer = document.getElementById('available-quests-list');
+      const combatContainer = document.getElementById('available-combat-quests');
+      const larpieContainer = document.getElementById('available-larpie-quests');
 
-      // 1. Fetch User Solo Quests
       const { data: userQuests } = await supabaseClient
         .from('user_quests')
         .select('*, quests(*)')
@@ -555,7 +675,6 @@
       const acceptedQuestIds = userQuests ? userQuests.map(uq => uq.quest_id) : [];
       const activeSoloQuests = userQuests ? userQuests.filter(uq => uq.status === 'accepted') : [];
 
-      // 2. Fetch User Group Queues
       const { data: myQueueMemberships } = await supabaseClient
         .from('queue_members')
         .select('queue_id, quest_queues(*, quests(*))')
@@ -569,7 +688,6 @@
 
       // Render Active Section
       let activeHTML = '';
-      
       activeSoloQuests.forEach(uq => {
         if (uq.quests) activeHTML += renderSoloQuestCard(uq.quests, true, uq.id);
       });
@@ -586,9 +704,9 @@
         }
       }
 
-      activeContainer.innerHTML = activeHTML || `<p class="empty-state">No active solo quests or party queues.</p>`;
+      activeContainer.innerHTML = activeHTML || `<p class="empty-state">No active solo or party quests.</p>`;
 
-      // 3. Fetch Available Published Quests
+      // Fetch Available Quests
       const { data: allQuests } = await supabaseClient
         .from('quests')
         .select('*')
@@ -596,29 +714,96 @@
         .order('created_at', { ascending: false });
 
       if (!allQuests || allQuests.length === 0) {
-        availableContainer.innerHTML = `<p class="empty-state">No quests published on the board right now.</p>`;
+        combatContainer.innerHTML = `<p class="empty-state">No combat quests published.</p>`;
+        larpieContainer.innerHTML = `<p class="empty-state">No larpie quests published.</p>`;
         return;
       }
 
-      const availableQuests = allQuests.filter(q => q.repeatable || !acceptedQuestIds.includes(q.id));
+      const available = allQuests.filter(q => q.repeatable || !acceptedQuestIds.includes(q.id));
 
-      if (availableQuests.length === 0) {
-        availableContainer.innerHTML = `<p class="empty-state">You have accepted or queued for all live quests!</p>`;
+      const combatQuests = available.filter(q => q.category === 'Combat');
+      const larpieQuests = available.filter(q => q.category !== 'Combat');
+
+      combatContainer.innerHTML = combatQuests.length > 0 
+        ? combatQuests.map(q => renderAvailableQuestCard(q, 'combat')).join('')
+        : `<p class="empty-state">No available battle quests.</p>`;
+
+      larpieContainer.innerHTML = larpieQuests.length > 0
+        ? larpieQuests.map(q => renderAvailableQuestCard(q, 'larpie')).join('')
+        : `<p class="empty-state">No available larpie quests.</p>`;
+    }
+
+    // Fetch Monsters Tab Encounters & Claims
+    async function fetchMonsterEncounters() {
+      const activeMonsterContainer = document.getElementById('active-monster-assignment');
+      const availableMonsterContainer = document.getElementById('available-monster-encounters');
+
+      // 1. Active Claim Render
+      if (activeMonsterClaim && activeMonsterClaim.quest_queues?.quests) {
+        const q = activeMonsterClaim.quest_queues.quests;
+        activeMonsterContainer.innerHTML = `
+          <div class="quest-card" style="border: 2px solid var(--monster);">
+            <div class="tag-container">
+              <span class="badge badge-monster">👹 Monster Role Claimed</span>
+              <span class="badge badge-type">${activeMonsterClaim.role_name || 'Encounter Monster'}</span>
+            </div>
+            <h4>${q.title}</h4>
+            
+            <div class="scenario-card-box">
+              <h5>🔒 Secret Monster Instructions & Stat Block</h5>
+              <p>${q.scenario_card || 'Report to the QM for battlefield placement and HP count.'}</p>
+            </div>
+
+            <button class="btn btn-secondary" style="margin-top:12px;" onclick="abandonMonsterRole('${activeMonsterClaim.id}')">Leave Monster Role</button>
+          </div>
+        `;
+      } else {
+        activeMonsterContainer.innerHTML = `<p class="empty-state">You are not currently volunteered for a monster encounter.</p>`;
+      }
+
+      // 2. Available Encounters
+      const { data: queues } = await supabaseClient
+        .from('quest_queues')
+        .select('*, quests(*)')
+        .in('status', ['waiting', 'active']);
+
+      if (!queues || queues.length === 0) {
+        availableMonsterContainer.innerHTML = `<p class="empty-state">No live battles currently requesting monster volunteers.</p>`;
         return;
       }
 
-      availableContainer.innerHTML = availableQuests.map(q => renderAvailableQuestCard(q)).join('');
+      availableMonsterContainer.innerHTML = queues.map(qq => {
+        if (!qq.quests) return '';
+        const isBattleLocked = !!activeBattleQuest;
+
+        return `
+          <div class="quest-card">
+            <div class="tag-container">
+              <span class="badge badge-monster">👹 Volunteer Needed</span>
+              <span class="badge badge-type">${qq.quests.participation_type}</span>
+            </div>
+            <h4>${qq.quests.title}</h4>
+            <p>${qq.quests.description || ''}</p>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+              <span class="reward-qp">⭐ +1 Monster Shift Credit</span>
+              ${isBattleLocked 
+                ? `<button class="btn-secondary" disabled style="opacity:0.6;">Battle Slot Full</button>`
+                : `<button class="btn-accept" style="background:var(--monster);" onclick="claimMonsterRole('${qq.id}', 'Standard Monster')">Volunteer as Monster</button>`
+              }
+            </div>
+          </div>
+        `;
+      }).join('');
     }
 
     // Card Render Helpers
     function renderSoloQuestCard(q, isActive, userQuestId) {
-      const threatClass = q.threat_level === 'Safe' ? 'badge-threat-safe' : (q.threat_level === 'Loot Drop' ? 'badge-threat-loot' : 'badge-threat-death');
+      const isCombat = q.category === 'Combat';
       return `
         <div class="quest-card">
           <div class="tag-container">
-            <span class="badge badge-combat">${q.category || 'Combat'}</span>
+            <span class="badge ${isCombat ? 'badge-combat' : 'badge-larpie'}">${q.category || 'Quest'}</span>
             <span class="badge badge-type">Solo</span>
-            <span class="badge ${threatClass}">${q.threat_level || 'Safe'}</span>
           </div>
           <h4>${q.title}</h4>
           <p>${q.description || ''}</p>
@@ -638,7 +823,8 @@
       return `
         <div class="quest-card" style="border:1px solid var(--primary);">
           <div class="tag-container">
-            <span class="badge badge-type">Group Quest</span>
+            <span class="badge badge-combat">Combat</span>
+            <span class="badge badge-type">Group</span>
             <span class="badge ${isStatusActive ? 'badge-active' : 'badge-threat-loot'}">
               ${isStatusActive ? '⚔️ Encounter Live!' : '⏳ Waiting in Queue'}
             </span>
@@ -660,14 +846,17 @@
       `;
     }
 
-    function renderAvailableQuestCard(q) {
+    function renderAvailableQuestCard(q, type) {
       const threatClass = q.threat_level === 'Safe' ? 'badge-threat-safe' : (q.threat_level === 'Loot Drop' ? 'badge-threat-loot' : 'badge-threat-death');
       const isGroup = q.participation_type === 'Group';
+      const isCombat = type === 'combat';
+      
+      const isSlotLocked = isCombat ? !!activeBattleQuest : !!activeLarpieQuest;
 
       return `
         <div class="quest-card">
           <div class="tag-container">
-            <span class="badge badge-combat">${q.category || 'Combat'}</span>
+            <span class="badge ${isCombat ? 'badge-combat' : 'badge-larpie'}">${q.category || 'General'}</span>
             <span class="badge badge-type">${q.participation_type || 'Solo'}</span>
             <span class="badge ${threatClass}">${q.threat_level || 'Safe'}</span>
           </div>
@@ -679,17 +868,53 @@
               <span class="reward-gold">🪙 +${q.reward_gold} Gold</span>
               <span class="reward-qp">⭐ +${q.reward_qp} QP</span>
             </div>
-            ${isGroup 
-              ? `<button class="btn-accept" style="background:var(--warning);" onclick="joinOrCreateGroupQueue('${q.id}')">Join / Start Party</button>`
-              : `<button class="btn-accept" onclick="acceptQuest('${q.id}')">Accept Solo</button>`
+            ${isSlotLocked
+              ? `<button class="btn-secondary" disabled style="opacity:0.6;">${isCombat ? 'Battle Slot Full' : 'Larpie Slot Full'}</button>`
+              : (isGroup 
+                ? `<button class="btn-accept" style="background:var(--warning);" onclick="joinOrCreateGroupQueue('${q.id}')">Join / Start Party</button>`
+                : `<button class="btn-accept" onclick="acceptQuest('${q.id}')">Accept Quest</button>`)
             }
           </div>
         </div>
       `;
     }
 
+    // Monster Volunteering Handlers
+    async function claimMonsterRole(queueId, roleName) {
+      if (activeBattleQuest) {
+        alert("⚠️ Your Battle Slot is already occupied by a Combat quest or another Monster assignment!");
+        return;
+      }
+
+      const { error } = await supabaseClient.from('encounter_monsters').insert({
+        queue_id: queueId,
+        user_id: currentUser.id,
+        role_name: roleName,
+        status: 'claimed'
+      });
+
+      if (error) { alert("Error claiming role: " + error.message); return; }
+
+      alert("👹 Monster role claimed! Secret scenario card unlocked.");
+      await fetchUserSlotState();
+      fetchMonsterEncounters();
+      fetchQuests();
+    }
+
+    async function abandonMonsterRole(claimId) {
+      await supabaseClient.from('encounter_monsters').delete().eq('id', claimId);
+      await fetchUserSlotState();
+      fetchMonsterEncounters();
+      fetchQuests();
+    }
+
     // Party Queue Handlers
     async function joinOrCreateGroupQueue(questId) {
+      if (activeBattleQuest) {
+        alert("⚠️ Your Battle Slot is already occupied!");
+        return;
+      }
+
       const { data: existingQueues } = await supabaseClient
         .from('quest_queues')
         .select('*')
@@ -721,16 +946,18 @@
         return;
       }
 
-      alert("⚔️ You joined the Party Queue!");
+      alert("⚔️ Joined Party Queue! Battle Slot locked.");
+      await fetchUserSlotState();
       fetchQuests();
     }
 
     async function leaveQueue(queueId) {
       await supabaseClient.from('queue_members').delete().eq('queue_id', queueId).eq('user_id', currentUser.id);
+      await fetchUserSlotState();
       fetchQuests();
     }
 
-    // QM Engine: Fetch Queues
+    // QM Engine
     async function fetchQMQueues() {
       const container = document.getElementById('qm-queue-list');
       
@@ -787,6 +1014,7 @@
       await supabaseClient.from('quest_queues').update({ status }).eq('id', queueId);
       fetchQMQueues();
       fetchQuests();
+      fetchMonsterEncounters();
     }
 
     async function qmCompleteAndPayGroup(queueId, rewardGold, rewardQp, memberIds) {
@@ -803,12 +1031,10 @@
       }
 
       await supabaseClient.from('quest_queues').update({ status: 'completed' }).eq('id', queueId);
-      alert("🎉 Squad rewarded and quest queue closed!");
+      alert("🎉 Squad rewarded and queue closed!");
       initDashboard();
-      fetchQMQueues();
     }
 
-    // QM Library View & Deployment Toggles
     async function fetchQMQuests() {
       const container = document.getElementById('qm-quest-list');
       const { data: quests } = await supabaseClient
@@ -838,13 +1064,6 @@
 
           <p style="margin-top:6px;">${q.description || 'No public description.'}</p>
 
-          ${q.scenario_card ? `
-            <div class="scenario-card-box">
-              <h5>🔒 Secret Scenario Card</h5>
-              <p>${q.scenario_card}</p>
-            </div>
-          ` : ''}
-
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
             <button class="${q.is_active ? 'btn-toggle-draft' : 'btn-toggle-active'}" 
               onclick="toggleQuestDeployment('${q.id}', ${q.is_active})">
@@ -856,21 +1075,11 @@
     }
 
     async function toggleQuestDeployment(questId, currentActiveState) {
-      const { error } = await supabaseClient
-        .from('quests')
-        .update({ is_active: !currentActiveState })
-        .eq('id', questId);
-
-      if (error) {
-        alert("Failed to update quest status: " + error.message);
-        return;
-      }
-
+      await supabaseClient.from('quests').update({ is_active: !currentActiveState }).eq('id', questId);
       fetchQMQuests();
       fetchQuests();
     }
 
-    // Quest Creation
     async function createQuest() {
       const title = document.getElementById('qm-title').value.trim();
       const category = document.getElementById('qm-category').value;
@@ -895,21 +1104,19 @@
 
       alert(`⚔️ Quest "${title}" saved and published!`);
       
-      // Reset Form
       document.getElementById('qm-title').value = '';
       document.getElementById('qm-description').value = '';
       document.getElementById('qm-scenario').value = '';
-      document.getElementById('qm-requirements').value = '';
 
-      // Switch to Library tab automatically
       switchQMSubTab('library');
       fetchQuests();
     }
 
-    // General Helpers
+    // Accept / Complete Quests
     async function acceptQuest(questId) {
       const { error } = await supabaseClient.from('user_quests').insert({ user_id: currentUser.id, quest_id: questId, status: 'accepted' });
       if (error) { alert("Error accepting quest: " + error.message); return; }
+      await fetchUserSlotState();
       fetchQuests();
     }
 
