@@ -725,24 +725,35 @@
         : `<p class="empty-state">No available larpie quests.</p>`;
     }
 
-    // Fetch Monster Callboard (Pulls Active Combat Quests directly)
+    // Fetch Monster Callboard with Secret Pre-Launch Locking
     async function fetchMonsterEncounters() {
       const activeMonsterContainer = document.getElementById('active-monster-assignment');
       const availableMonsterContainer = document.getElementById('available-monster-encounters');
 
       if (activeMonsterClaim && activeMonsterClaim.quest_queues?.quests) {
         const q = activeMonsterClaim.quest_queues.quests;
+        const queueStatus = activeMonsterClaim.quest_queues.status;
+        const isLive = queueStatus === 'active';
+
+        // Scenario card remains locked until the Quest Master launches the quest live on the field!
+        const scenarioContent = isLive
+          ? `<p>${q.scenario_card || 'Report to QM for field position.'}</p>`
+          : `<p style="color: var(--text-muted); font-style: italic;">🔒 Scenario Locked until Quest Master launches the encounter live on the field.</p>`;
+
         activeMonsterContainer.innerHTML = `
           <div class="quest-card" style="border: 2px solid var(--monster);">
             <div class="tag-container">
               <span class="badge badge-monster">👹 Monster Line Joined</span>
               <span class="badge badge-type">${activeMonsterClaim.role_name || 'Encounter Monster'}</span>
+              <span class="badge ${isLive ? 'badge-active' : 'badge-threat-loot'}">
+                ${isLive ? '⚔️ Encounter Live!' : '⏳ Prepping in Queue'}
+              </span>
             </div>
             <h4>${q.title}</h4>
             
             <div class="scenario-card-box">
               <h5>🔒 Secret Scenario Instructions & Stat Block</h5>
-              <p>${q.scenario_card || 'Report to QM for field position.'}</p>
+              ${scenarioContent}
             </div>
 
             <button class="btn btn-secondary" style="margin-top:12px;" onclick="abandonMonsterRole('${activeMonsterClaim.id}')">Leave Monster Line</button>
@@ -907,7 +918,7 @@
 
       if (error) { alert("Error joining monster line: " + error.message); return; }
 
-      alert("👹 Joined Monster Line! Secret scenario card unlocked.");
+      alert("👹 Joined Monster Line! Secret scenario details will reveal when QM launches the quest live.");
       await fetchUserSlotState();
       fetchMonsterEncounters();
       fetchQuests();
@@ -1055,6 +1066,7 @@
 
     async function qmSetQueueStatus(queueId, status) {
       await supabaseClient.from('quest_queues').update({ status }).eq('id', queueId);
+      await fetchUserSlotState();
       fetchQMQueues();
       fetchQuests();
       fetchMonsterEncounters();
