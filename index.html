@@ -136,8 +136,19 @@
       background: #27272a;
       list-style: none;
       border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
     .store-catalog-list details.store-category summary.store-category-summary::-webkit-details-marker { display: none; }
+    .store-catalog-list details.store-category summary.store-category-summary:after {
+      content: '+';
+      font-size: 18px;
+      color: var(--text-muted);
+    }
+    .store-catalog-list details.store-category[open] summary.store-category-summary:after {
+      content: '−';
+    }
     .store-category-items { margin: 0; padding: 12px; }
     .item-card {
       background: #27272a;
@@ -456,17 +467,18 @@
     <!-- 5. STORE TAB -->
     <section id="tab-store" class="tab-view hidden">
       <div class="card">
-        <h2>🛒 Merchant Store</h2>
-        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Purchase supplies or sell perishable goods before they decay!</p>
+        <h2>🛒 Arcane Merchant</h2>
+        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Acquire certified relics, charms, and enchanted tools for the field.</p>
 
         <div class="qm-subnav">
-          <button id="store-subnav-buy" class="qm-subnav-btn active" onclick="switchStoreSubTab('buy')">🛍️ Buy Supplies</button>
-          <button id="store-subnav-sell" class="qm-subnav-btn" onclick="switchStoreSubTab('sell')">🪙 Sell Back</button>
+          <button id="store-subnav-buy" class="qm-subnav-btn active" onclick="switchStoreSubTab('buy')">🛍️ Buy Relics</button>
+          <button id="store-subnav-sell" class="qm-subnav-btn" onclick="switchStoreSubTab('sell')">🪙 Liquidate</button>
         </div>
 
         <!-- BUY CATALOG -->
         <div id="store-subtab-buy">
           <h3 class="section-title" style="color:var(--gold);">Official Item Catalog</h3>
+          <p style="font-size:12px; color:var(--text-muted); margin-top:-4px; margin-bottom:10px;">All listed items are priced at 1 gold and carry a 90-day field life.</p>
           <div id="store-catalog-list" class="store-catalog-list">
             <!-- Catalog items rendered via JS -->
           </div>
@@ -474,8 +486,8 @@
 
         <!-- SELL BACK -->
         <div id="store-subtab-sell" class="hidden">
-          <h3 class="section-title" style="color:var(--gold);">Sell Carrying Inventory</h3>
-          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">Item resale value decays linearly based on remaining lifespan.</p>
+          <h3 class="section-title" style="color:var(--gold);">Liquidation Ledger</h3>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">Resale value reflects the remaining field life of each item.</p>
           <div id="store-sell-list" class="item-grid">
             <p class="empty-state">Loading inventory...</p>
           </div>
@@ -628,6 +640,8 @@
     let activeLarpieQuest = null;
     let activeMonsterClaim = null;
 
+    const INVENTORY_LIFE_MS = 90 * 24 * 60 * 60 * 1000;
+
     // Official magic item catalog seed used by the store UI
     const STORE_CATALOG = [
       { id: 'magic-potion-barkskin', item_name: 'Potion of Barkskin', category: 'Trinket', base_cost: 1, duration_hours: 0, description: 'One-use self-cast barkskin effect.' },
@@ -770,15 +784,15 @@
       const timeRemaining = expiresAt - now;
 
       if (timeRemaining <= 0) {
-        return { isExpired: true, currentGoldValue: 0, hoursLeft: 0, percentLeft: 0 };
+        return { isExpired: true, currentGoldValue: 0, daysLeft: 0, percentLeft: 0 };
       }
 
       const ratio = timeRemaining / totalDuration;
       const currentGoldValue = Math.floor((item.base_cost || 0) * ratio);
-      const hoursLeft = Math.ceil(timeRemaining / (1000 * 60 * 60));
+      const daysLeft = Math.max(1, Math.ceil(timeRemaining / (1000 * 60 * 60 * 24)));
       const percentLeft = Math.round(ratio * 100);
 
-      return { isExpired: false, currentGoldValue, hoursLeft, percentLeft };
+      return { isExpired: false, currentGoldValue, daysLeft, percentLeft };
     }
 
     // Profile Accordion Toggle
@@ -849,7 +863,7 @@
           <div class="item-info">
             <h4>${item.item_name}</h4>
             <small style="color:${item.status.percentLeft < 25 ? 'var(--danger)' : 'var(--text-muted)'};">
-              ⌛ ${item.status.hoursLeft}h left (${item.status.percentLeft}% fresh)
+              ⌛ ${item.status.daysLeft}d left (${item.status.percentLeft}% fresh)
             </small>
           </div>
           <div class="item-actions">
@@ -863,7 +877,7 @@
         <div class="item-card">
           <div class="item-info">
             <h4>${item.item_name}</h4>
-            <small>Current Resale Value: <strong style="color:var(--gold);">${item.status.currentGoldValue} Gold</strong> (${item.status.hoursLeft}h remaining)</small>
+            <small>Current Resale Value: <strong style="color:var(--gold);">${item.status.currentGoldValue} Gold</strong> (${item.status.daysLeft}d remaining)</small>
           </div>
           <button class="btn-sell" onclick="sellItem('${item.id}', ${item.status.currentGoldValue}, '${item.item_name}')">Sell (${item.status.currentGoldValue}g)</button>
         </div>
@@ -902,7 +916,7 @@
       }
 
       const now = new Date();
-      const expiresAt = new Date(now.getTime() + durationHours * 60 * 60 * 1000);
+      const expiresAt = new Date(now.getTime() + INVENTORY_LIFE_MS);
 
       const { error } = await supabaseClient.from('user_inventory').insert({
         user_id: currentUser.id,
