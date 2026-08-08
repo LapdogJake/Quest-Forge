@@ -646,6 +646,11 @@
       'Talisman': 2,
       'Legendary': 1
     };
+    const DURABILITY_LIMITS = {
+      'Trinket': 1,
+      'Talisman': 10,
+      'Legendary': 30
+    };
 
     // Official magic item catalog seed used by the store UI
     const STORE_CATALOG = [
@@ -863,30 +868,42 @@
       }
 
       // 1. Profile Accordion: ONLY "Use" Button
-      profileList.innerHTML = validItems.map(item => `
-        <div class="item-card">
+      profileList.innerHTML = validItems.map(item => {
+        const durabilityCurrent = Number(item.durability_current ?? item.durability ?? 0);
+        const durabilityMax = Number(item.durability_max ?? getCategoryDurabilityMax(getCategoryForItemName(item.item_name)) ?? 1);
+        const normalizedCurrent = Math.max(0, durabilityCurrent);
+
+        return `<div class="item-card">
           <div class="item-info">
             <h4>${item.item_name}</h4>
             <small style="color:${item.status.percentLeft < 25 ? 'var(--danger)' : 'var(--text-muted)'};">
               ⌛ ${item.status.daysLeft}d left (${item.status.percentLeft}% fresh)
             </small>
+            <small style="color:var(--text-muted);">
+              Durability: ${normalizedCurrent}/${durabilityMax}
+            </small>
           </div>
           <div class="item-actions">
             <button class="btn-use" onclick="useItem('${item.id}', '${item.item_name}')">Use</button>
           </div>
-        </div>
-      `).join('');
+        </div>`;
+      }).join('');
 
       // 2. Merchant Store "Sell Back" Sub-tab: "Sell" Button with Dynamic Value
-      sellList.innerHTML = validItems.map(item => `
-        <div class="item-card">
+      sellList.innerHTML = validItems.map(item => {
+        const durabilityCurrent = Number(item.durability_current ?? item.durability ?? 0);
+        const durabilityMax = Number(item.durability_max ?? getCategoryDurabilityMax(getCategoryForItemName(item.item_name)) ?? 1);
+        const normalizedCurrent = Math.max(0, durabilityCurrent);
+
+        return `<div class="item-card">
           <div class="item-info">
             <h4>${item.item_name}</h4>
             <small>Current Resale Value: <strong style="color:var(--gold);">${item.status.currentGoldValue} Gold</strong> (${item.status.daysLeft}d remaining)</small>
+            <small style="color:var(--text-muted);">Durability: ${normalizedCurrent}/${durabilityMax}</small>
           </div>
           <button class="btn-sell" onclick="sellItem('${item.id}', ${item.status.currentGoldValue}, '${item.item_name}')">Sell (${item.status.currentGoldValue}g)</button>
-        </div>
-      `).join('');
+        </div>`;
+      }).join('');
     }
 
     function renderStoreCatalog() {
@@ -917,6 +934,10 @@
     function getCategoryForItemName(itemName) {
       const match = STORE_CATALOG.find(item => item.item_name === itemName);
       return match?.category || null;
+    }
+
+    function getCategoryDurabilityMax(category) {
+      return DURABILITY_LIMITS[category] || 1;
     }
 
     async function buyItem(itemName, cost, durationHours) {
@@ -975,6 +996,7 @@
 
       const now = new Date();
       const expiresAt = new Date(now.getTime() + INVENTORY_LIFE_MS);
+      const durabilityMax = getCategoryDurabilityMax(category);
 
       const { error } = await supabaseClient.from('user_inventory').insert({
         user_id: currentUser.id,
@@ -982,7 +1004,9 @@
         base_cost: cost,
         purchased_at: now.toISOString(),
         expires_at: expiresAt.toISOString(),
-        quantity: 1
+        quantity: 1,
+        durability_current: durabilityMax,
+        durability_max: durabilityMax
       });
 
       if (error) { alert("Error buying item: " + error.message); return; }
@@ -1553,8 +1577,65 @@
       await supabaseClient.from('quest_queues').update({ status: 'completed' }).eq('id', queueId);
       await supabaseClient.from('encounter_monsters').update({ status: 'completed' }).eq('queue_id', queueId);
 
+      for (const pcUserId of pcUserIds) {
+        await applyCombatDurabilityDamage(pcUserId);
+      }
+
       alert("🎉 Encounter completed! Rewards distributed to PCs and Monsters.");
       initDashboard();
+    }
+
+    async function applyCombatDurabilityDamage(userId) {
+      const { data: rows, error } = await supabaseClient
+        .from('user_inventory')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Unable to read inventory durability rows:', error);
+        return;
+      }
+
+      const rowsToDelete = [];
+      const rowsToUpdate = [];
+
+      for (const row of rows || []) {
+        const status = getItemStatus(row);
+
+        if (status.isExpired) {
+          rowsToDelete.push(row.id);
+          continue;
+        }
+
+        const category = getCategoryForItemName(row.item_name);
+        const defaultMax = getCategoryDurabilityMax(category);
+        const durabilityMax = Number(row.durability_max || defaultMax || 1);
+        const durabilityCurrent = Number(row.durability_current || durabilityMax || 1);
+
+        if (durabilityCurrent <= 1) {
+          rowsToDelete.push(row.id);
+        } else {
+          const nextDurability = durabilityCurrent - 1;
+          rowsToUpdate.push({
+            id: row.id,
+            durability_current: nextDurability
+          });
+        }
+      }
+
+      if (rowsToDelete.length > 0) {
+        await supabaseClient.from('user_inventory').delete().in('id', rowsToDelete);
+      }
+
+      for (const rowPatch of rowsToUpdate) {
+        await supabaseClient
+          .from('user_inventory')
+          .update({ durability_current: rowPatch.durability_current })
+          .eq('id', rowPatch.id)
+          .eq('user_id', userId);
+      }
+
+      await fetchUserInventory();
     }
 
     // QM Catalog Engine
