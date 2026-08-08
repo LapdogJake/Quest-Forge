@@ -512,7 +512,6 @@
     <!-- 2. HEROES TAB -->
     <section id="tab-heroes" class="tab-view hidden">
       <div class="card">
-        <h2>⚔️ Heroes</h2>
         <div id="available-combat-quests"></div>
       </div>
     </section>
@@ -1260,9 +1259,9 @@
       }
 
       if (combatContainer) {
-        combatContainer.innerHTML = combatQuests.length > 0 
+        combatContainer.innerHTML = combatQuests.length > 0
           ? combatQuests.map(q => renderAvailableQuestCard(q, 'combat', joinedQueueMap.get(q.id), queueRosterByQuest.get(q.id))).join('')
-          : '';
+          : `<p class="empty-state">No Active Quests.</p>`;
       }
 
       if (larpieContainer) {
@@ -1421,14 +1420,14 @@
             <div class="quest-accordion-content">
               <div class="quest-details-body">
                 <div class="quest-details-panel">
-                  <div class="quest-rewards">
-                    <span class="reward-gold">🪙 +${q.reward_gold} Gold</span>
-                    <span class="reward-qp">⭐ +${q.reward_qp} QP</span>
-                  </div>
-                  <p>${q.description || ''}</p>
                   <div class="tag-container">
                     <span class="badge badge-battle">${q.category || 'Battle'}</span>
                     <span class="badge badge-type">${groupType}</span>
+                  </div>
+                  <p>${q.description || ''}</p>
+                  <div class="quest-rewards">
+                    <span class="reward-gold">🪙 +${q.reward_gold} Gold</span>
+                    <span class="reward-qp">⭐ +${q.reward_qp} QP</span>
                   </div>
                   <div class="queue-roster-strip">
                     <h5>Queued Heroes (${rosterPlayers.length})</h5>
