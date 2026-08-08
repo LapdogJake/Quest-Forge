@@ -867,7 +867,7 @@
         return;
       }
 
-      // 1. Profile Accordion: ONLY "Use" Button
+      // Profile Accordion: Item rows simply display their current row state.
       profileList.innerHTML = validItems.map(item => {
         const durabilityCurrent = Number(item.durability_current ?? item.durability ?? 0);
         const durabilityMax = Number(item.durability_max ?? getCategoryDurabilityMax(getCategoryForItemName(item.item_name)) ?? 1);
@@ -883,13 +883,10 @@
               Durability: ${normalizedCurrent}/${durabilityMax}
             </small>
           </div>
-          <div class="item-actions">
-            <button class="btn-use" onclick="useItem('${item.id}', '${item.item_name}')">Use</button>
-          </div>
         </div>`;
       }).join('');
 
-      // 2. Merchant Store "Sell Back" Sub-tab: "Sell" Button with Dynamic Value
+      // Merchant Store "Sell Back" Sub-tab: Sell Button with Dynamic Value
       sellList.innerHTML = validItems.map(item => {
         const durabilityCurrent = Number(item.durability_current ?? item.durability ?? 0);
         const durabilityMax = Number(item.durability_max ?? getCategoryDurabilityMax(getCategoryForItemName(item.item_name)) ?? 1);
@@ -1047,29 +1044,6 @@
       document.getElementById('profile-gold').innerText = newGold;
 
       alert(`🪙 Sold ${itemName} for ${goldValue} Gold!`);
-      await fetchUserInventory();
-    }
-
-    async function useItem(itemId, itemName) {
-      const { data: deletedRows, error } = await supabaseClient
-        .from('user_inventory')
-        .delete()
-        .select('id')
-        .eq('id', itemId)
-        .eq('user_id', currentUser.id);
-
-      if (error) {
-        alert("⚠️ Could not use item: " + error.message);
-        return;
-      }
-
-      if (!deletedRows || deletedRows.length === 0) {
-        alert("⚠️ This item could not be found in your pouch.");
-        await fetchUserInventory();
-        return;
-      }
-
-      alert(`✨ Consumed ${itemName}! It has been removed from your pouch.`);
       await fetchUserInventory();
     }
 
