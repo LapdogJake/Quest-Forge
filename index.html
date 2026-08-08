@@ -1398,7 +1398,7 @@
 
     function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = null) {
       const isCombat = type === 'combat';
-      const isSlotLocked = isCombat ? !!activeBattleQuest : !!activeLarpieQuest;
+      const isSlotLocked = isCombat ? (!!activeBattleQuest || !!activeMonsterClaim) : !!activeLarpieQuest;
       const isJoined = Boolean(joinedQueueId);
 
       if (isCombat) {
@@ -1470,7 +1470,7 @@
     }
 
     async function claimMonsterRole(questId, roleName) {
-      if (activeBattleQuest) {
+      if (activeBattleQuest || activeMonsterClaim) {
         alert("⚠️ Your Battle Slot is already occupied by a Combat quest or another Monster assignment!");
         return;
       }
@@ -1526,7 +1526,7 @@
     }
 
     async function joinOrCreateGroupQueue(questId) {
-      if (activeBattleQuest) {
+      if (activeBattleQuest || activeMonsterClaim) {
         alert("⚠️ Your Battle Slot is already occupied!");
         return;
       }
