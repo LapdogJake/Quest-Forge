@@ -207,7 +207,9 @@
       justify-content: flex-end;
     }
     .quest-accordion summary .quest-summary-actions .btn-accept,
-    .quest-accordion summary .quest-summary-actions .btn-secondary {
+    .quest-accordion summary .quest-summary-actions .btn-secondary,
+    .quest-accordion summary .quest-summary-actions .btn-join,
+    .quest-accordion summary .quest-summary-actions .btn-leave {
       font-size: 11px;
       padding: 6px 10px;
     }
@@ -221,10 +223,10 @@
       align-items: stretch;
     }
     .quest-details-panel {
-      background: #18181b;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px;
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      padding: 0;
       min-height: 100%;
     }
     .quest-details-panel h4 {
@@ -255,6 +257,31 @@
       background: #15351c;
       border-color: var(--success);
       color: #bbf7d0;
+    }
+    .quest-details-panel .quest-rewards {
+      margin-top: 8px;
+    }
+    .quest-details-panel .queue-roster-strip {
+      margin-top: 12px;
+      padding: 0;
+      border: none;
+      background: transparent;
+    }
+    .quest-details-panel .queue-roster-strip h5 {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--text-muted);
+      margin: 0 0 6px 0;
+      text-transform: uppercase;
+    }
+    .quest-details-panel .queue-roster-strip .party-member-tag {
+      background: transparent;
+      border: none;
+      padding: 0;
+      border-radius: 0;
+      margin-bottom: 4px;
+      font-size: 12px;
+      color: var(--text);
     }
 
     /* Badges & Tags */
@@ -377,6 +404,8 @@
     .btn-monster { background: var(--monster); color: white; }
     .btn-danger { background: var(--danger); color: white; margin-top: 20px; }
     .btn-accept { background: var(--primary); color: white; padding: 8px 14px; font-size: 13px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
+    .btn-join { background: var(--success); color: #07140a; padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
+    .btn-leave { background: var(--danger); color: white; padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
     .btn-complete { background: var(--success); color: #000; padding: 8px 14px; font-size: 13px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
     .btn-secondary { background: #3f3f46; color: white; padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
     .btn-buy { background: var(--gold); color: #000; padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
@@ -1373,10 +1402,10 @@
       if (isCombat) {
         const groupType = q.participation_type || 'Group';
         const joinButton = isJoined
-          ? `<button class="btn-secondary" onclick="leaveQueue('${joinedQueueId}')">Leave Queue</button>`
+          ? `<button class="btn-leave" onclick="leaveQueue('${joinedQueueId}')">Leave</button>`
           : (isSlotLocked
             ? `<button class="btn-secondary" disabled style="opacity:0.6;">Battle Slot Full</button>`
-            : `<button class="btn-accept" style="background:var(--warning);" onclick="joinOrCreateGroupQueue('${q.id}')">Join PC Line</button>`);
+            : `<button class="btn-join" onclick="joinOrCreateGroupQueue('${q.id}')">Join</button>`);
 
         const summaryAction = `<span class="quest-summary-actions">${joinButton}</span>`;
         const rosterPlayers = queueRoster?.players || [];
@@ -1397,14 +1426,12 @@
                     <span class="badge badge-battle">${q.category || 'Battle'}</span>
                     <span class="badge badge-type">${groupType}</span>
                   </div>
-                  <h4>${q.title}</h4>
-                  <p class="quest-detail-title">Description</p>
-                  <p>${q.description || ''}</p>
                   <div class="quest-rewards">
                     <span class="reward-gold">🪙 +${q.reward_gold} Gold</span>
                     <span class="reward-qp">⭐ +${q.reward_qp} QP</span>
                   </div>
-                  <div class="queue-box" style="margin-top:12px;">
+                  <p>${q.description || ''}</p>
+                  <div class="queue-roster-strip">
                     <h5>Queued Heroes (${rosterPlayers.length})</h5>
                     <div>${rosterHtml}</div>
                   </div>
