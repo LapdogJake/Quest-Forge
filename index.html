@@ -173,6 +173,82 @@
     .quest-card h4 { font-size: 16px; color: var(--text); margin-bottom: 6px; }
     .quest-card p { font-size: 13px; color: var(--text-muted); line-height: 1.4; }
 
+    /* Collapsible Heroes Board */
+    .quest-accordion {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #27272a;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+    .quest-accordion summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 12px 14px;
+      font-weight: 800;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .quest-accordion summary::-webkit-details-marker { display: none; }
+    .quest-accordion summary:after {
+      content: '+';
+      font-size: 18px;
+      color: var(--text-muted);
+    }
+    .quest-accordion[open] summary:after { content: '−'; }
+    .quest-accordion summary .quest-summary-title { color: var(--text); font-size: 14px; }
+    .quest-accordion-content {
+      padding: 0 14px 14px;
+    }
+    .quest-details-body {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(180px, 210px);
+      gap: 12px;
+      align-items: start;
+    }
+    .quest-details-panel {
+      background: #18181b;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .quest-details-panel h4 {
+      margin: 0 0 8px 0;
+      font-size: 16px;
+      color: var(--text);
+    }
+    .quest-details-panel p {
+      margin: 0 0 10px 0;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .quest-details-panel .quest-detail-title {
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .quest-details-join {
+      background: #1f2937;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .quest-details-join .join-title {
+      margin-bottom: 8px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
     /* Badges & Tags */
     .tag-container { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
     .badge {
@@ -399,15 +475,8 @@
     <!-- 2. HEROES TAB -->
     <section id="tab-heroes" class="tab-view hidden">
       <div class="card">
-        <h2>⚔️ Heroes Board</h2>
-        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Combat encounters, martial skirmishes, and battle duties</p>
-
-        <h3 class="section-title">Your Active Battle Quests</h3>
-        <div id="active-heroes-quests-list">
-          <p class="empty-state">Loading active battle quests...</p>
-        </div>
-
-        <h3 class="section-title">⚔️ Available Battle Quests (Join PC Line)</h3>
+        <h2>⚔️ Heroes</h2>
+        <h3 id="available-combat-heading" class="section-title hidden">⚔️ Available Battle Quests (Join PC Line)</h3>
         <div id="available-combat-quests">
           <p class="empty-state">Loading battle board...</p>
         </div>
@@ -1136,8 +1205,8 @@
         }
       }
 
-      activeHeroesContainer.innerHTML = activeHeroesHTML || `<p class="empty-state">No active hero battle quests.</p>`;
-      activeAdventureContainer.innerHTML = activeAdventureHTML || `<p class="empty-state">No active adventure quests.</p>`;
+      activeHeroesContainer.innerHTML = '';
+      activeAdventureContainer.innerHTML = '';
 
       const { data: allQuests } = await supabaseClient
         .from('quests')
@@ -1146,8 +1215,10 @@
         .order('created_at', { ascending: false });
 
       if (!allQuests || allQuests.length === 0) {
-        combatContainer.innerHTML = `<p class="empty-state">No combat quests open on the field.</p>`;
-        larpieContainer.innerHTML = `<p class="empty-state">No adventure quests published.</p>`;
+        combatContainer.innerHTML = '';
+        larpieContainer.innerHTML = '';
+        const combatHeading = document.getElementById('available-combat-heading');
+        if (combatHeading) combatHeading.classList.add('hidden');
         return;
       }
 
@@ -1156,13 +1227,18 @@
       const combatQuests = available.filter(q => q.category === 'Battle' || q.category === 'Combat');
       const larpieQuests = available.filter(q => q.category === 'Adventure' || (q.category !== 'Battle' && q.category !== 'Combat'));
 
+      const combatHeading = document.getElementById('available-combat-heading');
+      if (combatHeading) {
+        combatHeading.classList.toggle('hidden', combatQuests.length === 0);
+      }
+
       combatContainer.innerHTML = combatQuests.length > 0 
         ? combatQuests.map(q => renderAvailableQuestCard(q, 'combat')).join('')
-        : `<p class="empty-state">No active hero battle quests open.</p>`;
+        : '';
 
       larpieContainer.innerHTML = larpieQuests.length > 0
         ? larpieQuests.map(q => renderAvailableQuestCard(q, 'larpie')).join('')
-        : `<p class="empty-state">No available adventure quests.</p>`;
+        : '';
     }
 
     // Fetch Monster Callboard
@@ -1287,16 +1363,50 @@
     }
 
     function renderAvailableQuestCard(q, type) {
-      const threatClass = q.threat_level === 'Safe' ? 'badge-threat-safe' : (q.threat_level === 'Loot Drop' ? 'badge-threat-loot' : 'badge-threat-death');
       const isCombat = type === 'combat';
       const isSlotLocked = isCombat ? !!activeBattleQuest : !!activeLarpieQuest;
+
+      if (isCombat) {
+        const groupType = q.participation_type || 'Group';
+        const joinButton = isSlotLocked
+          ? `<button class="btn-secondary" disabled style="opacity:0.6;">Battle Slot Full</button>`
+          : `<button class="btn-accept" style="background:var(--warning);" onclick="joinOrCreateGroupQueue('${q.id}')">Join PC Line</button>`;
+
+        return `
+          <details class="quest-accordion">
+            <summary>
+              <span class="quest-summary-title">${q.title}</span>
+            </summary>
+            <div class="quest-accordion-content">
+              <div class="quest-details-body">
+                <div class="quest-details-panel">
+                  <div class="tag-container">
+                    <span class="badge badge-battle">${q.category || 'Battle'}</span>
+                    <span class="badge badge-type">${groupType}</span>
+                  </div>
+                  <h4>${q.title}</h4>
+                  <p class="quest-detail-title">Description</p>
+                  <p>${q.description || ''}</p>
+                  <div class="quest-rewards">
+                    <span class="reward-gold">🪙 +${q.reward_gold} Gold</span>
+                    <span class="reward-qp">⭐ +${q.reward_qp} QP</span>
+                  </div>
+                </div>
+                <div class="quest-details-join">
+                  <div class="join-title">Join Queue</div>
+                  ${joinButton}
+                </div>
+              </div>
+            </div>
+          </details>
+        `;
+      }
 
       return `
         <div class="quest-card">
           <div class="tag-container">
             <span class="badge ${isCombat ? 'badge-battle' : 'badge-adventure'}">${q.category || 'General'}</span>
             <span class="badge badge-type">${q.participation_type || 'Solo'}</span>
-            <span class="badge ${threatClass}">${q.threat_level || 'Safe'}</span>
           </div>
           <h4>${q.title}</h4>
           ${q.requirements ? `<p style="color:var(--warning); font-size:12px; margin-bottom:4px;"><strong>Req:</strong> ${q.requirements}</p>` : ''}
