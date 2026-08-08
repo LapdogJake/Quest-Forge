@@ -641,6 +641,11 @@
     let activeMonsterClaim = null;
 
     const INVENTORY_LIFE_MS = 90 * 24 * 60 * 60 * 1000;
+    const INVENTORY_LIMITS = {
+      'Trinket': 3,
+      'Talisman': 2,
+      'Legendary': 1
+    };
 
     // Official magic item catalog seed used by the store UI
     const STORE_CATALOG = [
@@ -909,9 +914,62 @@
       }).join('');
     }
 
+    function getCategoryForItemName(itemName) {
+      const match = STORE_CATALOG.find(item => item.item_name === itemName);
+      return match?.category || null;
+    }
+
     async function buyItem(itemName, cost, durationHours) {
       if ((currentProfile?.gold || 0) < cost) {
         alert("⚠️ Not enough gold to purchase this item!");
+        return;
+      }
+
+      const category = getCategoryForItemName(itemName);
+      if (!category || !INVENTORY_LIMITS[category]) {
+        alert("⚠️ This item does not belong to a recognized category.");
+        return;
+      }
+
+      const { data: inventoryRows, error: inventoryError } = await supabaseClient
+        .from('user_inventory')
+        .select('*')
+        .eq('user_id', currentUser.id);
+
+      if (inventoryError) {
+        alert("⚠️ Could not load your current inventory: " + inventoryError.message);
+        return;
+      }
+
+      const activeRows = [];
+      const expiredIds = [];
+
+      for (const row of inventoryRows || []) {
+        const status = getItemStatus(row);
+        if (status.isExpired) {
+          expiredIds.push(row.id);
+        } else {
+          activeRows.push({ ...row, status });
+        }
+      }
+
+      if (expiredIds.length > 0) {
+        await supabaseClient.from('user_inventory').delete().in('id', expiredIds);
+      }
+
+      const activeByCategory = activeRows.reduce((acc, row) => {
+        const itemCategory = getCategoryForItemName(row.item_name);
+        if (itemCategory) {
+          acc[itemCategory] = (acc[itemCategory] || 0) + 1;
+        }
+        return acc;
+      }, {});
+
+      const currentCategoryCount = activeByCategory[category] || 0;
+      const categoryLimit = INVENTORY_LIMITS[category];
+
+      if (currentCategoryCount >= categoryLimit) {
+        alert(`⚠️ Your ${category} pouch is full. You can carry ${categoryLimit} ${category}${categoryLimit === 1 ? '' : 's'} at most.`);
         return;
       }
 
