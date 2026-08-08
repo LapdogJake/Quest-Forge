@@ -1165,10 +1165,10 @@
       const larpieStatusEl = document.getElementById('slot-larpie-status');
 
       if (activeMonsterClaim) {
-        battleStatusEl.innerText = "👹 Monster Line";
+        battleStatusEl.innerText = "Monster";
         battleStatusEl.className = "slot-status slot-occupied";
       } else if (activeBattleQuest) {
-        battleStatusEl.innerText = "⚔️ PC Line";
+        battleStatusEl.innerText = "Hero";
         battleStatusEl.className = "slot-status slot-occupied";
       } else {
         battleStatusEl.innerText = "🟢 Available";
@@ -1176,7 +1176,7 @@
       }
 
       if (activeLarpieQuest) {
-        larpieStatusEl.innerText = "🎨 Active Quest";
+        larpieStatusEl.innerText = activeLarpieQuest.quests?.title || 'Quest Active';
         larpieStatusEl.className = "slot-status slot-occupied";
       } else {
         larpieStatusEl.innerText = "🟢 Available";
@@ -1264,7 +1264,7 @@
       if (larpieContainer) {
         larpieContainer.innerHTML = larpieQuests.length > 0
           ? larpieQuests.map(q => renderAvailableQuestCard(q, 'larpie')).join('')
-          : '';
+          : `<p class="empty-state">No Active Quests.</p>`;
       }
     }
 
@@ -1406,6 +1406,7 @@
 
     function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = null) {
       const isCombat = type === 'combat';
+      const isAdventure = type === 'larpie';
       const isSlotLocked = isCombat ? (!!activeBattleQuest || !!activeMonsterClaim) : !!activeLarpieQuest;
       const isJoined = Boolean(joinedQueueId);
 
@@ -1444,6 +1445,39 @@
                   <div class="queue-roster-strip">
                     <h5>Queued Heroes (${rosterPlayers.length})</h5>
                     <div>${rosterHtml}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </details>
+        `;
+      }
+
+      if (isAdventure) {
+        const groupType = q.participation_type || 'Solo';
+        const acceptButton = isSlotLocked
+          ? `<button class="btn-secondary" disabled style="opacity:0.6;">Adventure Slot Full</button>`
+          : `<button class="btn-join" style="background:var(--adventure); color:white;" onclick="acceptQuest('${q.id}')">Accept</button>`;
+
+        const summaryAction = `<span class="quest-summary-actions">${acceptButton}</span>`;
+
+        return `
+          <details class="quest-accordion">
+            <summary>
+              <span class="quest-summary-title">${q.title}</span>
+              ${summaryAction}
+            </summary>
+            <div class="quest-accordion-content">
+              <div class="quest-details-body">
+                <div class="quest-details-panel">
+                  <div class="tag-container">
+                    <span class="badge badge-adventure">${q.category || 'Adventure'}</span>
+                    <span class="badge badge-type">${groupType}</span>
+                  </div>
+                  <p>${q.description || ''}</p>
+                  <div class="quest-rewards">
+                    <span class="reward-gold">🪙 +${q.reward_gold} Gold</span>
+                    <span class="reward-qp">⭐ +${q.reward_qp} QP</span>
                   </div>
                 </div>
               </div>
