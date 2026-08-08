@@ -206,13 +206,14 @@
       display: grid;
       grid-template-columns: minmax(0, 2fr) minmax(180px, 210px);
       gap: 12px;
-      align-items: start;
+      align-items: stretch;
     }
     .quest-details-panel {
       background: #18181b;
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 12px;
+      min-height: 100%;
     }
     .quest-details-panel h4 {
       margin: 0 0 8px 0;
@@ -239,6 +240,13 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
+      min-height: 100%;
+      align-self: stretch;
+    }
+    .quest-details-join.joined {
+      background: #15351c;
+      border-color: var(--success);
+      color: #bbf7d0;
     }
     .quest-details-join .join-title {
       margin-bottom: 8px;
@@ -247,6 +255,18 @@
       letter-spacing: 0.5px;
       color: var(--text-muted);
       text-transform: uppercase;
+    }
+    .quest-details-join.joined .join-title {
+      color: #86efac;
+    }
+    .quest-details-join .join-status {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .quest-details-join.joined .join-status {
+      color: #86efac;
     }
 
     /* Badges & Tags */
@@ -1160,6 +1180,11 @@
         .select('*, quests(*)')
         .eq('user_id', currentUser.id);
 
+      const { data: myQueueMemberships } = await supabaseClient
+        .from('queue_members')
+        .select('queue_id, quest_queues(*, quests(*))')
+        .eq('user_id', currentUser.id);
+
       const acceptedQuestIds = userQuests ? userQuests.map(uq => uq.quest_id) : [];
 
       const { data: allQuests } = await supabaseClient
@@ -1181,6 +1206,16 @@
       const combatQuests = available.filter(q => q.category === 'Battle' || q.category === 'Combat');
       const larpieQuests = available.filter(q => q.category === 'Adventure' || (q.category !== 'Battle' && q.category !== 'Combat'));
 
+      const joinedQueueMap = new Map();
+      (myQueueMemberships || []).forEach(m => {
+        const queue = m.quest_queues;
+        const quest = queue?.quests;
+        if (!queue || !quest || queue.status === 'completed') return;
+        if (quest.category === 'Battle' || quest.category === 'Combat') {
+          joinedQueueMap.set(quest.id, queue.id);
+        }
+      });
+
       const combatHeading = document.getElementById('available-combat-heading');
       if (combatHeading) {
         combatHeading.classList.toggle('hidden', combatQuests.length === 0);
@@ -1188,7 +1223,7 @@
 
       if (combatContainer) {
         combatContainer.innerHTML = combatQuests.length > 0 
-          ? combatQuests.map(q => renderAvailableQuestCard(q, 'combat')).join('')
+          ? combatQuests.map(q => renderAvailableQuestCard(q, 'combat', joinedQueueMap.get(q.id))).join('')
           : '';
       }
 
@@ -1320,18 +1355,21 @@
       `;
     }
 
-    function renderAvailableQuestCard(q, type) {
+    function renderAvailableQuestCard(q, type, joinedQueueId = null) {
       const isCombat = type === 'combat';
       const isSlotLocked = isCombat ? !!activeBattleQuest : !!activeLarpieQuest;
+      const isJoined = Boolean(joinedQueueId);
 
       if (isCombat) {
         const groupType = q.participation_type || 'Group';
-        const joinButton = isSlotLocked
-          ? `<button class="btn-secondary" disabled style="opacity:0.6;">Battle Slot Full</button>`
-          : `<button class="btn-accept" style="background:var(--warning);" onclick="joinOrCreateGroupQueue('${q.id}')">Join PC Line</button>`;
+        const joinButton = isJoined
+          ? `<button class="btn-secondary" onclick="leaveQueue('${joinedQueueId}')">Leave Queue</button>`
+          : (isSlotLocked
+            ? `<button class="btn-secondary" disabled style="opacity:0.6;">Battle Slot Full</button>`
+            : `<button class="btn-accept" style="background:var(--warning);" onclick="joinOrCreateGroupQueue('${q.id}')">Join PC Line</button>`);
 
         return `
-          <details class="quest-accordion">
+          <details class="quest-accordion ${isJoined ? 'quest-joined' : ''}" ${isJoined ? 'open' : ''}>
             <summary>
               <span class="quest-summary-title">${q.title}</span>
             </summary>
@@ -1350,8 +1388,9 @@
                     <span class="reward-qp">⭐ +${q.reward_qp} QP</span>
                   </div>
                 </div>
-                <div class="quest-details-join">
-                  <div class="join-title">Join Queue</div>
+                <div class="quest-details-join ${isJoined ? 'joined' : ''}">
+                  <div class="join-title">${isJoined ? 'Join Queue' : 'Join Queue'}</div>
+                  <div class="join-status">${isJoined ? 'Joined' : 'Open'}</div>
                   ${joinButton}
                 </div>
               </div>
