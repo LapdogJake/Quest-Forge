@@ -19,6 +19,7 @@
       --danger: #ef4444;
       --warning: #f97316;
       --monster: #dc2626;
+      --adventure: #10b981;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -125,8 +126,8 @@
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
-    .badge-combat { background: #451a03; color: #f97316; border: 1px solid #7c2d12; }
-    .badge-larpie { background: #14532d; color: #4ade80; border: 1px solid #166534; }
+    .badge-battle { background: #451a03; color: #f97316; border: 1px solid #7c2d12; }
+    .badge-adventure { background: #064e3b; color: #34d399; border: 1px solid #047857; }
     .badge-monster { background: #7f1d1d; color: #f87171; border: 1px solid #991b1b; }
     .badge-threat-safe { background: #064e3b; color: #34d399; }
     .badge-threat-loot { background: #713f12; color: #facc15; }
@@ -238,7 +239,7 @@
     .btn-complete { background: var(--success); color: #000; padding: 8px 14px; font-size: 13px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
     .btn-secondary { background: #3f3f46; color: white; padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
 
-    /* Bottom Nav */
+    /* Bottom Nav (Adapted to 6 options) */
     .bottom-nav {
       position: fixed;
       bottom: 0;
@@ -255,7 +256,7 @@
       background: none;
       border: none;
       color: var(--text-muted);
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
       cursor: pointer;
       display: flex;
@@ -266,6 +267,7 @@
       padding: 6px 0;
     }
     .nav-btn.active { color: var(--primary); }
+    .nav-btn.active-adventure { color: var(--adventure); }
     .nav-btn.active-monster { color: var(--monster); }
 
     .hidden { display: none !important; }
@@ -297,7 +299,7 @@
             <span id="slot-battle-status" class="slot-status slot-free">Available</span>
           </div>
           <div class="slot-box">
-            <h5>📜 Larpie Slot</h5>
+            <h5>🎨 Adventure Slot</h5>
             <span id="slot-larpie-status" class="slot-status slot-free">Available</span>
           </div>
         </div>
@@ -337,30 +339,43 @@
       </div>
     </section>
 
-    <!-- 2. QUESTS TAB (PC BOARD) -->
-    <section id="tab-quests" class="tab-view hidden">
+    <!-- 2. HEROES TAB (Renamed from Quests) -->
+    <section id="tab-heroes" class="tab-view hidden">
       <div class="card">
-        <h2>Adventurer Quest Board</h2>
-        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">1 Battle Quest & 1 Larpie Quest allowed at a time</p>
+        <h2>⚔️ Heroes Board</h2>
+        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Combat encounters, martial skirmishes, and battle duties</p>
 
-        <h3 class="section-title">Your Active Quests</h3>
-        <div id="active-quests-list">
-          <p class="empty-state">Loading active quests...</p>
+        <h3 class="section-title">Your Active Battle Quests</h3>
+        <div id="active-heroes-quests-list">
+          <p class="empty-state">Loading active battle quests...</p>
         </div>
 
-        <h3 class="section-title">⚔️ Battle Quests (Join PC Line)</h3>
+        <h3 class="section-title">⚔️ Available Battle Quests (Join PC Line)</h3>
         <div id="available-combat-quests">
           <p class="empty-state">Loading battle board...</p>
-        </div>
-
-        <h3 class="section-title">📜 Larpie Quests (Crafting / RP / A&S)</h3>
-        <div id="available-larpie-quests">
-          <p class="empty-state">Loading non-combat board...</p>
         </div>
       </div>
     </section>
 
-    <!-- 3. MONSTERS TAB -->
+    <!-- 3. ADVENTURE TAB (New Tab for Larpie Quests) -->
+    <section id="tab-adventure" class="tab-view hidden">
+      <div class="card" style="border-top: 4px solid var(--adventure);">
+        <h2 style="color: var(--adventure);">🎨 Adventure Board</h2>
+        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Arts, Sciences, Social endeavors, and Crafting quests</p>
+
+        <h3 class="section-title" style="color:var(--adventure);">Your Active Adventure Quests</h3>
+        <div id="active-adventure-quests-list">
+          <p class="empty-state">Loading active adventure quests...</p>
+        </div>
+
+        <h3 class="section-title">📜 Available Adventure Quests (Arts, Sci & Social)</h3>
+        <div id="available-larpie-quests">
+          <p class="empty-state">Loading adventure board...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. MONSTERS TAB -->
     <section id="tab-monsters" class="tab-view hidden">
       <div class="card" style="border-top: 4px solid var(--monster);">
         <h2>👹 Monster Callboard</h2>
@@ -378,10 +393,10 @@
       </div>
     </section>
 
-    <!-- 4. INVENTORY TAB -->
+    <!-- 5. INVENTORY TAB (Pouch) -->
     <section id="tab-inventory" class="tab-view hidden">
       <div class="card">
-        <h2>Your Pouch</h2>
+        <h2>🎒 Your Pouch</h2>
         <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Items carried into battle</p>
 
         <div class="item-grid" id="inventory-list">
@@ -390,7 +405,7 @@
       </div>
     </section>
 
-    <!-- 5. QUESTMASTER CONTROL TAB -->
+    <!-- 6. QUESTMASTER CONTROL TAB -->
     <section id="tab-admin" class="tab-view hidden">
       <div class="card">
         <h2>👑 Questmaster Control</h2>
@@ -414,11 +429,10 @@
           <div class="form-row">
             <div class="form-group">
               <label>Category</label>
+              <!-- Updated Category Options to Battle and Adventure -->
               <select id="qm-category" class="form-control">
-                <option value="Combat">Combat (Battle Slot)</option>
-                <option value="Crafting">Crafting (Larpie Slot)</option>
-                <option value="Arts & Sciences">Arts & Sciences (Larpie Slot)</option>
-                <option value="Social">Social / RP (Larpie Slot)</option>
+                <option value="Battle">Battle (Heroes Tab)</option>
+                <option value="Adventure">Adventure (Arts/Sci/Social)</option>
               </select>
             </div>
             <div class="form-group">
@@ -461,7 +475,7 @@
 
           <div class="form-group">
             <label>Requirements</label>
-            <input type="text" id="qm-requirements" class="form-control" placeholder="e.g. Min 3 players / Assassin Class">
+            <input type="text" id="qm-requirements" class="form-control" placeholder="e.g. Min 3 players / A&S Entry">
           </div>
 
           <div class="form-group">
@@ -503,13 +517,16 @@
 
   </main>
 
-  <!-- Bottom Navigation -->
+  <!-- Bottom Navigation (Updated with 6 tabs) -->
   <nav class="bottom-nav">
     <button class="nav-btn active" id="nav-profile" onclick="switchTab('profile')">
       👤 <span>Profile</span>
     </button>
-    <button class="nav-btn" id="nav-quests" onclick="switchTab('quests')">
-      ⚔️ <span>Quests</span>
+    <button class="nav-btn" id="nav-heroes" onclick="switchTab('heroes')">
+      ⚔️ <span>Heroes</span>
+    </button>
+    <button class="nav-btn" id="nav-adventure" onclick="switchTab('adventure')">
+      🎨 <span>Adventure</span>
     </button>
     <button class="nav-btn" id="nav-monsters" onclick="switchTab('monsters')">
       👹 <span>Monsters</span>
@@ -535,12 +552,14 @@
 
     function switchTab(tabName) {
       document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
-      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active', 'active-monster'));
+      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active', 'active-monster', 'active-adventure'));
 
       document.getElementById(`tab-${tabName}`).classList.remove('hidden');
       const activeBtn = document.getElementById(`nav-${tabName}`);
       if (tabName === 'monsters') {
         activeBtn.classList.add('active-monster');
+      } else if (tabName === 'adventure') {
+        activeBtn.classList.add('active-adventure');
       } else {
         activeBtn.classList.add('active');
       }
@@ -626,11 +645,11 @@
 
       activeMonsterClaim = (monsterClaims && monsterClaims.length > 0) ? monsterClaims[0] : null;
 
-      const activeSoloBattle = userQuests?.find(uq => uq.quests?.category === 'Combat');
+      const activeSoloBattle = userQuests?.find(uq => uq.quests?.category === 'Battle' || uq.quests?.category === 'Combat');
       const activeGroupBattle = queueMemberships?.find(qm => qm.quest_queues?.status !== 'completed');
       
       activeBattleQuest = activeSoloBattle || activeGroupBattle || activeMonsterClaim;
-      activeLarpieQuest = userQuests?.find(uq => uq.quests?.category !== 'Combat');
+      activeLarpieQuest = userQuests?.find(uq => uq.quests?.category === 'Adventure' || (uq.quests?.category !== 'Battle' && uq.quests?.category !== 'Combat'));
 
       const battleStatusEl = document.getElementById('slot-battle-status');
       const larpieStatusEl = document.getElementById('slot-larpie-status');
@@ -647,7 +666,7 @@
       }
 
       if (activeLarpieQuest) {
-        larpieStatusEl.innerText = "📜 Active Quest";
+        larpieStatusEl.innerText = "🎨 Active Quest";
         larpieStatusEl.className = "slot-status slot-occupied";
       } else {
         larpieStatusEl.innerText = "🟢 Available";
@@ -655,9 +674,10 @@
       }
     }
 
-    // Fetch Public Board Quests
+    // Fetch Public Board Quests for Heroes and Adventure Tabs
     async function fetchQuests() {
-      const activeContainer = document.getElementById('active-quests-list');
+      const activeHeroesContainer = document.getElementById('active-heroes-quests-list');
+      const activeAdventureContainer = document.getElementById('active-adventure-quests-list');
       const combatContainer = document.getElementById('available-combat-quests');
       const larpieContainer = document.getElementById('available-larpie-quests');
 
@@ -680,9 +700,18 @@
             .filter(q => q && (q.status === 'waiting' || q.status === 'active'))
         : [];
 
-      let activeHTML = '';
+      let activeHeroesHTML = '';
+      let activeAdventureHTML = '';
+
       activeSoloQuests.forEach(uq => {
-        if (uq.quests) activeHTML += renderSoloQuestCard(uq.quests, true, uq.id);
+        if (uq.quests) {
+          const isBattle = uq.quests.category === 'Battle' || uq.quests.category === 'Combat';
+          if (isBattle) {
+            activeHeroesHTML += renderSoloQuestCard(uq.quests, true, uq.id);
+          } else {
+            activeAdventureHTML += renderSoloQuestCard(uq.quests, true, uq.id);
+          }
+        }
       });
 
       for (let qq of activeGroupQueues) {
@@ -693,11 +722,17 @@
             .eq('queue_id', qq.id);
 
           const memberNames = members ? members.map(m => m.profiles?.username || 'Warrior') : [];
-          activeHTML += renderGroupQueueCard(qq.quests, qq, memberNames);
+          const isBattle = qq.quests.category === 'Battle' || qq.quests.category === 'Combat';
+          if (isBattle) {
+            activeHeroesHTML += renderGroupQueueCard(qq.quests, qq, memberNames);
+          } else {
+            activeAdventureHTML += renderGroupQueueCard(qq.quests, qq, memberNames);
+          }
         }
       }
 
-      activeContainer.innerHTML = activeHTML || `<p class="empty-state">No active solo or party quests.</p>`;
+      activeHeroesContainer.innerHTML = activeHeroesHTML || `<p class="empty-state">No active hero battle quests.</p>`;
+      activeAdventureContainer.innerHTML = activeAdventureHTML || `<p class="empty-state">No active adventure quests.</p>`;
 
       const { data: allQuests } = await supabaseClient
         .from('quests')
@@ -707,22 +742,22 @@
 
       if (!allQuests || allQuests.length === 0) {
         combatContainer.innerHTML = `<p class="empty-state">No combat quests open on the field.</p>`;
-        larpieContainer.innerHTML = `<p class="empty-state">No larpie quests published.</p>`;
+        larpieContainer.innerHTML = `<p class="empty-state">No adventure quests published.</p>`;
         return;
       }
 
       const available = allQuests.filter(q => q.repeatable || !acceptedQuestIds.includes(q.id));
 
-      const combatQuests = available.filter(q => q.category === 'Combat');
-      const larpieQuests = available.filter(q => q.category !== 'Combat');
+      const combatQuests = available.filter(q => q.category === 'Battle' || q.category === 'Combat');
+      const larpieQuests = available.filter(q => q.category === 'Adventure' || (q.category !== 'Battle' && q.category !== 'Combat'));
 
       combatContainer.innerHTML = combatQuests.length > 0 
         ? combatQuests.map(q => renderAvailableQuestCard(q, 'combat')).join('')
-        : `<p class="empty-state">No active battle quests open.</p>`;
+        : `<p class="empty-state">No active hero battle quests open.</p>`;
 
       larpieContainer.innerHTML = larpieQuests.length > 0
         ? larpieQuests.map(q => renderAvailableQuestCard(q, 'larpie')).join('')
-        : `<p class="empty-state">No available larpie quests.</p>`;
+        : `<p class="empty-state">No available adventure quests.</p>`;
     }
 
     // Fetch Monster Callboard with Secret Pre-Launch Locking
@@ -735,7 +770,6 @@
         const queueStatus = activeMonsterClaim.quest_queues.status;
         const isLive = queueStatus === 'active';
 
-        // Scenario card remains locked until the Quest Master launches the quest live on the field!
         const scenarioContent = isLive
           ? `<p>${q.scenario_card || 'Report to QM for field position.'}</p>`
           : `<p style="color: var(--text-muted); font-style: italic;">🔒 Scenario Locked until Quest Master launches the encounter live on the field.</p>`;
@@ -763,12 +797,12 @@
         activeMonsterContainer.innerHTML = `<p class="empty-state">You are not currently volunteered for a monster encounter.</p>`;
       }
 
-      // Fetch all Active Combat Quests from catalog
+      // Fetch Active Battle Quests from catalog
       const { data: combatQuests } = await supabaseClient
         .from('quests')
         .select('*')
         .eq('is_active', true)
-        .eq('category', 'Combat');
+        .or('category.eq.Battle,category.eq.Combat');
 
       if (!combatQuests || combatQuests.length === 0) {
         availableMonsterContainer.innerHTML = `<p class="empty-state">No live battles currently requesting monster volunteers.</p>`;
@@ -783,7 +817,7 @@
             <div class="tag-container">
               <span class="badge badge-monster">👹 Monster Line Open</span>
               <span class="badge badge-type">${q.participation_type || 'Group'}</span>
-              <span class="badge badge-combat">${q.threat_level || 'Safe'}</span>
+              <span class="badge badge-battle">${q.threat_level || 'Safe'}</span>
             </div>
             <h4>${q.title}</h4>
             <p>${q.description || ''}</p>
@@ -800,10 +834,11 @@
     }
 
     function renderSoloQuestCard(q, isActive, userQuestId) {
+      const isAdventure = q.category === 'Adventure';
       return `
         <div class="quest-card">
           <div class="tag-container">
-            <span class="badge badge-larpie">${q.category || 'Quest'}</span>
+            <span class="badge ${isAdventure ? 'badge-adventure' : 'badge-battle'}">${q.category || 'Quest'}</span>
             <span class="badge badge-type">Solo</span>
           </div>
           <h4>${q.title}</h4>
@@ -824,7 +859,7 @@
       return `
         <div class="quest-card" style="border:1px solid var(--primary);">
           <div class="tag-container">
-            <span class="badge badge-combat">Combat</span>
+            <span class="badge badge-battle">Battle</span>
             <span class="badge badge-type">Group</span>
             <span class="badge ${isStatusActive ? 'badge-active' : 'badge-threat-loot'}">
               ${isStatusActive ? '⚔️ Encounter Live!' : '⏳ Waiting in Queue'}
@@ -855,7 +890,7 @@
       return `
         <div class="quest-card">
           <div class="tag-container">
-            <span class="badge ${isCombat ? 'badge-combat' : 'badge-larpie'}">${q.category || 'General'}</span>
+            <span class="badge ${isCombat ? 'badge-battle' : 'badge-adventure'}">${q.category || 'General'}</span>
             <span class="badge badge-type">${q.participation_type || 'Solo'}</span>
             <span class="badge ${threatClass}">${q.threat_level || 'Safe'}</span>
           </div>
@@ -868,10 +903,10 @@
               <span class="reward-qp">⭐ +${q.reward_qp} QP</span>
             </div>
             ${isSlotLocked
-              ? `<button class="btn-secondary" disabled style="opacity:0.6;">${isCombat ? 'Battle Slot Full' : 'Larpie Slot Full'}</button>`
+              ? `<button class="btn-secondary" disabled style="opacity:0.6;">${isCombat ? 'Battle Slot Full' : 'Adventure Slot Full'}</button>`
               : (isCombat 
                 ? `<button class="btn-accept" style="background:var(--warning);" onclick="joinOrCreateGroupQueue('${q.id}')">Join PC Line</button>`
-                : `<button class="btn-accept" onclick="acceptQuest('${q.id}')">Accept Quest</button>`)
+                : `<button class="btn-accept" style="background:var(--adventure);" onclick="acceptQuest('${q.id}')">Accept Quest</button>`)
             }
           </div>
         </div>
@@ -884,7 +919,6 @@
         return;
       }
 
-      // Check if a queue already exists for this quest
       const { data: existingQueues } = await supabaseClient
         .from('quest_queues')
         .select('*')
@@ -897,7 +931,6 @@
       if (existingQueues && existingQueues.length > 0) {
         queueId = existingQueues[0].id;
       } else {
-        // Automatically spin up the live field queue if monster joins first
         const { data: newQueue, error: queueError } = await supabaseClient
           .from('quest_queues')
           .insert({ quest_id: questId, status: 'waiting' })
@@ -908,7 +941,6 @@
         queueId = newQueue.id;
       }
 
-      // Join the monster line for this queue
       const { error } = await supabaseClient.from('encounter_monsters').insert({
         queue_id: queueId,
         user_id: currentUser.id,
@@ -1076,7 +1108,6 @@
     async function qmCompleteAndPayEncounter(queueId, rewardGold, rewardQp, pcUserIds, monsterUserIds) {
       if (!confirm(`Award PCs (+${rewardGold}g / +${rewardQp}qp) AND Monsters (+1 Shift Credit / +${rewardGold}g / +${rewardQp}qp)?`)) return;
 
-      // 1. Pay PCs
       for (let userId of pcUserIds) {
         const { data: p } = await supabaseClient.from('profiles').select('gold, quest_points').eq('id', userId).single();
         if (p) {
@@ -1087,7 +1118,6 @@
         }
       }
 
-      // 2. Pay Monsters (+ Shift Credit + Gold/QP)
       for (let userId of monsterUserIds) {
         const { data: m } = await supabaseClient.from('profiles').select('gold, quest_points, monster_shifts').eq('id', userId).single();
         if (m) {
@@ -1099,7 +1129,6 @@
         }
       }
 
-      // 3. Close Encounter Instance
       await supabaseClient.from('quest_queues').update({ status: 'completed' }).eq('id', queueId);
       await supabaseClient.from('encounter_monsters').update({ status: 'completed' }).eq('queue_id', queueId);
 
@@ -1131,7 +1160,7 @@
 
           <div class="tag-container" style="margin-top:6px;">
             <span class="badge badge-type">${q.participation_type}</span>
-            <span class="badge badge-combat">${q.category}</span>
+            <span class="badge ${q.category === 'Battle' || q.category === 'Combat' ? 'badge-battle' : 'badge-adventure'}">${q.category}</span>
             <span class="badge badge-type">🪙 ${q.reward_gold}g / ⭐ ${q.reward_qp}qp</span>
           </div>
 
@@ -1156,7 +1185,7 @@
 
     async function createQuest() {
       const title = document.getElementById('qm-title').value.trim();
-      const category = document.getElementById('qm-category').value;
+      const category = document.getElementById('qm-category').value; // 'Battle' or 'Adventure'
       const participation_type = document.getElementById('qm-type').value;
       const threat_level = document.getElementById('qm-threat').value;
       const verification_method = document.getElementById('qm-verification').value;
