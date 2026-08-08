@@ -20,6 +20,9 @@
       --warning: #f97316;
       --monster: #dc2626;
       --adventure: #10b981;
+      --heroes: #60a5fa;
+      --store: #eab308;
+      --profile: #a1a1aa;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -46,6 +49,11 @@
       border: 1px solid var(--border);
       margin-bottom: 16px;
     }
+    .card-profile { border-top: 4px solid var(--profile); }
+    .card-heroes { border-top: 4px solid var(--heroes); }
+    .card-adventure { border-top: 4px solid var(--adventure); }
+    .card-monsters { border-top: 4px solid var(--monster); }
+    .card-store { border-top: 4px solid var(--store); }
 
     /* Dual-Slot Status Banner */
     .slot-container {
@@ -458,7 +466,7 @@
 
     <!-- 1. PROFILE TAB -->
     <section id="tab-profile" class="tab-view">
-      <div class="card">
+      <div class="card card-profile">
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <div>
             <span id="user-display" style="margin-top:6px; font-weight: bold; color: var(--primary); font-size: 20px;">Loading...</span>
@@ -511,14 +519,14 @@
 
     <!-- 2. HEROES TAB -->
     <section id="tab-heroes" class="tab-view hidden">
-      <div class="card">
+      <div class="card card-heroes">
         <div id="available-combat-quests"></div>
       </div>
     </section>
 
     <!-- 3. ADVENTURE TAB -->
     <section id="tab-adventure" class="tab-view hidden">
-      <div class="card" style="border-top: 4px solid var(--adventure);">
+      <div class="card card-adventure">
         <h2 style="color: var(--adventure);">🎨 Adventure Board</h2>
         <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Arts, Sciences, Social endeavors, and Crafting quests</p>
 
@@ -536,7 +544,7 @@
 
     <!-- 4. MONSTERS TAB -->
     <section id="tab-monsters" class="tab-view hidden">
-      <div class="card" style="border-top: 4px solid var(--monster);">
+      <div class="card card-monsters">
         <div id="available-monster-encounters">
           <p class="empty-state">No Active Quests.</p>
         </div>
@@ -545,7 +553,7 @@
 
     <!-- 5. STORE TAB -->
     <section id="tab-store" class="tab-view hidden">
-      <div class="card">
+      <div class="card card-store">
         <h2>🛒 Arcane Merchant</h2>
         <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Acquire certified relics, charms, and enchanted tools for the field.</p>
 
