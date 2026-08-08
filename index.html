@@ -477,9 +477,7 @@
       <div class="card">
         <h2>⚔️ Heroes</h2>
         <h3 id="available-combat-heading" class="section-title hidden">⚔️ Available Battle Quests (Join PC Line)</h3>
-        <div id="available-combat-quests">
-          <p class="empty-state">Loading battle board...</p>
-        </div>
+        <div id="available-combat-quests"></div>
       </div>
     </section>
 
@@ -1120,9 +1118,13 @@
       activeMonsterClaim = (monsterClaims && monsterClaims.length > 0) ? monsterClaims[0] : null;
 
       const activeSoloBattle = userQuests?.find(uq => uq.quests?.category === 'Battle' || uq.quests?.category === 'Combat');
-      const activeGroupBattle = queueMemberships?.find(qm => qm.quest_queues?.status !== 'completed');
-      
-      activeBattleQuest = activeSoloBattle || activeGroupBattle || activeMonsterClaim;
+      const activeGroupBattle = queueMemberships?.find(qm => {
+        const queue = qm.quest_queues;
+        const questCategory = queue?.quests?.category;
+        return (queue?.status !== 'completed') && (questCategory === 'Battle' || questCategory === 'Combat');
+      });
+
+      activeBattleQuest = activeSoloBattle || activeGroupBattle;
       activeLarpieQuest = userQuests?.find(uq => uq.quests?.category === 'Adventure' || (uq.quests?.category !== 'Battle' && uq.quests?.category !== 'Combat'));
 
       const battleStatusEl = document.getElementById('slot-battle-status');
@@ -1150,8 +1152,6 @@
 
     // Fetch Public Board Quests for Heroes and Adventure Tabs
     async function fetchQuests() {
-      const activeHeroesContainer = document.getElementById('active-heroes-quests-list');
-      const activeAdventureContainer = document.getElementById('active-adventure-quests-list');
       const combatContainer = document.getElementById('available-combat-quests');
       const larpieContainer = document.getElementById('available-larpie-quests');
 
@@ -1161,52 +1161,6 @@
         .eq('user_id', currentUser.id);
 
       const acceptedQuestIds = userQuests ? userQuests.map(uq => uq.quest_id) : [];
-      const activeSoloQuests = userQuests ? userQuests.filter(uq => uq.status === 'accepted') : [];
-
-      const { data: myQueueMemberships } = await supabaseClient
-        .from('queue_members')
-        .select('queue_id, quest_queues(*, quests(*))')
-        .eq('user_id', currentUser.id);
-
-      const activeGroupQueues = myQueueMemberships 
-        ? myQueueMemberships
-            .map(qm => qm.quest_queues)
-            .filter(q => q && (q.status === 'waiting' || q.status === 'active'))
-        : [];
-
-      let activeHeroesHTML = '';
-      let activeAdventureHTML = '';
-
-      activeSoloQuests.forEach(uq => {
-        if (uq.quests) {
-          const isBattle = uq.quests.category === 'Battle' || uq.quests.category === 'Combat';
-          if (isBattle) {
-            activeHeroesHTML += renderSoloQuestCard(uq.quests, true, uq.id);
-          } else {
-            activeAdventureHTML += renderSoloQuestCard(uq.quests, true, uq.id);
-          }
-        }
-      });
-
-      for (let qq of activeGroupQueues) {
-        if (qq && qq.quests) {
-          const { data: members } = await supabaseClient
-            .from('queue_members')
-            .select('user_id, profiles(username)')
-            .eq('queue_id', qq.id);
-
-          const memberNames = members ? members.map(m => m.profiles?.username || 'Warrior') : [];
-          const isBattle = qq.quests.category === 'Battle' || qq.quests.category === 'Combat';
-          if (isBattle) {
-            activeHeroesHTML += renderGroupQueueCard(qq.quests, qq, memberNames);
-          } else {
-            activeAdventureHTML += renderGroupQueueCard(qq.quests, qq, memberNames);
-          }
-        }
-      }
-
-      activeHeroesContainer.innerHTML = '';
-      activeAdventureContainer.innerHTML = '';
 
       const { data: allQuests } = await supabaseClient
         .from('quests')
@@ -1215,8 +1169,8 @@
         .order('created_at', { ascending: false });
 
       if (!allQuests || allQuests.length === 0) {
-        combatContainer.innerHTML = '';
-        larpieContainer.innerHTML = '';
+        if (combatContainer) combatContainer.innerHTML = '';
+        if (larpieContainer) larpieContainer.innerHTML = '';
         const combatHeading = document.getElementById('available-combat-heading');
         if (combatHeading) combatHeading.classList.add('hidden');
         return;
@@ -1232,13 +1186,17 @@
         combatHeading.classList.toggle('hidden', combatQuests.length === 0);
       }
 
-      combatContainer.innerHTML = combatQuests.length > 0 
-        ? combatQuests.map(q => renderAvailableQuestCard(q, 'combat')).join('')
-        : '';
+      if (combatContainer) {
+        combatContainer.innerHTML = combatQuests.length > 0 
+          ? combatQuests.map(q => renderAvailableQuestCard(q, 'combat')).join('')
+          : '';
+      }
 
-      larpieContainer.innerHTML = larpieQuests.length > 0
-        ? larpieQuests.map(q => renderAvailableQuestCard(q, 'larpie')).join('')
-        : '';
+      if (larpieContainer) {
+        larpieContainer.innerHTML = larpieQuests.length > 0
+          ? larpieQuests.map(q => renderAvailableQuestCard(q, 'larpie')).join('')
+          : '';
+      }
     }
 
     // Fetch Monster Callboard
