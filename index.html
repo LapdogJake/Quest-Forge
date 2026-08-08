@@ -347,19 +347,20 @@
     <section id="tab-profile" class="tab-view">
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-          <h2>Player Profile</h2>
-          <span id="role-badge" class="badge badge-type" style="display:none;">Questmaster</span>
+          <div>
+            <span id="user-display" style="margin-top:6px; font-weight: bold; color: var(--primary); font-size: 20px;">Loading...</span>
+            <span id="role-badge" class="badge badge-type" style="display:none; margin-left:8px;">Questmaster</span>
+          </div>
         </div>
-        <p id="user-display" style="margin-top:6px; font-weight: bold; color: var(--primary); font-size: 20px;">Loading...</p>
         
         <!-- Dual Slot Holder -->
         <div class="slot-container">
           <div class="slot-box">
-            <h5>⚔️ Battle Slot</h5>
+            <h5>⚔️ Battle</h5>
             <span id="slot-battle-status" class="slot-status slot-free">Available</span>
           </div>
           <div class="slot-box">
-            <h5>🎨 Adventure Slot</h5>
+            <h5>🎨 Adventure</h5>
             <span id="slot-larpie-status" class="slot-status slot-free">Available</span>
           </div>
         </div>
@@ -375,29 +376,14 @@
             <p id="profile-qp">0</p>
           </div>
           <div class="stat-box">
-            <small>Monsters</small>
+            <small>Monster Pts</small>
             <p id="profile-monsters" style="color:#38bdf8;">0</p>
           </div>
         </div>
 
-        <!-- Lore Section -->
-        <div style="margin-top: 20px;">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h3 style="font-size:15px; color:var(--text-muted);">Character Lore</h3>
-            <button id="edit-bio-btn" onclick="toggleBioEdit()" style="background:none; border:none; color:var(--primary); font-weight:bold; cursor:pointer; font-size:13px;">Edit</button>
-          </div>
-
-          <div id="bio-display" class="bio-box">No lore written yet. Tap Edit to add your backstory!</div>
-          
-          <div id="bio-edit-container" class="hidden">
-            <textarea id="bio-input-field" class="form-control" style="margin-top:10px; min-height:90px;" placeholder="Write your backstory..."></textarea>
-            <button class="btn btn-primary" onclick="saveBio()">Save Lore</button>
-          </div>
-        </div>
-
-        <!-- Collapsible Carrying Inventory Accordion -->
+        <!-- Collapsible Inventory Accordion -->
         <div class="accordion-header" onclick="toggleProfileInventoryAccordion()">
-          <span>🎒 Carrying Inventory <small id="profile-inventory-count" style="color:var(--text-muted); font-weight:normal;">(0 items)</small></span>
+          <span>🎒 Inventory <small id="profile-inventory-count" style="color:var(--text-muted); font-weight:normal;">(0 items)</small></span>
           <span id="profile-inventory-chevron">▼</span>
         </div>
         <div id="profile-inventory-accordion-body" class="accordion-content hidden">
@@ -773,9 +759,6 @@
         fetchQMQueues();
         fetchQMQuests();
       }
-
-      document.getElementById('bio-display').innerText = profile?.bio || "No lore written yet. Tap Edit to add your backstory!";
-      document.getElementById('bio-input-field').value = profile?.bio || "";
 
       await fetchUserSlotState();
       fetchQuests();
@@ -1709,22 +1692,6 @@
 
       await supabaseClient.from('user_quests').update({ status: 'completed' }).eq('id', userQuestId);
       initDashboard();
-    }
-
-    function toggleBioEdit() {
-      const displayBox = document.getElementById('bio-display');
-      const editBox = document.getElementById('bio-edit-container');
-      const editBtn = document.getElementById('edit-bio-btn');
-      editBox.classList.toggle('hidden');
-      displayBox.classList.toggle('hidden');
-      editBtn.innerText = editBox.classList.contains('hidden') ? "Edit" : "Cancel";
-    }
-
-    async function saveBio() {
-      const newBio = document.getElementById('bio-input-field').value.trim();
-      await supabaseClient.from('profiles').update({ bio: newBio }).eq('id', currentUser.id);
-      document.getElementById('bio-display').innerText = newBio || "No lore written yet. Tap Edit to add your backstory!";
-      toggleBioEdit();
     }
 
     async function handleSignOut() {
