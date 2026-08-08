@@ -537,17 +537,12 @@
     <!-- 4. MONSTERS TAB -->
     <section id="tab-monsters" class="tab-view hidden">
       <div class="card" style="border-top: 4px solid var(--monster);">
-        <h2>👹 Monster Callboard</h2>
-        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Join the monster line to run field encounters & unlock secrets</p>
-
-        <h3 class="section-title" style="color:var(--monster);">👹 Active Monster Role</h3>
         <div id="active-monster-assignment">
-          <p class="empty-state">You are not currently volunteered for a monster encounter.</p>
+          <p class="empty-state">No Active Quests.</p>
         </div>
 
-        <h3 class="section-title">⚔️ Field Encounters Requesting Monsters</h3>
         <div id="available-monster-encounters">
-          <p class="empty-state">No live battles currently requesting monster volunteers.</p>
+          <p class="empty-state">No Active Quests.</p>
         </div>
       </div>
     </section>
@@ -1282,11 +1277,11 @@
         const isLive = queueStatus === 'active';
 
         const scenarioContent = isLive
-          ? `<p>${q.scenario_card || 'Report to QM for field position.'}</p>`
-          : `<p style="color: var(--text-muted); font-style: italic;">🔒 Scenario Locked until Quest Master launches the encounter live on the field.</p>`;
+          ? `${q.scenario_card || 'Report to QM for field position.'}`
+          : `🔒 Scenario Locked until Quest Master launches the encounter live on the field.`;
 
         activeMonsterContainer.innerHTML = `
-          <div class="quest-card" style="border: 2px solid var(--monster);">
+          <div class="quest-card">
             <div class="tag-container">
               <span class="badge badge-monster">👹 Monster Line Joined</span>
               <span class="badge badge-type">${activeMonsterClaim.role_name || 'Encounter Monster'}</span>
@@ -1295,17 +1290,12 @@
               </span>
             </div>
             <h4>${q.title}</h4>
-            
-            <div class="scenario-card-box">
-              <h5>🔒 Secret Scenario Instructions & Stat Block</h5>
-              ${scenarioContent}
-            </div>
-
-            <button class="btn btn-secondary" style="margin-top:12px;" onclick="abandonMonsterRole('${activeMonsterClaim.id}')">Leave Monster Line</button>
+            <p>${scenarioContent}</p>
+            <button class="btn btn-secondary" style="margin-top:12px;" onclick="abandonMonsterRole('${activeMonsterClaim.id}')">Leave</button>
           </div>
         `;
       } else {
-        activeMonsterContainer.innerHTML = `<p class="empty-state">You are not currently volunteered for a monster encounter.</p>`;
+        activeMonsterContainer.innerHTML = `<p class="empty-state">No Active Quests.</p>`;
       }
 
       const { data: combatQuests } = await supabaseClient
@@ -1315,7 +1305,7 @@
         .or('category.eq.Battle,category.eq.Combat');
 
       if (!combatQuests || combatQuests.length === 0) {
-        availableMonsterContainer.innerHTML = `<p class="empty-state">No live battles currently requesting monster volunteers.</p>`;
+        availableMonsterContainer.innerHTML = `<p class="empty-state">No Active Quests.</p>`;
         return;
       }
 
@@ -1324,18 +1314,18 @@
       availableMonsterContainer.innerHTML = combatQuests.map(q => {
         return `
           <div class="quest-card">
+            <h4>${q.title}</h4>
+            <p>${q.description || ''}</p>
             <div class="tag-container">
               <span class="badge badge-monster">👹 Monster Line Open</span>
               <span class="badge badge-type">${q.participation_type || 'Group'}</span>
               <span class="badge badge-battle">${q.threat_level || 'Safe'}</span>
             </div>
-            <h4>${q.title}</h4>
-            <p>${q.description || ''}</p>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
               <span class="reward-qp">⭐ +1 Monster Shift Credit</span>
               ${isBattleLocked 
                 ? `<button class="btn-secondary" disabled style="opacity:0.6;">Battle Slot Full</button>`
-                : `<button class="btn-accept" style="background:var(--monster);" onclick="claimMonsterRole('${q.id}', 'Standard Monster')">Join Monster Line</button>`
+                : `<button class="btn-accept" style="background:var(--monster);" onclick="claimMonsterRole('${q.id}', 'Standard Monster')">Join</button>`
               }
             </div>
           </div>
