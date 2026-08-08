@@ -537,10 +537,6 @@
     <!-- 4. MONSTERS TAB -->
     <section id="tab-monsters" class="tab-view hidden">
       <div class="card" style="border-top: 4px solid var(--monster);">
-        <div id="active-monster-assignment">
-          <p class="empty-state">No Active Quests.</p>
-        </div>
-
         <div id="available-monster-encounters">
           <p class="empty-state">No Active Quests.</p>
         </div>
@@ -1204,10 +1200,8 @@
         .order('created_at', { ascending: false });
 
       if (!allQuests || allQuests.length === 0) {
-        if (combatContainer) combatContainer.innerHTML = '';
+        if (combatContainer) combatContainer.innerHTML = `<p class="empty-state">No Active Quests.</p>`;
         if (larpieContainer) larpieContainer.innerHTML = '';
-        const combatHeading = document.getElementById('available-combat-heading');
-        if (combatHeading) combatHeading.classList.add('hidden');
         return;
       }
 
@@ -1268,35 +1262,7 @@
 
     // Fetch Monster Callboard
     async function fetchMonsterEncounters() {
-      const activeMonsterContainer = document.getElementById('active-monster-assignment');
       const availableMonsterContainer = document.getElementById('available-monster-encounters');
-
-      if (activeMonsterClaim && activeMonsterClaim.quest_queues?.quests) {
-        const q = activeMonsterClaim.quest_queues.quests;
-        const queueStatus = activeMonsterClaim.quest_queues.status;
-        const isLive = queueStatus === 'active';
-
-        const scenarioContent = isLive
-          ? `${q.scenario_card || 'Report to QM for field position.'}`
-          : `🔒 Scenario Locked until Quest Master launches the encounter live on the field.`;
-
-        activeMonsterContainer.innerHTML = `
-          <div class="quest-card">
-            <div class="tag-container">
-              <span class="badge badge-monster">👹 Monster Line Joined</span>
-              <span class="badge badge-type">${activeMonsterClaim.role_name || 'Encounter Monster'}</span>
-              <span class="badge ${isLive ? 'badge-active' : 'badge-threat-loot'}">
-                ${isLive ? '⚔️ Encounter Live!' : '⏳ Prepping in Queue'}
-              </span>
-            </div>
-            <h4>${q.title}</h4>
-            <p>${scenarioContent}</p>
-            <button class="btn btn-secondary" style="margin-top:12px;" onclick="abandonMonsterRole('${activeMonsterClaim.id}')">Leave</button>
-          </div>
-        `;
-      } else {
-        activeMonsterContainer.innerHTML = `<p class="empty-state">No Active Quests.</p>`;
-      }
 
       const { data: combatQuests } = await supabaseClient
         .from('quests')
