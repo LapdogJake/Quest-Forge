@@ -865,33 +865,53 @@
     }
 
     async function sellItem(itemId, goldValue, itemName) {
-      const { error } = await supabaseClient.from('user_inventory').delete().eq('id', itemId);
+      const { error, count } = await supabaseClient
+        .from('user_inventory')
+        .delete()
+        .eq('id', itemId)
+        .eq('user_id', currentUser.id);
 
       if (error) {
         alert("⚠️ Could not sell item: " + error.message);
         return;
       }
 
+      if ((count || 0) === 0) {
+        alert("⚠️ This item could not be found in your pouch.");
+        await fetchUserInventory();
+        return;
+      }
+
       const newGold = (currentProfile.gold || 0) + goldValue;
       await supabaseClient.from('profiles').update({ gold: newGold }).eq('id', currentUser.id);
-      
+
       currentProfile.gold = newGold;
       document.getElementById('profile-gold').innerText = newGold;
 
       alert(`🪙 Sold ${itemName} for ${goldValue} Gold!`);
-      fetchUserInventory();
+      await fetchUserInventory();
     }
 
     async function useItem(itemId, itemName) {
-      const { error } = await supabaseClient.from('user_inventory').delete().eq('id', itemId);
+      const { error, count } = await supabaseClient
+        .from('user_inventory')
+        .delete()
+        .eq('id', itemId)
+        .eq('user_id', currentUser.id);
 
       if (error) {
         alert("⚠️ Could not use item: " + error.message);
         return;
       }
 
+      if ((count || 0) === 0) {
+        alert("⚠️ This item could not be found in your pouch.");
+        await fetchUserInventory();
+        return;
+      }
+
       alert(`✨ Consumed ${itemName}! It has been removed from your pouch.`);
-      fetchUserInventory();
+      await fetchUserInventory();
     }
 
     async function fetchUserSlotState() {
