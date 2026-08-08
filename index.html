@@ -95,6 +95,30 @@
       white-space: pre-wrap;
     }
 
+    /* Accordion Style for Profile Inventory */
+    .accordion-header {
+      background: #27272a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .accordion-header:hover { background: #3f3f46; }
+    .accordion-content {
+      background: #18181b;
+      border: 1px solid var(--border);
+      border-top: none;
+      border-bottom-left-radius: 8px;
+      border-bottom-right-radius: 8px;
+      padding: 12px;
+    }
+
     /* Cards & Items */
     .item-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 12px; }
     .item-card {
@@ -106,6 +130,10 @@
       justify-content: space-between;
       align-items: center;
     }
+    .item-info h4 { font-size: 15px; color: var(--text); }
+    .item-info small { display: block; font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .item-actions { display: flex; gap: 6px; align-items: center; }
+
     .quest-card {
       background: #27272a;
       border: 1px solid var(--border);
@@ -167,7 +195,7 @@
       text-overflow: ellipsis;
     }
 
-    /* QM Sub-Navigation Tabs */
+    /* Sub-Navigation Tabs */
     .qm-subnav {
       display: flex;
       gap: 4px;
@@ -238,8 +266,11 @@
     .btn-accept { background: var(--primary); color: white; padding: 8px 14px; font-size: 13px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
     .btn-complete { background: var(--success); color: #000; padding: 8px 14px; font-size: 13px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
     .btn-secondary { background: #3f3f46; color: white; padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
+    .btn-buy { background: var(--gold); color: #000; padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
+    .btn-sell { background: #b45309; color: #fff; padding: 6px 10px; font-size: 11px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
+    .btn-use { background: var(--primary); color: #fff; padding: 6px 10px; font-size: 11px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
 
-    /* Bottom Nav (Adapted to 6 options) */
+    /* Bottom Nav */
     .bottom-nav {
       position: fixed;
       bottom: 0;
@@ -335,11 +366,22 @@
           </div>
         </div>
 
+        <!-- Collapsible Carrying Inventory Accordion -->
+        <div class="accordion-header" onclick="toggleProfileInventoryAccordion()">
+          <span>🎒 Carrying Inventory <small id="profile-inventory-count" style="color:var(--text-muted); font-weight:normal;">(0 items)</small></span>
+          <span id="profile-inventory-chevron">▼</span>
+        </div>
+        <div id="profile-inventory-accordion-body" class="accordion-content hidden">
+          <div id="profile-inventory-list" class="item-grid">
+            <p class="empty-state">Your pouch is empty. Visit the Store to buy supplies!</p>
+          </div>
+        </div>
+
         <button class="btn btn-danger" onclick="handleSignOut()">Sign Out</button>
       </div>
     </section>
 
-    <!-- 2. HEROES TAB (Renamed from Quests) -->
+    <!-- 2. HEROES TAB -->
     <section id="tab-heroes" class="tab-view hidden">
       <div class="card">
         <h2>⚔️ Heroes Board</h2>
@@ -357,7 +399,7 @@
       </div>
     </section>
 
-    <!-- 3. ADVENTURE TAB (New Tab for Larpie Quests) -->
+    <!-- 3. ADVENTURE TAB -->
     <section id="tab-adventure" class="tab-view hidden">
       <div class="card" style="border-top: 4px solid var(--adventure);">
         <h2 style="color: var(--adventure);">🎨 Adventure Board</h2>
@@ -393,15 +435,34 @@
       </div>
     </section>
 
-    <!-- 5. INVENTORY TAB (Pouch) -->
-    <section id="tab-inventory" class="tab-view hidden">
+    <!-- 5. STORE TAB (Updated from Pouch) -->
+    <section id="tab-store" class="tab-view hidden">
       <div class="card">
-        <h2>🎒 Your Pouch</h2>
-        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Items carried into battle</p>
+        <h2>🛒 Merchant Store</h2>
+        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Purchase supplies or sell perishable goods before they decay!</p>
 
-        <div class="item-grid" id="inventory-list">
-          <p class="empty-state">Loading your pouch...</p>
+        <div class="qm-subnav">
+          <button id="store-subnav-buy" class="qm-subnav-btn active" onclick="switchStoreSubTab('buy')">🛍️ Buy Supplies</button>
+          <button id="store-subnav-sell" class="qm-subnav-btn" onclick="switchStoreSubTab('sell')">🪙 Sell Back</button>
         </div>
+
+        <!-- BUY CATALOG -->
+        <div id="store-subtab-buy">
+          <h3 class="section-title" style="color:var(--gold);">Available Catalog (1g = 1h Lifespan)</h3>
+          <div id="store-catalog-list" class="item-grid">
+            <!-- Catalog items rendered via JS -->
+          </div>
+        </div>
+
+        <!-- SELL BACK -->
+        <div id="store-subtab-sell" class="hidden">
+          <h3 class="section-title" style="color:var(--gold);">Sell Carrying Inventory</h3>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">Item resale value decays linearly based on remaining lifespan.</p>
+          <div id="store-sell-list" class="item-grid">
+            <p class="empty-state">Loading inventory...</p>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -429,7 +490,6 @@
           <div class="form-row">
             <div class="form-group">
               <label>Category</label>
-              <!-- Updated Category Options to Battle and Adventure -->
               <select id="qm-category" class="form-control">
                 <option value="Battle">Battle (Heroes Tab)</option>
                 <option value="Adventure">Adventure (Arts/Sci/Social)</option>
@@ -517,7 +577,7 @@
 
   </main>
 
-  <!-- Bottom Navigation (Updated with 6 tabs) -->
+  <!-- Bottom Navigation -->
   <nav class="bottom-nav">
     <button class="nav-btn active" id="nav-profile" onclick="switchTab('profile')">
       👤 <span>Profile</span>
@@ -531,8 +591,8 @@
     <button class="nav-btn" id="nav-monsters" onclick="switchTab('monsters')">
       👹 <span>Monsters</span>
     </button>
-    <button class="nav-btn" id="nav-inventory" onclick="switchTab('inventory')">
-      🎒 <span>Pouch</span>
+    <button class="nav-btn" id="nav-store" onclick="switchTab('store')">
+      🛒 <span>Store</span>
     </button>
     <button class="nav-btn hidden" id="nav-admin" onclick="switchTab('admin')">
       👑 <span>QM Panel</span>
@@ -550,6 +610,14 @@
     let activeLarpieQuest = null;
     let activeMonsterClaim = null;
 
+    // Static Store Catalog
+    const STORE_CATALOG = [
+      { id: 'item-rations', item_name: '🍖 Field Rations', base_cost: 10, duration_hours: 10, description: 'Restores stamina during marches.' },
+      { id: 'item-potion', item_name: '🧪 Minor Health Potion', base_cost: 25, duration_hours: 25, description: 'Restores 1 armor/hp point in combat.' },
+      { id: 'item-scroll', item_name: '📜 Scroll of Darkvision', base_cost: 50, duration_hours: 50, description: 'Reveals hidden encounter objectives.' },
+      { id: 'item-elixir', item_name: '🏺 Elixir of Giant Strength', base_cost: 100, duration_hours: 100, description: 'Boosts strike power for 1 fight.' }
+    ];
+
     function switchTab(tabName) {
       document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active', 'active-monster', 'active-adventure'));
@@ -562,6 +630,22 @@
         activeBtn.classList.add('active-adventure');
       } else {
         activeBtn.classList.add('active');
+      }
+    }
+
+    function switchStoreSubTab(subTab) {
+      document.getElementById('store-subtab-buy').classList.add('hidden');
+      document.getElementById('store-subtab-sell').classList.add('hidden');
+      document.getElementById('store-subnav-buy').classList.remove('active');
+      document.getElementById('store-subnav-sell').classList.remove('active');
+
+      if (subTab === 'buy') {
+        document.getElementById('store-subtab-buy').classList.remove('hidden');
+        document.getElementById('store-subnav-buy').classList.add('active');
+      } else {
+        document.getElementById('store-subtab-sell').classList.remove('hidden');
+        document.getElementById('store-subnav-sell').classList.add('active');
+        fetchUserInventory();
       }
     }
 
@@ -622,6 +706,175 @@
       await fetchUserSlotState();
       fetchQuests();
       fetchMonsterEncounters();
+      fetchUserInventory();
+      renderStoreCatalog();
+    }
+
+    // Decay Helper Function
+    function getItemStatus(item) {
+      const now = Date.now();
+      const purchasedAt = new Date(item.purchased_at).getTime();
+      const expiresAt = new Date(item.expires_at).getTime();
+
+      const totalDuration = expiresAt - purchasedAt;
+      const timeRemaining = expiresAt - now;
+
+      if (timeRemaining <= 0) {
+        return { isExpired: true, currentGoldValue: 0, hoursLeft: 0, percentLeft: 0 };
+      }
+
+      const ratio = timeRemaining / totalDuration;
+      const currentGoldValue = Math.floor((item.base_cost || 0) * ratio);
+      const hoursLeft = Math.ceil(timeRemaining / (1000 * 60 * 60));
+      const percentLeft = Math.round(ratio * 100);
+
+      return { isExpired: false, currentGoldValue, hoursLeft, percentLeft };
+    }
+
+    // Profile Accordion Toggle
+    function toggleProfileInventoryAccordion() {
+      const accordionBody = document.getElementById('profile-inventory-accordion-body');
+      const chevron = document.getElementById('profile-inventory-chevron');
+      const isHidden = accordionBody.classList.contains('hidden');
+
+      if (isHidden) {
+        accordionBody.classList.remove('hidden');
+        chevron.innerText = "▲";
+      } else {
+        accordionBody.classList.add('hidden');
+        chevron.innerText = "▼";
+      }
+    }
+
+    async function fetchUserInventory() {
+      const profileList = document.getElementById('profile-inventory-list');
+      const sellList = document.getElementById('store-sell-list');
+      const countLabel = document.getElementById('profile-inventory-count');
+
+      const { data: inventory } = await supabaseClient
+        .from('user_inventory')
+        .select('*')
+        .eq('user_id', currentUser.id);
+
+      if (!inventory || inventory.length === 0) {
+        profileList.innerHTML = `<p class="empty-state">Your pouch is empty. Visit the Store to buy supplies!</p>`;
+        sellList.innerHTML = `<p class="empty-state">No unexpired items available to sell.</p>`;
+        countLabel.innerText = "(0 items)";
+        return;
+      }
+
+      const validItems = [];
+      const expiredIds = [];
+
+      inventory.forEach(item => {
+        const status = getItemStatus(item);
+        if (status.isExpired) {
+          expiredIds.push(item.id);
+        } else {
+          validItems.push({ ...item, status });
+        }
+      });
+
+      // Lazy cleanup of expired items from DB
+      if (expiredIds.length > 0) {
+        await supabaseClient.from('user_inventory').delete().in('id', expiredIds);
+      }
+
+      countLabel.innerText = `(${validItems.length} item${validItems.length === 1 ? '' : 's'})`;
+
+      if (validItems.length === 0) {
+        profileList.innerHTML = `<p class="empty-state">Your items decayed away! Visit the Store to restock.</p>`;
+        sellList.innerHTML = `<p class="empty-state">No unexpired items available to sell.</p>`;
+        return;
+      }
+
+      // Render for Profile Accordion
+      profileList.innerHTML = validItems.map(item => `
+        <div class="item-card">
+          <div class="item-info">
+            <h4>${item.item_name}</h4>
+            <small style="color:${item.status.percentLeft < 25 ? 'var(--danger)' : 'var(--text-muted)'};">
+              ⌛ ${item.status.hoursLeft}h left (${item.status.percentLeft}% fresh)
+            </small>
+          </div>
+          <div class="item-actions">
+            <button class="btn-use" onclick="useItem('${item.id}', '${item.item_name}')">Use</button>
+            <button class="btn-sell" onclick="sellItem('${item.id}', ${item.status.currentGoldValue}, '${item.item_name}')">Sell (${item.status.currentGoldValue}g)</button>
+          </div>
+        </div>
+      `).join('');
+
+      // Render for Store Sell Sub-tab
+      sellList.innerHTML = validItems.map(item => `
+        <div class="item-card">
+          <div class="item-info">
+            <h4>${item.item_name}</h4>
+            <small>Decayed Value: <strong style="color:var(--gold);">${item.status.currentGoldValue} Gold</strong> (${item.status.hoursLeft}h remaining)</small>
+          </div>
+          <button class="btn-sell" onclick="sellItem('${item.id}', ${item.status.currentGoldValue}, '${item.item_name}')">Sell (${item.status.currentGoldValue}g)</button>
+        </div>
+      `).join('');
+    }
+
+    function renderStoreCatalog() {
+      const container = document.getElementById('store-catalog-list');
+      container.innerHTML = STORE_CATALOG.map(item => `
+        <div class="item-card">
+          <div class="item-info">
+            <h4>${item.item_name}</h4>
+            <small>${item.description}</small>
+            <small style="color:var(--gold); margin-top:4px;">⏱️ Shelf Life: ${item.duration_hours} Hours</small>
+          </div>
+          <button class="btn-buy" onclick="buyItem('${item.item_name}', ${item.base_cost}, ${item.duration_hours})">Buy (${item.base_cost}g)</button>
+        </div>
+      `).join('');
+    }
+
+    async function buyItem(itemName, cost, durationHours) {
+      if ((currentProfile?.gold || 0) < cost) {
+        alert("⚠️ Not enough gold to purchase this item!");
+        return;
+      }
+
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + durationHours * 60 * 60 * 1000);
+
+      const { error } = await supabaseClient.from('user_inventory').insert({
+        user_id: currentUser.id,
+        item_name: itemName,
+        base_cost: cost,
+        purchased_at: now.toISOString(),
+        expires_at: expiresAt.toISOString(),
+        quantity: 1
+      });
+
+      if (error) { alert("Error buying item: " + error.message); return; }
+
+      // Deduct Gold
+      const newGold = currentProfile.gold - cost;
+      await supabaseClient.from('profiles').update({ gold: newGold }).eq('id', currentUser.id);
+      currentProfile.gold = newGold;
+      document.getElementById('profile-gold').innerText = newGold;
+
+      alert(`🛒 Purchased ${itemName} for ${cost} Gold!`);
+      fetchUserInventory();
+    }
+
+    async function sellItem(itemId, goldValue, itemName) {
+      await supabaseClient.from('user_inventory').delete().eq('id', itemId);
+
+      const newGold = (currentProfile.gold || 0) + goldValue;
+      await supabaseClient.from('profiles').update({ gold: newGold }).eq('id', currentUser.id);
+      currentProfile.gold = newGold;
+      document.getElementById('profile-gold').innerText = newGold;
+
+      alert(`🪙 Sold ${itemName} for ${goldValue} Gold!`);
+      fetchUserInventory();
+    }
+
+    async function useItem(itemId, itemName) {
+      await supabaseClient.from('user_inventory').delete().eq('id', itemId);
+      alert(`✨ Consumed ${itemName}!`);
       fetchUserInventory();
     }
 
@@ -760,7 +1013,7 @@
         : `<p class="empty-state">No available adventure quests.</p>`;
     }
 
-    // Fetch Monster Callboard with Secret Pre-Launch Locking
+    // Fetch Monster Callboard
     async function fetchMonsterEncounters() {
       const activeMonsterContainer = document.getElementById('active-monster-assignment');
       const availableMonsterContainer = document.getElementById('available-monster-encounters');
@@ -797,7 +1050,6 @@
         activeMonsterContainer.innerHTML = `<p class="empty-state">You are not currently volunteered for a monster encounter.</p>`;
       }
 
-      // Fetch Active Battle Quests from catalog
       const { data: combatQuests } = await supabaseClient
         .from('quests')
         .select('*')
@@ -1023,7 +1275,7 @@
       }
     }
 
-    // QM LIVE QUEUES PANEL WITH DUAL-LINE TRACKING
+    // QM LIVE QUEUES PANEL
     async function fetchQMQueues() {
       const container = document.getElementById('qm-queue-list');
       
@@ -1056,7 +1308,6 @@
               <span class="badge ${isLive ? 'badge-active' : 'badge-threat-loot'}">${isLive ? '⚔️ IN PROGRESS' : '⏳ PREPPING'}</span>
             </div>
 
-            <!-- Dual Lines View -->
             <div class="dual-queue-grid">
               <div class="queue-box">
                 <h5 style="color:var(--primary);">⚔️ PC Line (${pcs.length})</h5>
@@ -1104,7 +1355,6 @@
       fetchMonsterEncounters();
     }
 
-    // Complete & Pay Both PCs and Monsters
     async function qmCompleteAndPayEncounter(queueId, rewardGold, rewardQp, pcUserIds, monsterUserIds) {
       if (!confirm(`Award PCs (+${rewardGold}g / +${rewardQp}qp) AND Monsters (+1 Shift Credit / +${rewardGold}g / +${rewardQp}qp)?`)) return;
 
@@ -1136,7 +1386,7 @@
       initDashboard();
     }
 
-    // QM Catalog & Sponsoring Engine
+    // QM Catalog Engine
     async function fetchQMQuests() {
       const container = document.getElementById('qm-quest-list');
       const { data: quests } = await supabaseClient
@@ -1185,7 +1435,7 @@
 
     async function createQuest() {
       const title = document.getElementById('qm-title').value.trim();
-      const category = document.getElementById('qm-category').value; // 'Battle' or 'Adventure'
+      const category = document.getElementById('qm-category').value;
       const participation_type = document.getElementById('qm-type').value;
       const threat_level = document.getElementById('qm-threat').value;
       const verification_method = document.getElementById('qm-verification').value;
@@ -1249,26 +1499,6 @@
       await supabaseClient.from('profiles').update({ bio: newBio }).eq('id', currentUser.id);
       document.getElementById('bio-display').innerText = newBio || "No lore written yet. Tap Edit to add your backstory!";
       toggleBioEdit();
-    }
-
-    async function fetchUserInventory() {
-      const invContainer = document.getElementById('inventory-list');
-      const { data: inventory } = await supabaseClient.from('user_inventory').select('*').eq('user_id', currentUser.id);
-
-      if (!inventory || inventory.length === 0) {
-        invContainer.innerHTML = `<p class="empty-state">Your pouch is currently empty.</p>`;
-        return;
-      }
-
-      invContainer.innerHTML = inventory.map(item => `
-        <div class="item-card">
-          <div>
-            <h4>${item.item_name}</h4>
-            <p>${item.description || ''}</p>
-          </div>
-          <span class="badge badge-type">x${item.quantity}</span>
-        </div>
-      `).join('');
     }
 
     async function handleSignOut() {
