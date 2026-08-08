@@ -1309,28 +1309,76 @@
         return;
       }
 
+      const monsterQuestIds = combatQuests.map(q => q.id);
+      let monsterRosterByQuest = new Map();
+
+      if (monsterQuestIds.length > 0) {
+        const { data: monsterLines } = await supabaseClient
+          .from('quest_queues')
+          .select('id, quest_id, status, encounter_monsters(*, profiles(username))')
+          .in('quest_id', monsterQuestIds)
+          .in('status', ['waiting', 'active']);
+
+        (monsterLines || []).forEach(line => {
+          if (!line || !line.quest_id) return;
+          const roster = (line.encounter_monsters || []).map(member => member.profiles?.username || 'Monster').filter(Boolean);
+          monsterRosterByQuest.set(line.quest_id, {
+            queueId: line.id,
+            queueStatus: line.status,
+            players: roster,
+            count: roster.length
+          });
+        });
+      }
+
       const isBattleLocked = !!activeBattleQuest;
 
-      availableMonsterContainer.innerHTML = combatQuests.map(q => {
-        return `
-          <div class="quest-card">
-            <h4>${q.title}</h4>
-            <p>${q.description || ''}</p>
-            <div class="tag-container">
-              <span class="badge badge-monster">👹 Monster Line Open</span>
-              <span class="badge badge-type">${q.participation_type || 'Group'}</span>
-              <span class="badge badge-battle">${q.threat_level || 'Safe'}</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
-              <span class="reward-qp">⭐ +1 Monster Shift Credit</span>
-              ${isBattleLocked 
-                ? `<button class="btn-secondary" disabled style="opacity:0.6;">Battle Slot Full</button>`
-                : `<button class="btn-accept" style="background:var(--monster);" onclick="claimMonsterRole('${q.id}', 'Standard Monster')">Join</button>`
-              }
+      availableMonsterContainer.innerHTML = combatQuests.map(q => renderMonsterQuestCard(q, activeMonsterClaim, monsterRosterByQuest.get(q.id), isBattleLocked)).join('');
+    }
+
+    function renderMonsterQuestCard(q, activeMonsterClaim, monsterRoster = null, isBattleLocked = false) {
+      const joinedThisQuest = activeMonsterClaim && activeMonsterClaim.quest_queues?.quest_id === q.id;
+      const isJoined = Boolean(joinedThisQuest);
+      const groupType = q.participation_type || 'Group';
+      const joinButton = isJoined
+        ? `<button class="btn-leave" onclick="abandonMonsterRole('${activeMonsterClaim.id}')">Leave</button>`
+        : (isBattleLocked
+          ? `<button class="btn-secondary" disabled style="opacity:0.6;">Battle Slot Full</button>`
+          : `<button class="btn-join" onclick="claimMonsterRole('${q.id}', 'Standard Monster')">Join</button>`);
+
+      const summaryAction = `<span class="quest-summary-actions">${joinButton}</span>`;
+      const rosterPlayers = monsterRoster?.players || [];
+      const rosterHtml = rosterPlayers.length > 0
+        ? rosterPlayers.map(name => `<span class="party-member-tag">👹 ${name}</span>`).join('')
+        : `<span class="party-member-tag">No one has joined this line yet.</span>`;
+
+      return `
+        <details class="quest-accordion ${isJoined ? 'quest-joined' : ''}" ${isJoined ? 'open' : ''}>
+          <summary>
+            <span class="quest-summary-title">${q.title}</span>
+            ${summaryAction}
+          </summary>
+          <div class="quest-accordion-content">
+            <div class="quest-details-body">
+              <div class="quest-details-panel">
+                <div class="tag-container">
+                  <span class="badge badge-monster">👹 Monster Line Open</span>
+                  <span class="badge badge-type">${groupType}</span>
+                  <span class="badge badge-battle">${q.threat_level || 'Safe'}</span>
+                </div>
+                <p>${q.description || ''}</p>
+                <div class="quest-rewards">
+                  <span class="reward-qp">⭐ +1 Monster Shift Credit</span>
+                </div>
+                <div class="queue-roster-strip">
+                  <h5>Queued Monsters (${rosterPlayers.length})</h5>
+                  <div>${rosterHtml}</div>
+                </div>
+              </div>
             </div>
           </div>
-        `;
-      }).join('');
+        </details>
+      `;
     }
 
     function renderSoloQuestCard(q, isActive, userQuestId) {
