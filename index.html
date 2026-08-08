@@ -268,7 +268,7 @@
     .btn-secondary { background: #3f3f46; color: white; padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
     .btn-buy { background: var(--gold); color: #000; padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
     .btn-sell { background: #b45309; color: #fff; padding: 6px 10px; font-size: 11px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
-    .btn-use { background: var(--primary); color: #fff; padding: 6px 10px; font-size: 11px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
+    .btn-use { background: var(--primary); color: #fff; padding: 6px 12px; font-size: 11px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
 
     /* Bottom Nav */
     .bottom-nav {
@@ -435,7 +435,7 @@
       </div>
     </section>
 
-    <!-- 5. STORE TAB (Updated from Pouch) -->
+    <!-- 5. STORE TAB -->
     <section id="tab-store" class="tab-view hidden">
       <div class="card">
         <h2>🛒 Merchant Store</h2>
@@ -751,10 +751,15 @@
       const sellList = document.getElementById('store-sell-list');
       const countLabel = document.getElementById('profile-inventory-count');
 
-      const { data: inventory } = await supabaseClient
+      const { data: inventory, error } = await supabaseClient
         .from('user_inventory')
         .select('*')
         .eq('user_id', currentUser.id);
+
+      if (error) {
+        console.error("Error fetching inventory:", error);
+        return;
+      }
 
       if (!inventory || inventory.length === 0) {
         profileList.innerHTML = `<p class="empty-state">Your pouch is empty. Visit the Store to buy supplies!</p>`;
@@ -788,7 +793,7 @@
         return;
       }
 
-      // Render for Profile Accordion
+      // 1. Profile Accordion: ONLY "Use" Button
       profileList.innerHTML = validItems.map(item => `
         <div class="item-card">
           <div class="item-info">
@@ -799,17 +804,16 @@
           </div>
           <div class="item-actions">
             <button class="btn-use" onclick="useItem('${item.id}', '${item.item_name}')">Use</button>
-            <button class="btn-sell" onclick="sellItem('${item.id}', ${item.status.currentGoldValue}, '${item.item_name}')">Sell (${item.status.currentGoldValue}g)</button>
           </div>
         </div>
       `).join('');
 
-      // Render for Store Sell Sub-tab
+      // 2. Merchant Store "Sell Back" Sub-tab: "Sell" Button with Dynamic Value
       sellList.innerHTML = validItems.map(item => `
         <div class="item-card">
           <div class="item-info">
             <h4>${item.item_name}</h4>
-            <small>Decayed Value: <strong style="color:var(--gold);">${item.status.currentGoldValue} Gold</strong> (${item.status.hoursLeft}h remaining)</small>
+            <small>Current Resale Value: <strong style="color:var(--gold);">${item.status.currentGoldValue} Gold</strong> (${item.status.hoursLeft}h remaining)</small>
           </div>
           <button class="btn-sell" onclick="sellItem('${item.id}', ${item.status.currentGoldValue}, '${item.item_name}')">Sell (${item.status.currentGoldValue}g)</button>
         </div>
@@ -861,10 +865,16 @@
     }
 
     async function sellItem(itemId, goldValue, itemName) {
-      await supabaseClient.from('user_inventory').delete().eq('id', itemId);
+      const { error } = await supabaseClient.from('user_inventory').delete().eq('id', itemId);
+
+      if (error) {
+        alert("⚠️ Could not sell item: " + error.message);
+        return;
+      }
 
       const newGold = (currentProfile.gold || 0) + goldValue;
       await supabaseClient.from('profiles').update({ gold: newGold }).eq('id', currentUser.id);
+      
       currentProfile.gold = newGold;
       document.getElementById('profile-gold').innerText = newGold;
 
@@ -873,8 +883,14 @@
     }
 
     async function useItem(itemId, itemName) {
-      await supabaseClient.from('user_inventory').delete().eq('id', itemId);
-      alert(`✨ Consumed ${itemName}!`);
+      const { error } = await supabaseClient.from('user_inventory').delete().eq('id', itemId);
+
+      if (error) {
+        alert("⚠️ Could not use item: " + error.message);
+        return;
+      }
+
+      alert(`✨ Consumed ${itemName}! It has been removed from your pouch.`);
       fetchUserInventory();
     }
 
