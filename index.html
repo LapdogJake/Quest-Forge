@@ -513,7 +513,6 @@
     <section id="tab-heroes" class="tab-view hidden">
       <div class="card">
         <h2>⚔️ Heroes</h2>
-        <h3 id="available-combat-heading" class="section-title hidden">⚔️ Available Battle Quests (Join PC Line)</h3>
         <div id="available-combat-quests"></div>
       </div>
     </section>
@@ -1422,15 +1421,15 @@
             <div class="quest-accordion-content">
               <div class="quest-details-body">
                 <div class="quest-details-panel">
-                  <div class="tag-container">
-                    <span class="badge badge-battle">${q.category || 'Battle'}</span>
-                    <span class="badge badge-type">${groupType}</span>
-                  </div>
                   <div class="quest-rewards">
                     <span class="reward-gold">🪙 +${q.reward_gold} Gold</span>
                     <span class="reward-qp">⭐ +${q.reward_qp} QP</span>
                   </div>
                   <p>${q.description || ''}</p>
+                  <div class="tag-container">
+                    <span class="badge badge-battle">${q.category || 'Battle'}</span>
+                    <span class="badge badge-type">${groupType}</span>
+                  </div>
                   <div class="queue-roster-strip">
                     <h5>Queued Heroes (${rosterPlayers.length})</h5>
                     <div>${rosterHtml}</div>
