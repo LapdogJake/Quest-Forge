@@ -190,6 +190,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 12px;
     }
     .quest-accordion summary::-webkit-details-marker { display: none; }
     .quest-accordion summary:after {
@@ -198,13 +199,24 @@
       color: var(--text-muted);
     }
     .quest-accordion[open] summary:after { content: '−'; }
-    .quest-accordion summary .quest-summary-title { color: var(--text); font-size: 14px; }
+    .quest-accordion summary .quest-summary-title { color: var(--text); font-size: 14px; flex: 1; }
+    .quest-accordion summary .quest-summary-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+    .quest-accordion summary .quest-summary-actions .btn-accept,
+    .quest-accordion summary .quest-summary-actions .btn-secondary {
+      font-size: 11px;
+      padding: 6px 10px;
+    }
     .quest-accordion-content {
       padding: 0 14px 14px;
     }
     .quest-details-body {
       display: grid;
-      grid-template-columns: minmax(0, 2fr) minmax(180px, 210px);
+      grid-template-columns: minmax(0, 1fr);
       gap: 12px;
       align-items: stretch;
     }
@@ -237,36 +249,12 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 12px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      min-height: 100%;
-      align-self: stretch;
+      display: none;
     }
     .quest-details-join.joined {
       background: #15351c;
       border-color: var(--success);
       color: #bbf7d0;
-    }
-    .quest-details-join .join-title {
-      margin-bottom: 8px;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-    }
-    .quest-details-join.joined .join-title {
-      color: #86efac;
-    }
-    .quest-details-join .join-status {
-      font-size: 12px;
-      font-weight: 800;
-      color: var(--text);
-      margin-bottom: 10px;
-    }
-    .quest-details-join.joined .join-status {
-      color: #86efac;
     }
 
     /* Badges & Tags */
@@ -1216,6 +1204,28 @@
         }
       });
 
+      const combatQuestIds = combatQuests.map(q => q.id);
+      let queueRosterByQuest = new Map();
+
+      if (combatQuestIds.length > 0) {
+        const { data: queuedBattleLines } = await supabaseClient
+          .from('quest_queues')
+          .select('id, quest_id, status, queue_members(*, profiles(username))')
+          .in('quest_id', combatQuestIds)
+          .in('status', ['waiting', 'active']);
+
+        (queuedBattleLines || []).forEach(line => {
+          if (!line || !line.quest_id) return;
+          const roster = (line.queue_members || []).map(member => member.profiles?.username || 'Hero').filter(Boolean);
+          queueRosterByQuest.set(line.quest_id, {
+            queueId: line.id,
+            queueStatus: line.status,
+            players: roster,
+            count: roster.length
+          });
+        });
+      }
+
       const combatHeading = document.getElementById('available-combat-heading');
       if (combatHeading) {
         combatHeading.classList.toggle('hidden', combatQuests.length === 0);
@@ -1223,7 +1233,7 @@
 
       if (combatContainer) {
         combatContainer.innerHTML = combatQuests.length > 0 
-          ? combatQuests.map(q => renderAvailableQuestCard(q, 'combat', joinedQueueMap.get(q.id))).join('')
+          ? combatQuests.map(q => renderAvailableQuestCard(q, 'combat', joinedQueueMap.get(q.id), queueRosterByQuest.get(q.id))).join('')
           : '';
       }
 
@@ -1355,7 +1365,7 @@
       `;
     }
 
-    function renderAvailableQuestCard(q, type, joinedQueueId = null) {
+    function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = null) {
       const isCombat = type === 'combat';
       const isSlotLocked = isCombat ? !!activeBattleQuest : !!activeLarpieQuest;
       const isJoined = Boolean(joinedQueueId);
@@ -1368,10 +1378,17 @@
             ? `<button class="btn-secondary" disabled style="opacity:0.6;">Battle Slot Full</button>`
             : `<button class="btn-accept" style="background:var(--warning);" onclick="joinOrCreateGroupQueue('${q.id}')">Join PC Line</button>`);
 
+        const summaryAction = `<span class="quest-summary-actions">${joinButton}</span>`;
+        const rosterPlayers = queueRoster?.players || [];
+        const rosterHtml = rosterPlayers.length > 0
+          ? rosterPlayers.map(name => `<span class="party-member-tag">👤 ${name}</span>`).join('')
+          : `<span class="party-member-tag">No one has joined this line yet.</span>`;
+
         return `
           <details class="quest-accordion ${isJoined ? 'quest-joined' : ''}" ${isJoined ? 'open' : ''}>
             <summary>
               <span class="quest-summary-title">${q.title}</span>
+              ${summaryAction}
             </summary>
             <div class="quest-accordion-content">
               <div class="quest-details-body">
@@ -1387,11 +1404,10 @@
                     <span class="reward-gold">🪙 +${q.reward_gold} Gold</span>
                     <span class="reward-qp">⭐ +${q.reward_qp} QP</span>
                   </div>
-                </div>
-                <div class="quest-details-join ${isJoined ? 'joined' : ''}">
-                  <div class="join-title">${isJoined ? 'Join Queue' : 'Join Queue'}</div>
-                  <div class="join-status">${isJoined ? 'Joined' : 'Open'}</div>
-                  ${joinButton}
+                  <div class="queue-box" style="margin-top:12px;">
+                    <h5>Queued Heroes (${rosterPlayers.length})</h5>
+                    <div>${rosterHtml}</div>
+                  </div>
                 </div>
               </div>
             </div>
