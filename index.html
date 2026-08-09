@@ -2277,10 +2277,23 @@
     }
 
     async function toggleQuestDeployment(questId, currentActiveState) {
-      await supabaseClient.from('quests').update({ is_active: !currentActiveState }).eq('id', questId);
-      fetchQMQuests();
-      fetchQuests();
-      fetchMonsterEncounters();
+      const nextState = !currentActiveState;
+      const { error } = await supabaseClient.from('quests').update({ is_active: nextState }).eq('id', questId);
+
+      if (error) {
+        alert("Error updating quest deployment: " + error.message);
+        return;
+      }
+
+      if (nextState) {
+        // Reset user completion history when QM re-opens an encounter on the field so players can take it again
+        await supabaseClient.from('user_quests').delete().eq('quest_id', questId);
+      }
+
+      await fetchUserSlotState();
+      await fetchQMQuests();
+      await fetchQuests();
+      await fetchMonsterEncounters();
     }
 
     async function createQuest() {
