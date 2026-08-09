@@ -2345,10 +2345,13 @@
     }
 
     async function acceptQuest(questId) {
+      // Pre-clear any old user_quests record for this quest to avoid unique constraint (user_id, quest_id) conflicts
+      await supabaseClient.from('user_quests').delete().eq('user_id', currentUser.id).eq('quest_id', questId);
+
       const { error } = await supabaseClient.from('user_quests').insert({ user_id: currentUser.id, quest_id: questId, status: 'accepted' });
       if (error) { alert("Error accepting quest: " + error.message); return; }
       await fetchUserSlotState();
-      fetchQuests();
+      await fetchQuests();
     }
 
     async function completeQuest(userQuestId, rewardGold, rewardQp) {
@@ -2359,7 +2362,8 @@
         quest_points: (profile?.quest_points || 0) + rewardQp
       }).eq('id', currentUser.id);
 
-      await supabaseClient.from('user_quests').update({ status: 'completed' }).eq('id', userQuestId);
+      // Delete the completed user_quests row to free the slot and clear unique constraint
+      await supabaseClient.from('user_quests').delete().eq('id', userQuestId);
       initDashboard();
     }
 
