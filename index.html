@@ -833,10 +833,6 @@
 
 <body>
 
-  <header>
-    <h1>Quest-Forge</h1>
-  </header>
-
   <main class="container">
 
     <!-- 1. PROFILE TAB -->
@@ -922,21 +918,16 @@
     <!-- 5. STORE TAB -->
     <section id="tab-store" class="tab-view hidden">
       <div class="card card-store">
-        <h2>🛒 Arcane Merchant</h2>
-        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Acquire certified relics, charms, and
-          enchanted tools for the field.</p>
+        <h2>Store</h2>
 
         <div class="qm-subnav">
-          <button id="store-subnav-buy" class="qm-subnav-btn active" onclick="switchStoreSubTab('buy')">🛍️ Buy
-            Relics</button>
-          <button id="store-subnav-sell" class="qm-subnav-btn" onclick="switchStoreSubTab('sell')">🪙 Liquidate</button>
+          <button id="store-subnav-buy" class="qm-subnav-btn active" onclick="switchStoreSubTab('buy')">Buy
+          </button>
+          <button id="store-subnav-sell" class="qm-subnav-btn" onclick="switchStoreSubTab('sell')">Sell</button>
         </div>
 
         <!-- BUY CATALOG -->
         <div id="store-subtab-buy">
-          <h3 class="section-title" style="color:var(--gold);">Official Item Catalog</h3>
-          <p style="font-size:12px; color:var(--text-muted); margin-top:-4px; margin-bottom:10px;">All listed items are
-            priced at 1 gold and carry a 90-day field life.</p>
           <div id="store-catalog-list" class="store-catalog-list">
             <!-- Catalog items rendered via JS -->
           </div>
@@ -2011,7 +2002,7 @@
 
       if (error) { alert("Error joining monster line: " + error.message); return; }
 
-      alert("👹 Joined Monster Line! Secret scenario details will reveal when QM launches the quest live.");
+      alert("Joined Monster's queue!");
       await fetchUserSlotState();
       fetchMonsterEncounters();
       fetchQuests();
@@ -2067,7 +2058,7 @@
         return;
       }
 
-      alert("⚔️ Joined PC Line! Battle Slot locked.");
+      alert("Joined Heroes queue!");
       await fetchUserSlotState();
       fetchQuests();
       if (currentProfile?.role === 'questmaster' || currentProfile?.role === 'admin') {
@@ -2223,8 +2214,8 @@
 
         const category = getCategoryForItemName(row.item_name);
         const defaultMax = getCategoryDurabilityMax(category);
-        const durabilityMax = Number(row.durability_max || defaultMax || 1);
-        const durabilityCurrent = Number(row.durability_current || durabilityMax || 1);
+        const durabilityMax = Number(row.durability_max ?? defaultMax ?? 1);
+        const durabilityCurrent = Number(row.durability_current ?? durabilityMax ?? 1);
 
         if (durabilityCurrent <= 1) {
           rowsToDelete.push(row.id);
