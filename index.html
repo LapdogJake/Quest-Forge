@@ -747,6 +747,28 @@
       cursor: pointer;
     }
 
+    .btn-toggle-active {
+      background: var(--success);
+      color: #07140a;
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 6px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-toggle-draft {
+      background: var(--danger);
+      color: white;
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 6px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
     /* Bottom Nav */
     .bottom-nav {
       position: fixed;
@@ -1144,8 +1166,21 @@
       const activeBtn = document.getElementById(`nav-${tabName}`);
       if (tabName === 'monsters') {
         activeBtn.classList.add('active-monster');
+        fetchMonsterEncounters();
       } else if (tabName === 'adventure') {
         activeBtn.classList.add('active-adventure');
+        fetchQuests();
+      } else if (tabName === 'heroes') {
+        activeBtn.classList.add('active');
+        fetchQuests();
+      } else if (tabName === 'profile') {
+        activeBtn.classList.add('active');
+        fetchUserSlotState();
+        fetchUserInventory();
+      } else if (tabName === 'admin') {
+        activeBtn.classList.add('active');
+        fetchQMQuests();
+        fetchQMQueues();
       } else {
         activeBtn.classList.add('active');
       }
@@ -2276,9 +2311,10 @@
       document.getElementById('qm-description').value = '';
       document.getElementById('qm-scenario').value = '';
 
+      await fetchUserSlotState();
+      await fetchQuests();
+      await fetchMonsterEncounters();
       switchQMSubTab('library');
-      fetchQuests();
-      fetchMonsterEncounters();
     }
 
     async function acceptQuest(questId) {
