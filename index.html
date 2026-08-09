@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -24,13 +25,20 @@
       --store: #eab308;
       --profile: #a1a1aa;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
       background-color: var(--bg);
       color: var(--text);
       font-family: system-ui, -apple-system, sans-serif;
       padding-bottom: 85px;
     }
+
     header {
       padding: 16px;
       background: var(--card-bg);
@@ -40,8 +48,13 @@
       top: 0;
       z-index: 10;
     }
-    .container { padding: 16px; max-width: 480px; margin: 0 auto; }
-    
+
+    .container {
+      padding: 16px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
     .card {
       background: var(--card-bg);
       padding: 20px;
@@ -49,11 +62,26 @@
       border: 1px solid var(--border);
       margin-bottom: 16px;
     }
-    .card-profile { border-top: 4px solid var(--profile); }
-    .card-heroes { border-top: 4px solid var(--heroes); }
-    .card-adventure { border-top: 4px solid var(--adventure); }
-    .card-monsters { border-top: 4px solid var(--monster); }
-    .card-store { border-top: 4px solid var(--store); }
+
+    .card-profile {
+      border-top: 4px solid var(--profile);
+    }
+
+    .card-heroes {
+      border-top: 4px solid var(--heroes);
+    }
+
+    .card-adventure {
+      border-top: 4px solid var(--adventure);
+    }
+
+    .card-monsters {
+      border-top: 4px solid var(--monster);
+    }
+
+    .card-store {
+      border-top: 4px solid var(--store);
+    }
 
     /* Dual-Slot Status Banner */
     .slot-container {
@@ -62,6 +90,7 @@
       gap: 10px;
       margin-top: 14px;
     }
+
     .slot-box {
       background: #18181b;
       border: 1px solid var(--border);
@@ -69,10 +98,26 @@
       padding: 10px;
       text-align: center;
     }
-    .slot-box h5 { font-size: 11px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
-    .slot-status { font-size: 12px; font-weight: bold; }
-    .slot-occupied { color: var(--warning); }
-    .slot-free { color: var(--success); }
+
+    .slot-box h5 {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .slot-status {
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .slot-occupied {
+      color: var(--warning);
+    }
+
+    .slot-free {
+      color: var(--success);
+    }
 
     /* Stats Grid */
     .stats-grid {
@@ -81,14 +126,26 @@
       grid-template-columns: 1fr 1fr 1fr;
       gap: 8px;
     }
+
     .stat-box {
       background: #27272a;
       padding: 10px 6px;
       border-radius: 8px;
       text-align: center;
     }
-    .stat-box small { color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; }
-    .stat-box p { font-size: 18px; font-weight: bold; margin-top: 4px; }
+
+    .stat-box small {
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .stat-box p {
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 4px;
+    }
 
     /* Bio Box */
     .bio-box {
@@ -117,7 +174,11 @@
       font-weight: bold;
       font-size: 14px;
     }
-    .accordion-header:hover { background: #3f3f46; }
+
+    .accordion-header:hover {
+      background: #3f3f46;
+    }
+
     .accordion-content {
       background: #18181b;
       border: 1px solid var(--border);
@@ -128,14 +189,26 @@
     }
 
     /* Cards & Items */
-    .item-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 12px; }
-    .store-catalog-list { display: grid; gap: 12px; margin-top: 12px; }
+    .item-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .store-catalog-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
     .store-catalog-list details.store-category {
       border: 1px solid var(--border);
       border-radius: 10px;
       background: #1f1f23;
       overflow: hidden;
     }
+
     .store-catalog-list details.store-category summary.store-category-summary {
       cursor: pointer;
       padding: 12px 14px;
@@ -148,16 +221,26 @@
       align-items: center;
       justify-content: space-between;
     }
-    .store-catalog-list details.store-category summary.store-category-summary::-webkit-details-marker { display: none; }
+
+    .store-catalog-list details.store-category summary.store-category-summary::-webkit-details-marker {
+      display: none;
+    }
+
     .store-catalog-list details.store-category summary.store-category-summary:after {
       content: '+';
       font-size: 18px;
       color: var(--text-muted);
     }
+
     .store-catalog-list details.store-category[open] summary.store-category-summary:after {
       content: '−';
     }
-    .store-category-items { margin: 0; padding: 12px; }
+
+    .store-category-items {
+      margin: 0;
+      padding: 12px;
+    }
+
     .item-card {
       background: #27272a;
       border: 1px solid var(--border);
@@ -167,9 +250,24 @@
       justify-content: space-between;
       align-items: center;
     }
-    .item-info h4 { font-size: 15px; color: var(--text); }
-    .item-info small { display: block; font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-    .item-actions { display: flex; gap: 6px; align-items: center; }
+
+    .item-info h4 {
+      font-size: 15px;
+      color: var(--text);
+    }
+
+    .item-info small {
+      display: block;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .item-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
 
     .quest-card {
       background: #27272a;
@@ -178,8 +276,18 @@
       padding: 16px;
       margin-bottom: 12px;
     }
-    .quest-card h4 { font-size: 16px; color: var(--text); margin-bottom: 6px; }
-    .quest-card p { font-size: 13px; color: var(--text-muted); line-height: 1.4; }
+
+    .quest-card h4 {
+      font-size: 16px;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .quest-card p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
 
     /* Collapsible Heroes Board */
     .quest-accordion {
@@ -189,6 +297,7 @@
       margin-bottom: 10px;
       overflow: hidden;
     }
+
     .quest-accordion summary {
       cursor: pointer;
       list-style: none;
@@ -200,20 +309,34 @@
       justify-content: space-between;
       gap: 12px;
     }
-    .quest-accordion summary::-webkit-details-marker { display: none; }
+
+    .quest-accordion summary::-webkit-details-marker {
+      display: none;
+    }
+
     .quest-accordion summary:after {
       content: '+';
       font-size: 18px;
       color: var(--text-muted);
     }
-    .quest-accordion[open] summary:after { content: '−'; }
-    .quest-accordion summary .quest-summary-title { color: var(--text); font-size: 14px; flex: 1; }
+
+    .quest-accordion[open] summary:after {
+      content: '−';
+    }
+
+    .quest-accordion summary .quest-summary-title {
+      color: var(--text);
+      font-size: 14px;
+      flex: 1;
+    }
+
     .quest-accordion summary .quest-summary-actions {
       display: flex;
       gap: 8px;
       align-items: center;
       justify-content: flex-end;
     }
+
     .quest-accordion summary .quest-summary-actions .btn-accept,
     .quest-accordion summary .quest-summary-actions .btn-secondary,
     .quest-accordion summary .quest-summary-actions .btn-join,
@@ -221,15 +344,18 @@
       font-size: 11px;
       padding: 6px 10px;
     }
+
     .quest-accordion-content {
       padding: 0 14px 14px;
     }
+
     .quest-details-body {
       display: grid;
       grid-template-columns: minmax(0, 1fr);
       gap: 12px;
       align-items: stretch;
     }
+
     .quest-details-panel {
       background: transparent;
       border: none;
@@ -237,16 +363,19 @@
       padding: 0;
       min-height: 100%;
     }
+
     .quest-details-panel h4 {
       margin: 0 0 8px 0;
       font-size: 16px;
       color: var(--text);
     }
+
     .quest-details-panel p {
       margin: 0 0 10px 0;
       font-size: 12px;
       line-height: 1.45;
     }
+
     .quest-details-panel .quest-detail-title {
       color: var(--text-muted);
       font-size: 11px;
@@ -254,6 +383,7 @@
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
+
     .quest-details-join {
       background: #1f2937;
       border: 1px solid var(--border);
@@ -261,20 +391,24 @@
       padding: 12px;
       display: none;
     }
+
     .quest-details-join.joined {
       background: #15351c;
       border-color: var(--success);
       color: #bbf7d0;
     }
+
     .quest-details-panel .quest-rewards {
       margin-top: 8px;
     }
+
     .quest-details-panel .queue-roster-strip {
       margin-top: 12px;
       padding: 0;
       border: none;
       background: transparent;
     }
+
     .quest-details-panel .queue-roster-strip h5 {
       font-size: 11px;
       font-weight: 800;
@@ -282,6 +416,7 @@
       margin: 0 0 6px 0;
       text-transform: uppercase;
     }
+
     .quest-details-panel .queue-roster-strip .party-member-tag {
       background: transparent;
       border: none;
@@ -293,7 +428,13 @@
     }
 
     /* Badges & Tags */
-    .tag-container { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+    .tag-container {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
     .badge {
       font-size: 10px;
       font-weight: bold;
@@ -302,19 +443,72 @@
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
-    .badge-battle { background: #451a03; color: #f97316; border: 1px solid #7c2d12; }
-    .badge-adventure { background: #064e3b; color: #34d399; border: 1px solid #047857; }
-    .badge-monster { background: #7f1d1d; color: #f87171; border: 1px solid #991b1b; }
-    .badge-threat-safe { background: #064e3b; color: #34d399; }
-    .badge-threat-loot { background: #713f12; color: #facc15; }
-    .badge-threat-death { background: #7f1d1d; color: #f87171; }
-    .badge-type { background: #27272a; color: #e4e4e7; border: 1px solid #3f3f46; }
-    .badge-active { background: #14532d; color: #4ade80; border: 1px solid #166534; }
-    .badge-draft { background: #3f3f46; color: #a1a1aa; border: 1px solid #52525b; }
 
-    .quest-rewards { display: flex; gap: 10px; font-size: 12px; font-weight: bold; }
-    .reward-gold { color: var(--gold); }
-    .reward-qp { color: var(--primary); }
+    .badge-battle {
+      background: #451a03;
+      color: #f97316;
+      border: 1px solid #7c2d12;
+    }
+
+    .badge-adventure {
+      background: #064e3b;
+      color: #34d399;
+      border: 1px solid #047857;
+    }
+
+    .badge-monster {
+      background: #7f1d1d;
+      color: #f87171;
+      border: 1px solid #991b1b;
+    }
+
+    .badge-threat-safe {
+      background: #064e3b;
+      color: #34d399;
+    }
+
+    .badge-threat-loot {
+      background: #713f12;
+      color: #facc15;
+    }
+
+    .badge-threat-death {
+      background: #7f1d1d;
+      color: #f87171;
+    }
+
+    .badge-type {
+      background: #27272a;
+      color: #e4e4e7;
+      border: 1px solid #3f3f46;
+    }
+
+    .badge-active {
+      background: #14532d;
+      color: #4ade80;
+      border: 1px solid #166534;
+    }
+
+    .badge-draft {
+      background: #3f3f46;
+      color: #a1a1aa;
+      border: 1px solid #52525b;
+    }
+
+    .quest-rewards {
+      display: flex;
+      gap: 10px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .reward-gold {
+      color: var(--gold);
+    }
+
+    .reward-qp {
+      color: var(--primary);
+    }
 
     /* Dual Line Display */
     .dual-queue-grid {
@@ -323,13 +517,21 @@
       gap: 8px;
       margin-top: 10px;
     }
+
     .queue-box {
       background: #18181b;
       border: 1px solid #3f3f46;
       border-radius: 8px;
       padding: 10px;
     }
-    .queue-box h5 { font-size: 11px; color: #a1a1aa; margin-bottom: 6px; text-transform: uppercase; }
+
+    .queue-box h5 {
+      font-size: 11px;
+      color: #a1a1aa;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
     .party-member-tag {
       display: block;
       background: #27272a;
@@ -354,6 +556,7 @@
       margin-top: 12px;
       margin-bottom: 16px;
     }
+
     .qm-subnav-btn {
       flex: 1;
       padding: 8px 6px;
@@ -367,11 +570,26 @@
       text-align: center;
       white-space: nowrap;
     }
-    .qm-subnav-btn.active { background: var(--primary); color: white; }
+
+    .qm-subnav-btn.active {
+      background: var(--primary);
+      color: white;
+    }
 
     /* Form Styling */
-    .form-group { margin-bottom: 12px; }
-    .form-group label { display: block; font-size: 12px; font-weight: bold; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; }
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: bold;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
     .form-control {
       width: 100%;
       background: #18181b;
@@ -382,8 +600,17 @@
       font-family: inherit;
       font-size: 14px;
     }
-    .form-control:focus { border-color: var(--primary); outline: none; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .form-control:focus {
+      border-color: var(--primary);
+      outline: none;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
 
     /* Scenario Card Box */
     .scenario-card-box {
@@ -395,7 +622,13 @@
       font-size: 13px;
       color: #f3e8ff;
     }
-    .scenario-card-box h5 { color: #c084fc; font-size: 11px; text-transform: uppercase; margin-bottom: 4px; }
+
+    .scenario-card-box h5 {
+      color: #c084fc;
+      font-size: 11px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
 
     /* Buttons */
     .btn {
@@ -408,17 +641,110 @@
       cursor: pointer;
       margin-top: 12px;
     }
-    .btn-primary { background: var(--primary); color: white; }
-    .btn-monster { background: var(--monster); color: white; }
-    .btn-danger { background: var(--danger); color: white; margin-top: 20px; }
-    .btn-accept { background: var(--primary); color: white; padding: 8px 14px; font-size: 13px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
-    .btn-join { background: var(--success); color: #07140a; padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
-    .btn-leave { background: var(--danger); color: white; padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
-    .btn-complete { background: var(--success); color: #000; padding: 8px 14px; font-size: 13px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
-    .btn-secondary { background: #3f3f46; color: white; padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
-    .btn-buy { background: var(--gold); color: #000; padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
-    .btn-sell { background: #b45309; color: #fff; padding: 6px 10px; font-size: 11px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
-    .btn-use { background: var(--primary); color: #fff; padding: 6px 12px; font-size: 11px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-monster {
+      background: var(--monster);
+      color: white;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+      margin-top: 20px;
+    }
+
+    .btn-accept {
+      background: var(--primary);
+      color: white;
+      padding: 8px 14px;
+      font-size: 13px;
+      border-radius: 6px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-join {
+      background: var(--success);
+      color: #07140a;
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 6px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-leave {
+      background: var(--danger);
+      color: white;
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 6px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-complete {
+      background: var(--success);
+      color: #000;
+      padding: 8px 14px;
+      font-size: 13px;
+      border-radius: 6px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-secondary {
+      background: #3f3f46;
+      color: white;
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 6px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-buy {
+      background: var(--gold);
+      color: #000;
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 6px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-sell {
+      background: #b45309;
+      color: #fff;
+      padding: 6px 10px;
+      font-size: 11px;
+      border-radius: 6px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-use {
+      background: var(--primary);
+      color: #fff;
+      padding: 6px 12px;
+      font-size: 11px;
+      border-radius: 6px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
 
     /* Bottom Nav */
     .bottom-nav {
@@ -433,6 +759,7 @@
       border-top: 1px solid var(--border);
       z-index: 100;
     }
+
     .nav-btn {
       background: none;
       border: none;
@@ -447,15 +774,40 @@
       flex: 1;
       padding: 6px 0;
     }
-    .nav-btn.active { color: var(--primary); }
-    .nav-btn.active-adventure { color: var(--adventure); }
-    .nav-btn.active-monster { color: var(--monster); }
 
-    .hidden { display: none !important; }
-    .empty-state { text-align: center; color: var(--text-muted); padding: 20px; font-size: 14px; }
-    .section-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin: 16px 0 8px 0; }
+    .nav-btn.active {
+      color: var(--primary);
+    }
+
+    .nav-btn.active-adventure {
+      color: var(--adventure);
+    }
+
+    .nav-btn.active-monster {
+      color: var(--monster);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 20px;
+      font-size: 14px;
+    }
+
+    .section-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin: 16px 0 8px 0;
+    }
   </style>
 </head>
+
 <body>
 
   <header>
@@ -469,11 +821,12 @@
       <div class="card card-profile">
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <div>
-            <span id="user-display" style="margin-top:6px; font-weight: bold; color: var(--primary); font-size: 20px;">Loading...</span>
+            <span id="user-display"
+              style="margin-top:6px; font-weight: bold; color: var(--primary); font-size: 20px;">Loading...</span>
             <span id="role-badge" class="badge badge-type" style="display:none; margin-left:8px;">Questmaster</span>
           </div>
         </div>
-        
+
         <!-- Dual Slot Holder -->
         <div class="slot-container">
           <div class="slot-box">
@@ -504,7 +857,8 @@
 
         <!-- Collapsible Inventory Accordion -->
         <div class="accordion-header" onclick="toggleProfileInventoryAccordion()">
-          <span>🎒 Inventory <small id="profile-inventory-count" style="color:var(--text-muted); font-weight:normal;">(0 items)</small></span>
+          <span>🎒 Inventory <small id="profile-inventory-count" style="color:var(--text-muted); font-weight:normal;">(0
+              items)</small></span>
           <span id="profile-inventory-chevron">▼</span>
         </div>
         <div id="profile-inventory-accordion-body" class="accordion-content hidden">
@@ -528,7 +882,8 @@
     <section id="tab-adventure" class="tab-view hidden">
       <div class="card card-adventure">
         <h2 style="color: var(--adventure);">🎨 Adventure Board</h2>
-        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Arts, Sciences, Social endeavors, and Crafting quests</p>
+        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Arts, Sciences, Social endeavors, and
+          Crafting quests</p>
 
         <h3 class="section-title" style="color:var(--adventure);">Your Active Adventure Quests</h3>
         <div id="active-adventure-quests-list">
@@ -555,17 +910,20 @@
     <section id="tab-store" class="tab-view hidden">
       <div class="card card-store">
         <h2>🛒 Arcane Merchant</h2>
-        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Acquire certified relics, charms, and enchanted tools for the field.</p>
+        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Acquire certified relics, charms, and
+          enchanted tools for the field.</p>
 
         <div class="qm-subnav">
-          <button id="store-subnav-buy" class="qm-subnav-btn active" onclick="switchStoreSubTab('buy')">🛍️ Buy Relics</button>
+          <button id="store-subnav-buy" class="qm-subnav-btn active" onclick="switchStoreSubTab('buy')">🛍️ Buy
+            Relics</button>
           <button id="store-subnav-sell" class="qm-subnav-btn" onclick="switchStoreSubTab('sell')">🪙 Liquidate</button>
         </div>
 
         <!-- BUY CATALOG -->
         <div id="store-subtab-buy">
           <h3 class="section-title" style="color:var(--gold);">Official Item Catalog</h3>
-          <p style="font-size:12px; color:var(--text-muted); margin-top:-4px; margin-bottom:10px;">All listed items are priced at 1 gold and carry a 90-day field life.</p>
+          <p style="font-size:12px; color:var(--text-muted); margin-top:-4px; margin-bottom:10px;">All listed items are
+            priced at 1 gold and carry a 90-day field life.</p>
           <div id="store-catalog-list" class="store-catalog-list">
             <!-- Catalog items rendered via JS -->
           </div>
@@ -574,7 +932,8 @@
         <!-- SELL BACK -->
         <div id="store-subtab-sell" class="hidden">
           <h3 class="section-title" style="color:var(--gold);">Liquidation Ledger</h3>
-          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">Resale value reflects the remaining field life of each item.</p>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">Resale value reflects the remaining
+            field life of each item.</p>
           <div id="store-sell-list" class="item-grid">
             <p class="empty-state">Loading inventory...</p>
           </div>
@@ -587,18 +946,22 @@
     <section id="tab-admin" class="tab-view hidden">
       <div class="card">
         <h2>👑 Questmaster Control</h2>
-        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Forge quests & manage field encounter queues</p>
+        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Forge quests & manage field encounter
+          queues</p>
 
         <div class="qm-subnav">
-          <button id="qm-subnav-create" class="qm-subnav-btn active" onclick="switchQMSubTab('create')">➕ Forge Quest</button>
-          <button id="qm-subnav-library" class="qm-subnav-btn" onclick="switchQMSubTab('library')">📜 Quest Catalog</button>
-          <button id="qm-subnav-queues" class="qm-subnav-btn" onclick="switchQMSubTab('queues')">⚔️ Live Field Lines</button>
+          <button id="qm-subnav-create" class="qm-subnav-btn active" onclick="switchQMSubTab('create')">➕ Forge
+            Quest</button>
+          <button id="qm-subnav-library" class="qm-subnav-btn" onclick="switchQMSubTab('library')">📜 Quest
+            Catalog</button>
+          <button id="qm-subnav-queues" class="qm-subnav-btn" onclick="switchQMSubTab('queues')">⚔️ Live Field
+            Lines</button>
         </div>
 
         <!-- SUB-TAB 1: QUEST CREATOR -->
         <div id="qm-subtab-create">
           <h3 style="font-size: 15px; margin-bottom: 12px; color: var(--primary);">Forge New Quest</h3>
-          
+
           <div class="form-group">
             <label>Quest Title</label>
             <input type="text" id="qm-title" class="form-control" placeholder="e.g. Defend the Siege Engine">
@@ -657,12 +1020,15 @@
 
           <div class="form-group">
             <label>Public Description (Player-Facing)</label>
-            <textarea id="qm-description" class="form-control" style="min-height:70px;" placeholder="Public lore objectives..."></textarea>
+            <textarea id="qm-description" class="form-control" style="min-height:70px;"
+              placeholder="Public lore objectives..."></textarea>
           </div>
 
-          <div class="form-group" style="background:#27272a; padding:10px; border-radius:8px; border:1px dashed var(--primary);">
+          <div class="form-group"
+            style="background:#27272a; padding:10px; border-radius:8px; border:1px dashed var(--primary);">
             <label style="color:#c084fc;">🔒 Hidden Scenario Card & Monster Stat Block</label>
-            <textarea id="qm-scenario" class="form-control" style="min-height:80px;" placeholder="Battlefield setup, secret objectives, monster role templates..."></textarea>
+            <textarea id="qm-scenario" class="form-control" style="min-height:80px;"
+              placeholder="Battlefield setup, secret objectives, monster role templates..."></textarea>
           </div>
 
           <div class="form-group" style="display:flex; align-items:center; gap:8px;">
@@ -1501,11 +1867,11 @@
               <span class="reward-qp">⭐ +${q.reward_qp} QP</span>
             </div>
             ${isSlotLocked
-              ? `<button class="btn-secondary" disabled style="opacity:0.6;">${isCombat ? 'Battle Slot Full' : 'Adventure Slot Full'}</button>`
-              : (isCombat 
-                ? `<button class="btn-accept" style="background:var(--warning);" onclick="joinOrCreateGroupQueue('${q.id}')">Join PC Line</button>`
-                : `<button class="btn-accept" style="background:var(--adventure);" onclick="acceptQuest('${q.id}')">Accept Quest</button>`)
-            }
+          ? `<button class="btn-secondary" disabled style="opacity:0.6;">${isCombat ? 'Battle Slot Full' : 'Adventure Slot Full'}</button>`
+          : (isCombat
+            ? `<button class="btn-accept" style="background:var(--warning);" onclick="joinOrCreateGroupQueue('${q.id}')">Join PC Line</button>`
+            : `<button class="btn-accept" style="background:var(--adventure);" onclick="acceptQuest('${q.id}')">Accept Quest</button>`)
+        }
           </div>
         </div>
       `;
@@ -1624,7 +1990,7 @@
     // QM LIVE QUEUES PANEL
     async function fetchQMQueues() {
       const container = document.getElementById('qm-queue-list');
-      
+
       const { data: queues } = await supabaseClient
         .from('quest_queues')
         .select(`
@@ -1657,18 +2023,18 @@
             <div class="dual-queue-grid">
               <div class="queue-box">
                 <h5 style="color:var(--primary);">⚔️ PC Line (${pcs.length})</h5>
-                ${pcs.length > 0 
-                  ? pcs.map(p => `<span class="party-member-tag">👤 ${p?.username || 'Warrior'}</span>`).join('') 
-                  : '<p style="font-size:11px; color:var(--text-muted);">No PCs yet</p>'
-                }
+                ${pcs.length > 0
+            ? pcs.map(p => `<span class="party-member-tag">👤 ${p?.username || 'Warrior'}</span>`).join('')
+            : '<p style="font-size:11px; color:var(--text-muted);">No PCs yet</p>'
+          }
               </div>
 
               <div class="queue-box" style="border-color:var(--monster);">
                 <h5 style="color:var(--monster);">👹 Monster Line (${monsters.length})</h5>
-                ${monsters.length > 0 
-                  ? monsters.map(m => `<span class="party-member-tag" style="border-color:var(--monster);">👹 ${m?.username || 'Monster'}</span>`).join('') 
-                  : '<p style="font-size:11px; color:var(--text-muted);">No monsters yet</p>'
-                }
+                ${monsters.length > 0
+            ? monsters.map(m => `<span class="party-member-tag" style="border-color:var(--monster);">👹 ${m?.username || 'Monster'}</span>`).join('')
+            : '<p style="font-size:11px; color:var(--text-muted);">No monsters yet</p>'
+          }
               </div>
             </div>
 
@@ -1859,7 +2225,7 @@
       if (error) { alert("Failed to save quest: " + error.message); return; }
 
       alert(`⚔️ Quest "${title}" saved and opened on field!`);
-      
+
       document.getElementById('qm-title').value = '';
       document.getElementById('qm-description').value = '';
       document.getElementById('qm-scenario').value = '';
@@ -1879,9 +2245,9 @@
     async function completeQuest(userQuestId, rewardGold, rewardQp) {
       const { data: profile } = await supabaseClient.from('profiles').select('gold, quest_points').eq('id', currentUser.id).single();
 
-      await supabaseClient.from('profiles').update({ 
-        gold: (profile?.gold || 0) + rewardGold, 
-        quest_points: (profile?.quest_points || 0) + rewardQp 
+      await supabaseClient.from('profiles').update({
+        gold: (profile?.gold || 0) + rewardGold,
+        quest_points: (profile?.quest_points || 0) + rewardQp
       }).eq('id', currentUser.id);
 
       await supabaseClient.from('user_quests').update({ status: 'completed' }).eq('id', userQuestId);
@@ -1896,4 +2262,5 @@
     initDashboard();
   </script>
 </body>
+
 </html>
