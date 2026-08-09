@@ -1592,7 +1592,6 @@
         .eq('user_id', currentUser.id);
 
       const activeQuestIds = userQuests ? userQuests.filter(uq => uq.status === 'accepted').map(uq => uq.quest_id) : [];
-      const completedNonRepeatableQuestIds = userQuests ? userQuests.filter(uq => uq.status === 'completed').map(uq => uq.quest_id) : [];
 
       const activeAdventureQuests = userQuests
         ? userQuests.filter(uq => uq.status === 'accepted' && uq.quests && (uq.quests.category === 'Adventure' || (uq.quests.category !== 'Battle' && uq.quests.category !== 'Combat')))
@@ -1613,7 +1612,7 @@
         return;
       }
 
-      const available = allQuests.filter(q => !activeQuestIds.includes(q.id) && (q.repeatable || !completedNonRepeatableQuestIds.includes(q.id)));
+      const available = allQuests.filter(q => !activeQuestIds.includes(q.id));
 
       const combatQuests = available.filter(q => q.category === 'Battle' || q.category === 'Combat');
       const larpieQuests = available.filter(q => q.category === 'Adventure' || (q.category !== 'Battle' && q.category !== 'Combat'));
