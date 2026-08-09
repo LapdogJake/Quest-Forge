@@ -1598,6 +1598,7 @@
         .eq('user_id', currentUser.id);
 
       const activeQuestIds = userQuests ? userQuests.filter(uq => uq.status === 'accepted').map(uq => uq.quest_id) : [];
+      const completedQuestIds = userQuests ? userQuests.filter(uq => uq.status === 'completed').map(uq => uq.quest_id) : [];
 
       const activeAdventureQuests = userQuests
         ? userQuests.filter(uq => uq.status === 'accepted' && uq.quests && (uq.quests.category === 'Adventure' || (uq.quests.category !== 'Battle' && uq.quests.category !== 'Combat')))
@@ -1618,7 +1619,7 @@
         return;
       }
 
-      const available = allQuests.filter(q => !activeQuestIds.includes(q.id));
+      const available = allQuests.filter(q => !activeQuestIds.includes(q.id) && (q.repeatable || !completedQuestIds.includes(q.id)));
 
       const combatQuests = available.filter(q => q.category === 'Battle' || q.category === 'Combat');
       const larpieQuests = available.filter(q => q.category === 'Adventure' || (q.category !== 'Battle' && q.category !== 'Combat'));
@@ -2300,9 +2301,9 @@
         return;
       }
 
-      if (!nextState) {
-        await supabaseClient.from('user_quests').update({ status: 'closed' }).eq('quest_id', questId).eq('status', 'accepted');
-      }
+      // Archive user completions/assignments when QM toggles quest deployment state (off or on)
+      // Turning ON resets completions for the new event; Turning OFF closes active assignments
+      await supabaseClient.from('user_quests').update({ status: 'closed' }).eq('quest_id', questId);
 
       await fetchUserSlotState();
       await fetchQMQuests();
