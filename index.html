@@ -1678,7 +1678,7 @@
     }
 
     async function abandonQuest(userQuestId) {
-      await supabaseClient.from('user_quests').delete().eq('id', userQuestId);
+      await supabaseClient.from('user_quests').update({ status: 'abandoned' }).eq('id', userQuestId);
       await fetchUserSlotState();
       await fetchQuests();
     }
@@ -2300,9 +2300,9 @@
         return;
       }
 
-      // Always clear user_quests entries when toggling deployment state (on or off)
-      // Turning ON resets completions; Turning OFF cancels active assignments for closed quest
-      await supabaseClient.from('user_quests').delete().eq('quest_id', questId);
+      if (!nextState) {
+        await supabaseClient.from('user_quests').update({ status: 'closed' }).eq('quest_id', questId).eq('status', 'accepted');
+      }
 
       await fetchUserSlotState();
       await fetchQMQuests();
@@ -2345,10 +2345,28 @@
     }
 
     async function acceptQuest(questId) {
-      // Pre-clear any old user_quests record for this quest to avoid unique constraint (user_id, quest_id) conflicts
-      await supabaseClient.from('user_quests').delete().eq('user_id', currentUser.id).eq('quest_id', questId);
+      // Check if a user_quests row already exists for this user and quest to avoid unique constraint conflicts
+      const { data: existingRows } = await supabaseClient
+        .from('user_quests')
+        .select('id')
+        .eq('user_id', currentUser.id)
+        .eq('quest_id', questId);
 
-      const { error } = await supabaseClient.from('user_quests').insert({ user_id: currentUser.id, quest_id: questId, status: 'accepted' });
+      let error = null;
+
+      if (existingRows && existingRows.length > 0) {
+        const res = await supabaseClient
+          .from('user_quests')
+          .update({ status: 'accepted' })
+          .eq('id', existingRows[0].id);
+        error = res.error;
+      } else {
+        const res = await supabaseClient
+          .from('user_quests')
+          .insert({ user_id: currentUser.id, quest_id: questId, status: 'accepted' });
+        error = res.error;
+      }
+
       if (error) { alert("Error accepting quest: " + error.message); return; }
       await fetchUserSlotState();
       await fetchQuests();
@@ -2362,8 +2380,7 @@
         quest_points: (profile?.quest_points || 0) + rewardQp
       }).eq('id', currentUser.id);
 
-      // Delete the completed user_quests row to free the slot and clear unique constraint
-      await supabaseClient.from('user_quests').delete().eq('id', userQuestId);
+      await supabaseClient.from('user_quests').update({ status: 'completed' }).eq('id', userQuestId);
       initDashboard();
     }
 
