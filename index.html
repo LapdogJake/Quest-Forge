@@ -1554,6 +1554,7 @@
     async function fetchQuests() {
       const combatContainer = document.getElementById('available-combat-quests');
       const larpieContainer = document.getElementById('available-larpie-quests');
+      const activeAdventureContainer = document.getElementById('active-adventure-quests-list');
 
       const { data: userQuests } = await supabaseClient
         .from('user_quests')
@@ -1565,7 +1566,18 @@
         .select('queue_id, quest_queues(*, quests(*))')
         .eq('user_id', currentUser.id);
 
-      const acceptedQuestIds = userQuests ? userQuests.map(uq => uq.quest_id) : [];
+      const activeQuestIds = userQuests ? userQuests.filter(uq => uq.status === 'accepted').map(uq => uq.quest_id) : [];
+      const completedNonRepeatableQuestIds = userQuests ? userQuests.filter(uq => uq.status === 'completed').map(uq => uq.quest_id) : [];
+
+      const activeAdventureQuests = userQuests
+        ? userQuests.filter(uq => uq.status === 'accepted' && uq.quests && (uq.quests.category === 'Adventure' || (uq.quests.category !== 'Battle' && uq.quests.category !== 'Combat')))
+        : [];
+
+      if (activeAdventureContainer) {
+        activeAdventureContainer.innerHTML = activeAdventureQuests.length > 0
+          ? activeAdventureQuests.map(uq => renderSoloQuestCard(uq.quests, true, uq.id)).join('')
+          : `<p class="empty-state">No active adventure quests.</p>`;
+      }
 
       const { data: allQuests } = await supabaseClient
         .from('quests')
@@ -1575,11 +1587,11 @@
 
       if (!allQuests || allQuests.length === 0) {
         if (combatContainer) combatContainer.innerHTML = `<p class="empty-state">No Active Quests.</p>`;
-        if (larpieContainer) larpieContainer.innerHTML = '';
+        if (larpieContainer) larpieContainer.innerHTML = `<p class="empty-state">No Active Quests.</p>`;
         return;
       }
 
-      const available = allQuests.filter(q => q.repeatable || !acceptedQuestIds.includes(q.id));
+      const available = allQuests.filter(q => !activeQuestIds.includes(q.id) && (q.repeatable || !completedNonRepeatableQuestIds.includes(q.id)));
 
       const combatQuests = available.filter(q => q.category === 'Battle' || q.category === 'Combat');
       const larpieQuests = available.filter(q => q.category === 'Adventure' || (q.category !== 'Battle' && q.category !== 'Combat'));
@@ -1722,21 +1734,28 @@
     }
 
     function renderSoloQuestCard(q, isActive, userQuestId) {
-      const isAdventure = q.category === 'Adventure';
+      if (!q) return '';
+      const isAdventure = q.category === 'Adventure' || (q.category !== 'Battle' && q.category !== 'Combat');
+      const rewardGold = q.reward_gold || 0;
+      const rewardQp = q.reward_qp || 0;
+      const groupType = q.participation_type || 'Solo';
+
       return `
-        <div class="quest-card">
+        <div class="quest-card" style="border-left: 4px solid var(--adventure);">
           <div class="tag-container">
-            <span class="badge ${isAdventure ? 'badge-adventure' : 'badge-battle'}">${q.category || 'Quest'}</span>
-            <span class="badge badge-type">Solo</span>
+            <span class="badge ${isAdventure ? 'badge-adventure' : 'badge-battle'}">${q.category || 'Adventure'}</span>
+            <span class="badge badge-type">${groupType}</span>
+            <span class="badge badge-active">Active</span>
           </div>
           <h4>${q.title}</h4>
+          ${q.requirements ? `<p style="color:var(--warning); font-size:12px; margin-bottom:4px;"><strong>Req:</strong> ${q.requirements}</p>` : ''}
           <p>${q.description || ''}</p>
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
             <div class="quest-rewards">
-              <span class="reward-gold">🪙 +${q.reward_gold} Gold</span>
-              <span class="reward-qp">⭐ +${q.reward_qp} QP</span>
+              <span class="reward-gold">🪙 +${rewardGold} Gold</span>
+              <span class="reward-qp">⭐ +${rewardQp} QP</span>
             </div>
-            <button class="btn-complete" onclick="completeQuest('${userQuestId}', ${q.reward_gold}, ${q.reward_qp})">Complete</button>
+            <button class="btn-complete" onclick="completeQuest('${userQuestId}', ${rewardGold}, ${rewardQp})">Complete</button>
           </div>
         </div>
       `;
