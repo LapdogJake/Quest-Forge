@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Quest-Forge | Dashboard</title>
+  <title>Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
@@ -39,15 +39,6 @@
       padding-bottom: 85px;
     }
 
-    header {
-      padding: 16px;
-      background: var(--card-bg);
-      border-bottom: 1px solid var(--border);
-      text-align: center;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
 
     .container {
       padding: 16px;
@@ -2229,15 +2220,16 @@
       }
 
       if (rowsToDelete.length > 0) {
-        await supabaseClient.from('user_inventory').delete().in('id', rowsToDelete);
+        const { error: delErr } = await supabaseClient.from('user_inventory').delete().in('id', rowsToDelete);
+        if (delErr) console.error('Durability delete failed:', delErr);
       }
 
       for (const rowPatch of rowsToUpdate) {
-        await supabaseClient
+        const { error: updErr } = await supabaseClient
           .from('user_inventory')
           .update({ durability_current: rowPatch.durability_current })
-          .eq('id', rowPatch.id)
-          .eq('user_id', userId);
+          .eq('id', rowPatch.id);
+        if (updErr) console.error('Durability update failed for row', rowPatch.id, updErr);
       }
 
       await fetchUserInventory();
