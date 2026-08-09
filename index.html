@@ -1543,15 +1543,21 @@
 
       activeMonsterClaim = (monsterClaims && monsterClaims.length > 0) ? monsterClaims[0] : null;
 
-      const activeSoloBattle = userQuests?.find(uq => uq.quests?.category === 'Battle' || uq.quests?.category === 'Combat');
+      // Auto-cleanup any orphan user_quests for quests that have been closed or deactivated by QM
+      const orphanQuestIds = userQuests?.filter(uq => !uq.quests || uq.quests.is_active === false).map(uq => uq.id) || [];
+      if (orphanQuestIds.length > 0) {
+        await supabaseClient.from('user_quests').delete().in('id', orphanQuestIds);
+      }
+
+      const activeSoloBattle = userQuests?.find(uq => uq.quests?.is_active && (uq.quests?.category === 'Battle' || uq.quests?.category === 'Combat'));
       const activeGroupBattle = queueMemberships?.find(qm => {
         const queue = qm.quest_queues;
-        const questCategory = queue?.quests?.category;
-        return (queue?.status !== 'completed') && (questCategory === 'Battle' || questCategory === 'Combat');
+        const quest = queue?.quests;
+        return (queue?.status !== 'completed') && quest?.is_active && (quest?.category === 'Battle' || quest?.category === 'Combat');
       });
 
       activeBattleQuest = activeSoloBattle || activeGroupBattle;
-      activeLarpieQuest = userQuests?.find(uq => uq.quests?.category === 'Adventure' || (uq.quests?.category !== 'Battle' && uq.quests?.category !== 'Combat'));
+      activeLarpieQuest = userQuests?.find(uq => uq.quests?.is_active && (uq.quests?.category === 'Adventure' || (uq.quests?.category !== 'Battle' && uq.quests?.category !== 'Combat')));
 
       const battleStatusEl = document.getElementById('slot-battle-status');
       const larpieStatusEl = document.getElementById('slot-larpie-status');
@@ -1671,20 +1677,30 @@
       }
     }
 
+    async function abandonQuest(userQuestId) {
+      await supabaseClient.from('user_quests').delete().eq('id', userQuestId);
+      await fetchUserSlotState();
+      await fetchQuests();
+    }
+
     function renderActiveAdventureQuestCard(uq) {
       const q = uq.quests;
       if (!q) return '';
       const groupType = q.participation_type || 'Solo';
       const rewardGold = q.reward_gold || 0;
       const rewardQp = q.reward_qp || 0;
-      const completeButton = `<button class="btn-complete" onclick="completeQuest('${uq.id}', ${rewardGold}, ${rewardQp})">Complete</button>`;
-      const summaryAction = `<span class="quest-summary-actions">${completeButton}</span>`;
+      const summaryActions = `
+        <span class="quest-summary-actions">
+          <button class="btn-leave" onclick="abandonQuest('${uq.id}')">Abandon</button>
+          <button class="btn-complete" onclick="completeQuest('${uq.id}', ${rewardGold}, ${rewardQp})">Complete</button>
+        </span>
+      `;
 
       return `
         <details class="quest-accordion quest-joined" open>
           <summary>
             <span class="quest-summary-title">${q.title}</span>
-            ${summaryAction}
+            ${summaryActions}
           </summary>
           <div class="quest-accordion-content">
             <div class="quest-details-body">
@@ -2284,10 +2300,9 @@
         return;
       }
 
-      if (nextState) {
-        // Reset user completion history when QM re-opens an encounter on the field so players can take it again
-        await supabaseClient.from('user_quests').delete().eq('quest_id', questId);
-      }
+      // Always clear user_quests entries when toggling deployment state (on or off)
+      // Turning ON resets completions; Turning OFF cancels active assignments for closed quest
+      await supabaseClient.from('user_quests').delete().eq('quest_id', questId);
 
       await fetchUserSlotState();
       await fetchQMQuests();
