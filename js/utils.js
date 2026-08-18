@@ -72,26 +72,6 @@ function switchQMSubTab(subTabName) {
   }
 }
 
-// Time-decay and dynamic resale valuation calculator
-function getItemStatus(item) {
-  const now = Date.now();
-  const purchasedAt = new Date(item.purchased_at).getTime();
-  const expiresAt = new Date(item.expires_at).getTime();
-
-  const totalDuration = expiresAt - purchasedAt;
-  const timeRemaining = expiresAt - now;
-
-  if (timeRemaining <= 0) {
-    return { isExpired: true, currentGoldValue: 0, daysLeft: 0, percentLeft: 0 };
-  }
-
-  const ratio = timeRemaining / totalDuration;
-  const currentGoldValue = Math.floor((item.base_cost || 0) * ratio);
-  const daysLeft = Math.max(1, Math.ceil(timeRemaining / (1000 * 60 * 60 * 24)));
-  const percentLeft = Math.round(ratio * 100);
-
-  return { isExpired: false, currentGoldValue, daysLeft, percentLeft };
-}
 
 // Profile Accordion Toggle
 function toggleProfileInventoryAccordion() {

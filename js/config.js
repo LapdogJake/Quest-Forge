@@ -6,8 +6,6 @@ const SUPABASE_URL = "https://evsknkezkbramsnzisvn.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_3f9t-xXsEqWntgPm9fz-ow_m7fMVt5b";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const INVENTORY_LIFE_MS = 90 * 24 * 60 * 60 * 1000;
-
 const INVENTORY_LIMITS = {
   'Trinket': 3,
   'Talisman': 2,

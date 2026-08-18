@@ -36,7 +36,7 @@ CREATE POLICY "Allow update on user_inventory"
   USING (true)
   WITH CHECK (true);
 
--- Allow deletions (selling, decay cleanup, depleted items)
+-- Allow deletions (selling, depleted items)
 CREATE POLICY "Allow delete on user_inventory"
   ON public.user_inventory FOR DELETE
   TO authenticated
@@ -53,19 +53,15 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  -- A. Delete fully depleted items or expired items
+  -- A. Delete fully depleted items
   DELETE FROM public.user_inventory
   WHERE user_id = target_user_id
-    AND (
-      expires_at <= NOW()
-      OR COALESCE(durability_current, durability_max, 1) <= 1
-    );
+    AND COALESCE(durability_current, durability_max, 1) <= 1;
 
-  -- B. Decrement durability for active items with durability remaining
+  -- B. Decrement durability for items with durability remaining
   UPDATE public.user_inventory
   SET durability_current = COALESCE(durability_current, durability_max, 1) - 1
   WHERE user_id = target_user_id
-    AND (expires_at IS NULL OR expires_at > NOW())
     AND COALESCE(durability_current, durability_max, 1) > 1;
 END;
 $$;

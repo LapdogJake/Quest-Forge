@@ -21,39 +21,16 @@ async function fetchUserInventory() {
 
   if (!inventory || inventory.length === 0) {
     if (profileList) profileList.innerHTML = `<p class="empty-state">Your pouch is empty. Visit the Store to buy supplies!</p>`;
-    if (sellList) sellList.innerHTML = `<p class="empty-state">No unexpired items available to sell.</p>`;
+    if (sellList) sellList.innerHTML = `<p class="empty-state">No items available to sell.</p>`;
     if (countLabel) countLabel.innerText = "(0 items)";
     return;
   }
 
-  const validItems = [];
-  const expiredIds = [];
+  if (countLabel) countLabel.innerText = `(${inventory.length} item${inventory.length === 1 ? '' : 's'})`;
 
-  inventory.forEach(item => {
-    const status = getItemStatus(item);
-    if (status.isExpired) {
-      expiredIds.push(item.id);
-    } else {
-      validItems.push({ ...item, status });
-    }
-  });
-
-  // Lazy cleanup of expired items from DB
-  if (expiredIds.length > 0) {
-    await supabaseClient.from('user_inventory').delete().in('id', expiredIds);
-  }
-
-  if (countLabel) countLabel.innerText = `(${validItems.length} item${validItems.length === 1 ? '' : 's'})`;
-
-  if (validItems.length === 0) {
-    if (profileList) profileList.innerHTML = `<p class="empty-state">Your items decayed away! Visit the Store to restock.</p>`;
-    if (sellList) sellList.innerHTML = `<p class="empty-state">No unexpired items available to sell.</p>`;
-    return;
-  }
-
-  // Profile Accordion: Item rows simply display their current row state.
+  // Profile Accordion: Item rows display item name and current durability
   if (profileList) {
-    profileList.innerHTML = validItems.map(item => {
+    profileList.innerHTML = inventory.map(item => {
       const durabilityMax = Number(item.durability_max ?? getCategoryDurabilityMax(getCategoryForItemName(item.item_name)) ?? 1);
       const durabilityCurrent = Number(item.durability_current ?? durabilityMax);
       const normalizedCurrent = Math.max(0, durabilityCurrent);
@@ -61,9 +38,6 @@ async function fetchUserInventory() {
       return `<div class="item-card">
         <div class="item-info">
           <h4>${item.item_name}</h4>
-          <small style="color:${item.status.percentLeft < 25 ? 'var(--danger)' : 'var(--text-muted)'};">
-            ⌛ ${item.status.daysLeft}d left (${item.status.percentLeft}% fresh)
-          </small>
           <small style="color:var(--text-muted);">
             Durability: ${normalizedCurrent}/${durabilityMax}
           </small>
@@ -72,20 +46,21 @@ async function fetchUserInventory() {
     }).join('');
   }
 
-  // Merchant Store "Sell Back" Sub-tab: Sell Button with Dynamic Value
+  // Merchant Store "Sell Back" Sub-tab: Sell button with item value
   if (sellList) {
-    sellList.innerHTML = validItems.map(item => {
+    sellList.innerHTML = inventory.map(item => {
       const durabilityMax = Number(item.durability_max ?? getCategoryDurabilityMax(getCategoryForItemName(item.item_name)) ?? 1);
       const durabilityCurrent = Number(item.durability_current ?? durabilityMax);
       const normalizedCurrent = Math.max(0, durabilityCurrent);
+      const sellGoldValue = item.base_cost || 1;
 
       return `<div class="item-card">
         <div class="item-info">
           <h4>${item.item_name}</h4>
-          <small>Current Resale Value: <strong style="color:var(--gold);">${item.status.currentGoldValue} Gold</strong> (${item.status.daysLeft}d remaining)</small>
+          <small>Resale Value: <strong style="color:var(--gold);">${sellGoldValue} Gold</strong></small>
           <small style="color:var(--text-muted);">Durability: ${normalizedCurrent}/${durabilityMax}</small>
         </div>
-        <button class="btn-sell" onclick="sellItem('${item.id}', ${item.status.currentGoldValue}, '${item.item_name}')">Sell (${item.status.currentGoldValue}g)</button>
+        <button class="btn-sell" onclick="sellItem('${item.id}', ${sellGoldValue}, '${item.item_name}')">Sell (${sellGoldValue}g)</button>
       </div>`;
     }).join('');
   }
@@ -140,23 +115,7 @@ async function buyItem(itemName, cost, durationHours) {
     return;
   }
 
-  const activeRows = [];
-  const expiredIds = [];
-
-  for (const row of inventoryRows || []) {
-    const status = getItemStatus(row);
-    if (status.isExpired) {
-      expiredIds.push(row.id);
-    } else {
-      activeRows.push({ ...row, status });
-    }
-  }
-
-  if (expiredIds.length > 0) {
-    await supabaseClient.from('user_inventory').delete().in('id', expiredIds);
-  }
-
-  const activeByCategory = activeRows.reduce((acc, row) => {
+  const activeByCategory = (inventoryRows || []).reduce((acc, row) => {
     const itemCategory = getCategoryForItemName(row.item_name);
     if (itemCategory) {
       acc[itemCategory] = (acc[itemCategory] || 0) + 1;
@@ -172,16 +131,12 @@ async function buyItem(itemName, cost, durationHours) {
     return;
   }
 
-  const now = new Date();
-  const expiresAt = new Date(now.getTime() + INVENTORY_LIFE_MS);
   const durabilityMax = getCategoryDurabilityMax(category);
 
   const { error } = await supabaseClient.from('user_inventory').insert({
     user_id: currentUser.id,
     item_name: itemName,
     base_cost: cost,
-    purchased_at: now.toISOString(),
-    expires_at: expiresAt.toISOString(),
     quantity: 1,
     durability_current: durabilityMax,
     durability_max: durabilityMax
@@ -264,13 +219,6 @@ async function applyCombatDurabilityDamage(userId) {
   const rowsToUpdate = [];
 
   for (const row of rows || []) {
-    const status = getItemStatus(row);
-
-    if (status.isExpired) {
-      rowsToDelete.push(row.id);
-      continue;
-    }
-
     const category = getCategoryForItemName(row.item_name);
     const defaultMax = getCategoryDurabilityMax(category);
     const durabilityMax = Number(row.durability_max ?? defaultMax ?? 1);
@@ -289,7 +237,7 @@ async function applyCombatDurabilityDamage(userId) {
     }
   }
 
-  // Batch delete all depleted or expired items
+  // Batch delete all depleted items
   const deletePromise = rowsToDelete.length > 0
     ? supabaseClient.from('user_inventory').delete().in('id', rowsToDelete)
     : Promise.resolve();
@@ -317,8 +265,6 @@ async function applyCombatDurabilityDamage(userId) {
           user_id: itemPatch.row.user_id,
           item_name: itemPatch.row.item_name,
           base_cost: itemPatch.row.base_cost,
-          purchased_at: itemPatch.row.purchased_at,
-          expires_at: itemPatch.row.expires_at,
           quantity: itemPatch.row.quantity || 1,
           durability_current: itemPatch.durability_current,
           durability_max: itemPatch.durability_max
