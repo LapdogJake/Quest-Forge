@@ -22,15 +22,11 @@ async function initDashboard() {
 
   const userDisplayEl = document.getElementById('user-display');
   const goldEl = document.getElementById('profile-gold');
-  const qpEl = document.getElementById('profile-qp');
-  const monstersEl = document.getElementById('profile-monsters');
   const roleBadgeEl = document.getElementById('role-badge');
   const navAdminEl = document.getElementById('nav-admin');
 
   if (userDisplayEl) userDisplayEl.innerText = displayName;
   if (goldEl) goldEl.innerText = profile?.gold || 0;
-  if (qpEl) qpEl.innerText = profile?.quest_points || 0;
-  if (monstersEl) monstersEl.innerText = profile?.monster_shifts || 0;
 
   if (profile?.role === 'questmaster' || profile?.role === 'admin') {
     if (navAdminEl) navAdminEl.classList.remove('hidden');

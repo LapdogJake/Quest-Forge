@@ -74,9 +74,6 @@ function renderMonsterQuestCard(q, activeMonsterClaim, monsterRoster = null, isB
               <span class="badge badge-battle">${q.threat_level || 'Safe'}</span>
             </div>
             <p>${q.description || ''}</p>
-            <div class="quest-rewards">
-              <span class="reward-qp"> +1 Monster Point</span>
-            </div>
             <div class="queue-roster-strip">
               <h5>Queued Monsters (${rosterPlayers.length})</h5>
               <div>${rosterHtml}</div>
@@ -261,7 +258,7 @@ async function fetchQMQueues() {
             <button class="btn-accept" style="width:50%;" onclick="qmSetQueueStatus('${qq.id}', 'active')">🚀 Launch Encounter</button>
           ` : ''}
           <button class="btn-complete" style="width:${isLive ? '100%' : '50%'};" 
-            onclick="qmCompleteAndPayEncounter('${qq.id}', ${qq.quests.reward_gold}, ${qq.quests.reward_qp}, ${JSON.stringify((qq.queue_members || []).map(m => m.user_id || m.profiles?.id).filter(Boolean)).replace(/"/g, '&quot;')}, ${JSON.stringify((qq.encounter_monsters || []).map(m => m.user_id || m.profiles?.id).filter(Boolean)).replace(/"/g, '&quot;')})">
+            onclick="qmCompleteAndPayEncounter('${qq.id}', ${qq.quests.reward_gold}, ${JSON.stringify((qq.queue_members || []).map(m => m.user_id || m.profiles?.id).filter(Boolean)).replace(/"/g, '&quot;')}, ${JSON.stringify((qq.encounter_monsters || []).map(m => m.user_id || m.profiles?.id).filter(Boolean)).replace(/"/g, '&quot;')})">
             🏆 Complete & Pay All
           </button>
         </div>
@@ -278,28 +275,25 @@ async function qmSetQueueStatus(queueId, status) {
   fetchMonsterEncounters();
 }
 
-async function qmCompleteAndPayEncounter(queueId, rewardGold, rewardQp, pcUserIds, monsterUserIds) {
-  if (!confirm(`Award PCs (+${rewardGold}g / +${rewardQp}qp) AND Monsters (+1 Shift Credit / +${rewardGold}g / +${rewardQp}qp)?`)) return;
+async function qmCompleteAndPayEncounter(queueId, rewardGold, pcUserIds, monsterUserIds) {
+  if (!confirm(`Award PCs (+${rewardGold}g) AND Monsters (+${rewardGold}g)?`)) return;
 
   // 1. Concurrently award PCs
   const pcPayoutPromises = (pcUserIds || []).map(async (userId) => {
-    const { data: p } = await supabaseClient.from('profiles').select('gold, quest_points').eq('id', userId).single();
+    const { data: p } = await supabaseClient.from('profiles').select('gold').eq('id', userId).single();
     if (p) {
       await supabaseClient.from('profiles').update({
-        gold: (p.gold || 0) + rewardGold,
-        quest_points: (p.quest_points || 0) + rewardQp
+        gold: (p.gold || 0) + rewardGold
       }).eq('id', userId);
     }
   });
 
   // 2. Concurrently award Monsters
   const monsterPayoutPromises = (monsterUserIds || []).map(async (userId) => {
-    const { data: m } = await supabaseClient.from('profiles').select('gold, quest_points, monster_shifts').eq('id', userId).single();
+    const { data: m } = await supabaseClient.from('profiles').select('gold').eq('id', userId).single();
     if (m) {
       await supabaseClient.from('profiles').update({
-        gold: (m.gold || 0) + rewardGold,
-        quest_points: (m.quest_points || 0) + rewardQp,
-        monster_shifts: (m.monster_shifts || 0) + 1
+        gold: (m.gold || 0) + rewardGold
       }).eq('id', userId);
     }
   });
@@ -316,6 +310,6 @@ async function qmCompleteAndPayEncounter(queueId, rewardGold, rewardQp, pcUserId
   const durabilityPromises = (pcUserIds || []).map(userId => applyCombatDurabilityDamage(userId));
   await Promise.allSettled(durabilityPromises);
 
-  alert("🎉 Encounter completed! Rewards distributed to PCs and Monsters.");
+  alert("🎉 Encounter completed! Gold rewards distributed to PCs and Monsters.");
   initDashboard();
 }

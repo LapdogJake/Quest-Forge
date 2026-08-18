@@ -176,11 +176,10 @@ function renderActiveAdventureQuestCard(uq) {
   if (!q) return '';
   const groupType = q.participation_type || 'Solo';
   const rewardGold = q.reward_gold || 0;
-  const rewardQp = q.reward_qp || 0;
   const summaryActions = `
     <span class="quest-summary-actions">
       <button class="btn-leave" onclick="abandonQuest('${uq.id}')">Abandon</button>
-      <button class="btn-complete" onclick="completeQuest('${uq.id}', ${rewardGold}, ${rewardQp})">Complete</button>
+      <button class="btn-complete" onclick="completeQuest('${uq.id}', ${rewardGold})">Complete</button>
     </span>
   `;
 
@@ -202,7 +201,6 @@ function renderActiveAdventureQuestCard(uq) {
             <p>${q.description || ''}</p>
             <div class="quest-rewards">
               <span class="reward-gold">🪙 +${rewardGold} Gold</span>
-              <span class="reward-qp">⭐ +${rewardQp} QP</span>
             </div>
           </div>
         </div>
@@ -215,7 +213,6 @@ function renderSoloQuestCard(q, isActive, userQuestId) {
   if (!q) return '';
   const isAdventure = q.category === 'Adventure' || (q.category !== 'Battle' && q.category !== 'Combat');
   const rewardGold = q.reward_gold || 0;
-  const rewardQp = q.reward_qp || 0;
   const groupType = q.participation_type || 'Solo';
 
   return `
@@ -231,9 +228,8 @@ function renderSoloQuestCard(q, isActive, userQuestId) {
       <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
         <div class="quest-rewards">
           <span class="reward-gold">🪙 +${rewardGold} Gold</span>
-          <span class="reward-qp">⭐ +${rewardQp} QP</span>
         </div>
-        <button class="btn-complete" onclick="completeQuest('${userQuestId}', ${rewardGold}, ${rewardQp})">Complete</button>
+        <button class="btn-complete" onclick="completeQuest('${userQuestId}', ${rewardGold})">Complete</button>
       </div>
     </div>
   `;
@@ -259,7 +255,6 @@ function renderGroupQueueCard(q, queue, members) {
       <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
         <div class="quest-rewards">
           <span class="reward-gold">🪙 +${q.reward_gold} Gold</span>
-          <span class="reward-qp">⭐ +${q.reward_qp} QP</span>
         </div>
         <button class="btn-secondary" onclick="leaveQueue('${queue.id}')">Leave Line</button>
       </div>
@@ -303,7 +298,6 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
               <p>${q.description || ''}</p>
               <div class="quest-rewards">
                 <span class="reward-gold">🪙 +${q.reward_gold} Gold</span>
-                <span class="reward-qp">⭐ +${q.reward_qp} QP</span>
               </div>
               <div class="queue-roster-strip">
                 <h5>Queued Heroes (${rosterPlayers.length})</h5>
@@ -340,7 +334,6 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
               <p>${q.description || ''}</p>
               <div class="quest-rewards">
                 <span class="reward-gold">🪙 +${q.reward_gold} Gold</span>
-                <span class="reward-qp">⭐ +${q.reward_qp} QP</span>
               </div>
             </div>
           </div>
@@ -361,7 +354,6 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
       <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
         <div class="quest-rewards">
           <span class="reward-gold">🪙 +${q.reward_gold} Gold</span>
-          <span class="reward-qp">⭐ +${q.reward_qp} QP</span>
         </div>
         ${isSlotLocked
           ? `<button class="btn-secondary" disabled style="opacity:0.6;">${isCombat ? 'Battle Slot Full' : 'Adventure Slot Full'}</button>`
@@ -401,7 +393,7 @@ async function fetchQMQuests() {
       <div class="tag-container" style="margin-top:6px;">
         <span class="badge badge-type">${q.participation_type}</span>
         <span class="badge ${q.category === 'Battle' || q.category === 'Combat' ? 'badge-battle' : 'badge-adventure'}">${q.category}</span>
-        <span class="badge badge-type">🪙 ${q.reward_gold}g / ⭐ ${q.reward_qp}qp</span>
+        <span class="badge badge-type">🪙 ${q.reward_gold} Gold</span>
       </div>
 
       <p style="margin-top:6px;">${q.description || 'No public description.'}</p>
@@ -426,7 +418,6 @@ async function toggleQuestDeployment(questId, currentActiveState) {
   }
 
   // Archive user completions/assignments when QM toggles quest deployment state (off or on)
-  // Turning ON resets completions for the new event; Turning OFF closes active assignments
   await supabaseClient.from('user_quests').update({ status: 'closed' }).eq('quest_id', questId);
 
   await fetchUserSlotState();
@@ -442,7 +433,6 @@ async function createQuest() {
   const threat_level = document.getElementById('qm-threat').value;
   const verification_method = document.getElementById('qm-verification').value;
   const reward_gold = parseInt(document.getElementById('qm-gold').value) || 0;
-  const reward_qp = parseInt(document.getElementById('qm-qp').value) || 0;
   const requirements = document.getElementById('qm-requirements').value.trim();
   const description = document.getElementById('qm-description').value.trim();
   const scenario_card = document.getElementById('qm-scenario').value.trim();
@@ -452,7 +442,7 @@ async function createQuest() {
 
   const { error } = await supabaseClient.from('quests').insert({
     title, category, participation_type, threat_level, verification_method,
-    reward_gold, reward_qp, requirements, description, scenario_card, repeatable, is_active: true
+    reward_gold, requirements, description, scenario_card, repeatable, is_active: true
   });
 
   if (error) { alert("Failed to save quest: " + error.message); return; }
@@ -497,7 +487,7 @@ async function acceptQuest(questId) {
   await fetchQuests();
 }
 
-async function completeQuest(userQuestId, rewardGold, rewardQp) {
+async function completeQuest(userQuestId, rewardGold) {
   const { data: uq } = await supabaseClient
     .from('user_quests')
     .select('quest_id, quests(category)')
@@ -505,11 +495,10 @@ async function completeQuest(userQuestId, rewardGold, rewardQp) {
     .single();
   const isCombat = uq?.quests?.category === 'Battle' || uq?.quests?.category === 'Combat';
 
-  const { data: profile } = await supabaseClient.from('profiles').select('gold, quest_points').eq('id', currentUser.id).single();
+  const { data: profile } = await supabaseClient.from('profiles').select('gold').eq('id', currentUser.id).single();
 
   await supabaseClient.from('profiles').update({
-    gold: (profile?.gold || 0) + rewardGold,
-    quest_points: (profile?.quest_points || 0) + rewardQp
+    gold: (profile?.gold || 0) + rewardGold
   }).eq('id', currentUser.id);
 
   await supabaseClient.from('user_quests').update({ status: 'completed' }).eq('id', userQuestId);
