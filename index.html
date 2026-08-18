@@ -1327,8 +1327,8 @@
 
       // Profile Accordion: Item rows simply display their current row state.
       profileList.innerHTML = validItems.map(item => {
-        const durabilityCurrent = Number(item.durability_current ?? item.durability ?? 0);
         const durabilityMax = Number(item.durability_max ?? getCategoryDurabilityMax(getCategoryForItemName(item.item_name)) ?? 1);
+        const durabilityCurrent = Number(item.durability_current ?? durabilityMax);
         const normalizedCurrent = Math.max(0, durabilityCurrent);
 
         return `<div class="item-card">
@@ -1346,8 +1346,8 @@
 
       // Merchant Store "Sell Back" Sub-tab: Sell Button with Dynamic Value
       sellList.innerHTML = validItems.map(item => {
-        const durabilityCurrent = Number(item.durability_current ?? item.durability ?? 0);
         const durabilityMax = Number(item.durability_max ?? getCategoryDurabilityMax(getCategoryForItemName(item.item_name)) ?? 1);
+        const durabilityCurrent = Number(item.durability_current ?? durabilityMax);
         const normalizedCurrent = Math.max(0, durabilityCurrent);
 
         return `<div class="item-card">
@@ -2128,7 +2128,7 @@
                 <button class="btn-accept" style="width:50%;" onclick="qmSetQueueStatus('${qq.id}', 'active')">🚀 Launch Encounter</button>
               ` : ''}
               <button class="btn-complete" style="width:${isLive ? '100%' : '50%'};" 
-                onclick="qmCompleteAndPayEncounter('${qq.id}', ${qq.quests.reward_gold}, ${qq.quests.reward_qp}, ${JSON.stringify(pcs.map(p => p?.id).filter(Boolean)).replace(/"/g, '&quot;')}, ${JSON.stringify(monsters.map(m => m?.id).filter(Boolean)).replace(/"/g, '&quot;')})">
+                onclick="qmCompleteAndPayEncounter('${qq.id}', ${qq.quests.reward_gold}, ${qq.quests.reward_qp}, ${JSON.stringify((qq.queue_members || []).map(m => m.user_id || m.profiles?.id).filter(Boolean)).replace(/"/g, '&quot;')}, ${JSON.stringify((qq.encounter_monsters || []).map(m => m.user_id || m.profiles?.id).filter(Boolean)).replace(/"/g, '&quot;')})">
                 🏆 Complete & Pay All
               </button>
             </div>
@@ -2181,6 +2181,8 @@
     }
 
     async function applyCombatDurabilityDamage(userId) {
+      if (!userId) return;
+
       const { data: rows, error } = await supabaseClient
         .from('user_inventory')
         .select('*')
@@ -2205,7 +2207,7 @@
         const category = getCategoryForItemName(row.item_name);
         const defaultMax = getCategoryDurabilityMax(category);
         const durabilityMax = Number(row.durability_max ?? defaultMax ?? 1);
-        const durabilityCurrent = Number(row.durability_current ?? durabilityMax ?? 1);
+        const durabilityCurrent = Number(row.durability_current ?? durabilityMax);
 
         if (durabilityCurrent <= 1) {
           rowsToDelete.push(row.id);
@@ -2213,7 +2215,9 @@
           const nextDurability = durabilityCurrent - 1;
           rowsToUpdate.push({
             id: row.id,
-            durability_current: nextDurability
+            row: row,
+            durability_current: nextDurability,
+            durability_max: durabilityMax
           });
         }
       }
@@ -2223,12 +2227,39 @@
         if (delErr) console.error('Durability delete failed:', delErr);
       }
 
-      for (const rowPatch of rowsToUpdate) {
-        const { error: updErr } = await supabaseClient
+      for (const itemPatch of rowsToUpdate) {
+        const { data: updatedRows, error: updErr } = await supabaseClient
           .from('user_inventory')
-          .update({ durability_current: rowPatch.durability_current })
-          .eq('id', rowPatch.id);
-        if (updErr) console.error('Durability update failed for row', rowPatch.id, updErr);
+          .update({
+            durability_current: itemPatch.durability_current,
+            durability_max: itemPatch.durability_max
+          })
+          .eq('id', itemPatch.id)
+          .select();
+
+        if (updErr || !updatedRows || updatedRows.length === 0) {
+          console.warn('Direct durability update yielded 0 rows, applying replace fallback for row:', itemPatch.id, updErr);
+
+          await supabaseClient
+            .from('user_inventory')
+            .delete()
+            .eq('id', itemPatch.id);
+
+          const { error: insErr } = await supabaseClient
+            .from('user_inventory')
+            .insert({
+              user_id: itemPatch.row.user_id,
+              item_name: itemPatch.row.item_name,
+              base_cost: itemPatch.row.base_cost,
+              purchased_at: itemPatch.row.purchased_at,
+              expires_at: itemPatch.row.expires_at,
+              quantity: itemPatch.row.quantity || 1,
+              durability_current: itemPatch.durability_current,
+              durability_max: itemPatch.durability_max
+            });
+
+          if (insErr) console.error('Durability replace fallback insert failed:', insErr);
+        }
       }
 
       await fetchUserInventory();
@@ -2356,6 +2387,13 @@
     }
 
     async function completeQuest(userQuestId, rewardGold, rewardQp) {
+      const { data: uq } = await supabaseClient
+        .from('user_quests')
+        .select('quest_id, quests(category)')
+        .eq('id', userQuestId)
+        .single();
+      const isCombat = uq?.quests?.category === 'Battle' || uq?.quests?.category === 'Combat';
+
       const { data: profile } = await supabaseClient.from('profiles').select('gold, quest_points').eq('id', currentUser.id).single();
 
       await supabaseClient.from('profiles').update({
@@ -2364,6 +2402,11 @@
       }).eq('id', currentUser.id);
 
       await supabaseClient.from('user_quests').update({ status: 'completed' }).eq('id', userQuestId);
+
+      if (isCombat) {
+        await applyCombatDurabilityDamage(currentUser.id);
+      }
+
       initDashboard();
     }
 
