@@ -18,8 +18,8 @@ async function initDashboard() {
     .single();
 
   currentProfile = profile || {};
-  currentKingdom = profile?.kingdom || currentUser.user_metadata?.kingdom || 'Emerald Hills';
-  currentPark = profile?.park || currentUser.user_metadata?.park || 'Midnight Sun';
+  currentKingdom = profile?.kingdom || currentUser.user_metadata?.kingdom || 'The Freeholds of Amtgard';
+  currentPark = profile?.park || currentUser.user_metadata?.park || "Delver's Rest";
   currentProfile.kingdom = currentKingdom;
   currentProfile.park = currentPark;
 

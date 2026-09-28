@@ -1,17 +1,18 @@
 -- ==============================================================================
 -- QUEST-FORGE: Group Affiliation, Durability & Isolated Park Inventory Setup
+-- Beta Configuration: The Freeholds of Amtgard -> Delver's Rest
 -- Run this script in your Supabase SQL Editor (Dashboard -> SQL Editor -> New query)
 -- ==============================================================================
 
--- 1. Ensure Columns Exist on profiles
+-- 1. Ensure Columns Exist on profiles with Beta Defaults
 ALTER TABLE public.profiles 
-  ADD COLUMN IF NOT EXISTS kingdom TEXT DEFAULT 'Emerald Hills',
-  ADD COLUMN IF NOT EXISTS park TEXT DEFAULT 'Midnight Sun';
+  ADD COLUMN IF NOT EXISTS kingdom TEXT DEFAULT 'The Freeholds of Amtgard',
+  ADD COLUMN IF NOT EXISTS park TEXT DEFAULT 'Delver''s Rest';
 
--- 2. Ensure Columns Exist on user_inventory
+-- 2. Ensure Columns Exist on user_inventory with Beta Defaults
 ALTER TABLE public.user_inventory 
-  ADD COLUMN IF NOT EXISTS kingdom TEXT DEFAULT 'Emerald Hills',
-  ADD COLUMN IF NOT EXISTS park TEXT DEFAULT 'Midnight Sun',
+  ADD COLUMN IF NOT EXISTS kingdom TEXT DEFAULT 'The Freeholds of Amtgard',
+  ADD COLUMN IF NOT EXISTS park TEXT DEFAULT 'Delver''s Rest',
   ADD COLUMN IF NOT EXISTS durability_current INTEGER DEFAULT 1,
   ADD COLUMN IF NOT EXISTS durability_max INTEGER DEFAULT 1;
 
@@ -19,16 +20,12 @@ ALTER TABLE public.user_inventory
 CREATE INDEX IF NOT EXISTS idx_user_inventory_user_park 
   ON public.user_inventory (user_id, park);
 
--- 4. Backfill any existing unassigned records
+-- 4. Set / Reset all existing user profiles and items to the single Beta group
 UPDATE public.profiles 
-  SET kingdom = 'Emerald Hills' WHERE kingdom IS NULL;
-UPDATE public.profiles 
-  SET park = 'Midnight Sun' WHERE park IS NULL;
+  SET kingdom = 'The Freeholds of Amtgard', park = 'Delver''s Rest';
 
 UPDATE public.user_inventory 
-  SET kingdom = 'Emerald Hills' WHERE kingdom IS NULL;
-UPDATE public.user_inventory 
-  SET park = 'Midnight Sun' WHERE park IS NULL;
+  SET kingdom = 'The Freeholds of Amtgard', park = 'Delver''s Rest';
 
 -- 5. Row Level Security Policies for user_inventory
 ALTER TABLE public.user_inventory ENABLE ROW LEVEL SECURITY;

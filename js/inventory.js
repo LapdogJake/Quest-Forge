@@ -4,11 +4,11 @@
 
 // Helper accessors for active Amtgard group scoping
 function getActivePark() {
-  return currentProfile?.park || currentPark || 'Midnight Sun';
+  return currentProfile?.park || currentPark || "Delver's Rest";
 }
 
 function getActiveKingdom() {
-  return currentProfile?.kingdom || currentKingdom || 'Emerald Hills';
+  return currentProfile?.kingdom || currentKingdom || 'The Freeholds of Amtgard';
 }
 
 // ==============================================================================
