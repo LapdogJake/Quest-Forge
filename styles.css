@@ -64,6 +64,49 @@ body {
   border-top: 4px solid var(--store);
 }
 
+/* Active Group Affiliation Banner */
+.profile-group-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background: #18181b;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-top: 14px;
+}
+
+.group-banner-item {
+  text-align: center;
+  flex: 1;
+}
+
+.group-banner-item small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.group-banner-item .group-val {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--primary);
+  margin-top: 2px;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.group-banner-divider {
+  color: #3f3f46;
+  font-size: 14px;
+  padding: 0 8px;
+}
+
 /* Dual-Slot Status Banner */
 .slot-container {
   display: grid;

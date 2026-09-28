@@ -39,6 +39,18 @@ function initProfileGroupSelector() {
   }
 
   populateParkOptions(activeKingdom, activePark);
+  updateGroupBannerDisplays();
+}
+
+function updateGroupBannerDisplays() {
+  const activeKingdom = getActiveKingdom();
+  const activePark = getActivePark();
+
+  const kDisplay = document.getElementById('display-profile-kingdom');
+  const pDisplay = document.getElementById('display-profile-park');
+
+  if (kDisplay) kDisplay.innerText = activeKingdom;
+  if (pDisplay) pDisplay.innerText = activePark;
 }
 
 function populateParkOptions(selectedKingdom, activeParkToSelect = null) {
@@ -144,6 +156,7 @@ async function saveProfileGroup() {
     }
   }
 
+  updateGroupBannerDisplays();
   await fetchUserInventory();
 }
 
@@ -160,6 +173,7 @@ async function fetchUserInventory() {
 
   const activePark = getActivePark();
   const activeKingdom = getActiveKingdom();
+  updateGroupBannerDisplays();
 
   const { data: inventory, error } = await supabaseClient
     .from('user_inventory')
