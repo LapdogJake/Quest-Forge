@@ -277,7 +277,6 @@ async function updateParkGold(amountOrNewTotal, isDelta = false, park = null) {
       console.warn('Could not persist park gold:', e);
     }
   }
-}
 
   return nextGold;
 }
