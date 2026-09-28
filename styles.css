@@ -64,6 +64,87 @@ body {
   border-top: 4px solid var(--store);
 }
 
+/* Group Affiliation & Park Scoping */
+.profile-group-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background: #18181b;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-top: 14px;
+}
+
+.group-banner-item {
+  text-align: center;
+  flex: 1;
+}
+
+.group-banner-item small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.group-banner-item .group-val {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--primary);
+  margin-top: 2px;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.group-banner-divider {
+  color: #3f3f46;
+  font-size: 14px;
+  padding: 0 8px;
+}
+
+.profile-group-card {
+  background: #1f1f23;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 12px;
+}
+
+.profile-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #2d2d30;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+
+.active-park-pill {
+  background: #2e1065;
+  color: #c084fc;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  border: 1px solid #7e22ce;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.store-park-indicator {
+  background: #1f1f23;
+  border: 1px solid #854d0e;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 10px;
+  margin-bottom: 12px;
+}
+
 /* Dual-Slot Status Banner */
 .slot-container {
   display: grid;

@@ -1,14 +1,36 @@
 -- ==============================================================================
--- QUEST-FORGE: Durability & User Inventory Database Setup
+-- QUEST-FORGE: Group Affiliation, Durability & Isolated Park Inventory Setup
 -- Run this script in your Supabase SQL Editor (Dashboard -> SQL Editor -> New query)
 -- ==============================================================================
 
--- 1. Ensure Columns Exist on user_inventory
+-- 1. Ensure Columns Exist on profiles
+ALTER TABLE public.profiles 
+  ADD COLUMN IF NOT EXISTS kingdom TEXT DEFAULT 'Emerald Hills',
+  ADD COLUMN IF NOT EXISTS park TEXT DEFAULT 'Midnight Sun';
+
+-- 2. Ensure Columns Exist on user_inventory
 ALTER TABLE public.user_inventory 
+  ADD COLUMN IF NOT EXISTS kingdom TEXT DEFAULT 'Emerald Hills',
+  ADD COLUMN IF NOT EXISTS park TEXT DEFAULT 'Midnight Sun',
   ADD COLUMN IF NOT EXISTS durability_current INTEGER DEFAULT 1,
   ADD COLUMN IF NOT EXISTS durability_max INTEGER DEFAULT 1;
 
--- 2. Row Level Security Policies for user_inventory
+-- 3. High Performance Index for Isolated Park Inventory Queries
+CREATE INDEX IF NOT EXISTS idx_user_inventory_user_park 
+  ON public.user_inventory (user_id, park);
+
+-- 4. Backfill any existing unassigned records
+UPDATE public.profiles 
+  SET kingdom = 'Emerald Hills' WHERE kingdom IS NULL;
+UPDATE public.profiles 
+  SET park = 'Midnight Sun' WHERE park IS NULL;
+
+UPDATE public.user_inventory 
+  SET kingdom = 'Emerald Hills' WHERE kingdom IS NULL;
+UPDATE public.user_inventory 
+  SET park = 'Midnight Sun' WHERE park IS NULL;
+
+-- 5. Row Level Security Policies for user_inventory
 ALTER TABLE public.user_inventory ENABLE ROW LEVEL SECURITY;
 
 -- Drop any conflicting old policies if necessary
@@ -44,27 +66,42 @@ CREATE POLICY "Allow delete on user_inventory"
 
 
 -- ==============================================================================
--- 3. Dedicated Server-Side Atomic Stored Procedure / RPC
+-- 6. Dedicated Server-Side Atomic Stored Procedure / RPC (Park-Isolated)
 -- ==============================================================================
-CREATE OR REPLACE FUNCTION public.apply_combat_durability_damage(target_user_id UUID)
+CREATE OR REPLACE FUNCTION public.apply_combat_durability_damage(
+  target_user_id UUID, 
+  target_park TEXT DEFAULT NULL
+)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  active_park TEXT;
 BEGIN
-  -- A. Delete fully depleted items
+  -- Determine target park: use explicit parameter if provided, 
+  -- otherwise look up the user's active park from their profile.
+  IF target_park IS NOT NULL THEN
+    active_park := target_park;
+  ELSE
+    SELECT park INTO active_park FROM public.profiles WHERE id = target_user_id;
+  END IF;
+
+  -- A. Delete fully depleted items in the active park
   DELETE FROM public.user_inventory
   WHERE user_id = target_user_id
+    AND (park = active_park OR active_park IS NULL OR park IS NULL)
     AND COALESCE(durability_current, durability_max, 1) <= 1;
 
-  -- B. Decrement durability for items with durability remaining
+  -- B. Decrement durability for remaining items in the active park
   UPDATE public.user_inventory
   SET durability_current = COALESCE(durability_current, durability_max, 1) - 1
   WHERE user_id = target_user_id
+    AND (park = active_park OR active_park IS NULL OR park IS NULL)
     AND COALESCE(durability_current, durability_max, 1) > 1;
 END;
 $$;
 
 -- Grant execution permissions to authenticated users
-GRANT EXECUTE ON FUNCTION public.apply_combat_durability_damage(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.apply_combat_durability_damage(UUID, TEXT) TO authenticated;

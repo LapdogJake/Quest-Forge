@@ -34,6 +34,16 @@
         <input type="text" id="username" placeholder="e.g. Sir Robin">
       </div>
       <div class="field-group">
+        <label>Home Kingdom</label>
+        <select id="signup-kingdom" onchange="onSignupKingdomChange()" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #3f3f46; background: #27272a; color: white; font-size: 16px;">
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Home Park</label>
+        <select id="signup-park" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #3f3f46; background: #27272a; color: white; font-size: 16px;">
+        </select>
+      </div>
+      <div class="field-group">
         <label>Email Address</label>
         <input type="email" id="email" placeholder="hero@example.com">
       </div>
@@ -51,15 +61,34 @@
     </div>
   </main>
 
+  <script src="js/config.js"></script>
   <script>
-    const SUPABASE_URL = "https://evsknkezkbramsnzisvn.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_3f9t-xXsEqWntgPm9fz-ow_m7fMVt5b";
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    function initSignupGroups() {
+      const kSelect = document.getElementById('signup-kingdom');
+      const pSelect = document.getElementById('signup-park');
+      if (!kSelect || !pSelect) return;
+
+      const kingdoms = Object.keys(AMTGARD_KINGDOMS_AND_PARKS);
+      kSelect.innerHTML = kingdoms.map(k => `<option value="${k}">${k}</option>`).join('');
+      kSelect.value = "Emerald Hills";
+      onSignupKingdomChange();
+    }
+
+    function onSignupKingdomChange() {
+      const kSelect = document.getElementById('signup-kingdom');
+      const pSelect = document.getElementById('signup-park');
+      const parks = AMTGARD_KINGDOMS_AND_PARKS[kSelect.value] || [];
+      pSelect.innerHTML = parks.map(p => `<option value="${p}">${p}</option>`).join('');
+    }
+
+    initSignupGroups();
 
     async function handleSignUp() {
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
       const username = document.getElementById('username').value.trim();
+      const kingdom = document.getElementById('signup-kingdom').value;
+      const park = document.getElementById('signup-park').value;
       const status = document.getElementById('status');
 
       if (!email || !password || !username) {
@@ -74,7 +103,13 @@
       const { data, error } = await supabaseClient.auth.signUp({
         email: email,
         password: password,
-        options: { data: { username: username } }
+        options: { 
+          data: { 
+            username: username,
+            kingdom: kingdom,
+            park: park
+          } 
+        }
       });
 
       if (error) {
@@ -82,7 +117,10 @@
         status.innerText = error.message;
       } else {
         // Auto-login after registration and go to dashboard
-        await supabaseClient.auth.signInWithPassword({ email, password });
+        const { data: loginData } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (loginData?.user) {
+          await supabaseClient.from('profiles').update({ kingdom, park }).eq('id', loginData.user.id);
+        }
         window.location.href = "index.html";
       }
     }

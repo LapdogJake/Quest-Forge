@@ -17,7 +17,12 @@ async function initDashboard() {
     .eq('id', currentUser.id)
     .single();
 
-  currentProfile = profile;
+  currentProfile = profile || {};
+  currentKingdom = profile?.kingdom || currentUser.user_metadata?.kingdom || 'Emerald Hills';
+  currentPark = profile?.park || currentUser.user_metadata?.park || 'Midnight Sun';
+  currentProfile.kingdom = currentKingdom;
+  currentProfile.park = currentPark;
+
   const displayName = profile?.username || currentUser.user_metadata?.username || currentUser.email;
 
   const userDisplayEl = document.getElementById('user-display');
@@ -27,6 +32,10 @@ async function initDashboard() {
 
   if (userDisplayEl) userDisplayEl.innerText = displayName;
   if (goldEl) goldEl.innerText = profile?.gold || 0;
+
+  // Initialize Amtgard Group Selection
+  initProfileGroupSelector();
+  updateGroupBannerDisplays();
 
   if (profile?.role === 'questmaster' || profile?.role === 'admin') {
     if (navAdminEl) navAdminEl.classList.remove('hidden');

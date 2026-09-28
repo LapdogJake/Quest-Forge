@@ -18,6 +18,155 @@ const DURABILITY_LIMITS = {
   'Legendary': 30
 };
 
+// Canonical Amtgard Kingdoms and Prominent Parks
+const AMTGARD_KINGDOMS_AND_PARKS = {
+  "Emerald Hills": [
+    "Midnight Sun",
+    "King's Crossing",
+    "Tanglewood Forest",
+    "Eagle's Crag",
+    "Traitor's Gate",
+    "Gryphon's Perch",
+    "Nocturnis",
+    "Oakheart",
+    "Ironwood"
+  ],
+  "Celestial Kingdom": [
+    "Slaughter Creek",
+    "Nocturne Prime",
+    "Mithril Hills",
+    "Traitor's Gate",
+    "Griffon's Keep",
+    "Crimson Moon",
+    "Bifrost",
+    "Shadow Moor",
+    "Amber Falls"
+  ],
+  "Burning Lands": [
+    "Mourningwood Glen",
+    "Pegasus Valley",
+    "Granite Spyre",
+    "Iron Mountain"
+  ],
+  "Iron Mountains": [
+    "Mirrkwood",
+    "Riverstone",
+    "Iron Gate",
+    "Tanglewood",
+    "Mountain Gate",
+    "Falcon Tor"
+  ],
+  "Golden Plains": [
+    "Bitter Coast",
+    "Hollow Earth",
+    "Dark Oasis",
+    "Sunblade",
+    "Silver Springs"
+  ],
+  "Wetlands": [
+    "Crimson Wood",
+    "Granite Spyre",
+    "Dark Horizon",
+    "Crimson Lions",
+    "Falcon's Rest",
+    "Ash Hollow"
+  ],
+  "Dragonspine": [
+    "Knight's Rest",
+    "Stormwall",
+    "Mithril Ridge",
+    "Twilight Peak",
+    "Shrouded Glade"
+  ],
+  "Neverwinter": [
+    "Sea Dog Island",
+    "Skywatch",
+    "Castlegate",
+    "Ravens Cross",
+    "Phoenix Tears",
+    "Olde Spillway",
+    "Phoenix Ridge"
+  ],
+  "Blackspire": [
+    "Valley of the Twin Rivers",
+    "Mithril Hills",
+    "Vanaheim",
+    "Shroombluff",
+    "Storm Haven",
+    "Ironwood"
+  ],
+  "Rising Winds": [
+    "Rune Stone",
+    "Ethereal Planes",
+    "Five Oaks",
+    "Starmount",
+    "North Haven",
+    "Crimson Hawk",
+    "Wyldewood"
+  ],
+  "Desert Winds": [
+    "Desert Rose",
+    "Ashen Hills",
+    "Hidden Falls",
+    "Silver Sage",
+    "Iron Dragon"
+  ],
+  "Tal Dagore": [
+    "Western Gate",
+    "Crimson Wood",
+    "Dragon's Salt",
+    "Wyrmm Coast",
+    "Red Falcon"
+  ],
+  "Polaris": [
+    "Crimson Chain",
+    "Falconridge",
+    "Midgard",
+    "Mists of the Dawn",
+    "Wolfpack Haven",
+    "Ravensweir"
+  ],
+  "Winter's Edge": [
+    "Sunfire Valley",
+    "Goldenvale",
+    "Hawk's Point",
+    "Raven's Cross",
+    "Ivory Tower",
+    "Emerald Coast"
+  ],
+  "Crystal Groves": [
+    "Buffalo Plains",
+    "High Spires",
+    "Black RiverKeep",
+    "Green Wood",
+    "Riverstone"
+  ],
+  "Rivermoor": [
+    "Ivory Tower",
+    "Mists of the Dawn",
+    "Phoenix Tears",
+    "Forest Gate",
+    "Red Cliffs"
+  ],
+  "Nine Blades": [
+    "Twilight Peak",
+    "Falcon's Ridge",
+    "Storm Haven",
+    "Wolvenwood"
+  ],
+  "Viridian Outlands": [
+    "Mithril Grove",
+    "Dragon's Rest",
+    "Frozen North"
+  ],
+  "Northern Lights": [
+    "Silvermoon",
+    "Bitterroot",
+    "Cascades",
+    "Emerald Coast"
+  ]
+};
+
 // Official magic item catalog seed used by the store UI
 const STORE_CATALOG = [
   { id: 'magic-potion-barkskin', item_name: 'Potion of Barkskin', category: 'Trinket', base_cost: 1, duration_hours: 0, description: 'One-use self-cast barkskin effect.' },
