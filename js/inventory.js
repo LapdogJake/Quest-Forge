@@ -23,14 +23,13 @@ function initProfileGroupSelector() {
   const activePark = getActivePark();
   const activeKingdom = getActiveKingdom();
 
-  // Populate Kingdom filter options
+  // Populate Kingdom options strictly from AMTGARD_KINGDOMS_AND_PARKS
   const kingdoms = Object.keys(AMTGARD_KINGDOMS_AND_PARKS);
-  let kingdomOptions = `<option value="__all__">All Kingdoms (Filter)</option>`;
-  kingdomOptions += kingdoms.map(k => `<option value="${k}">${k}</option>`).join('');
+  let kingdomOptions = kingdoms.map(k => `<option value="${k}">${k}</option>`).join('');
   kingdomOptions += `<option value="__custom__">➕ Other / Custom Kingdom</option>`;
   kingdomSelect.innerHTML = kingdomOptions;
 
-  // Set filter to the active park's kingdom if available, otherwise __all__
+  // Set filter to the active park's kingdom if available
   if (kingdoms.includes(activeKingdom)) {
     kingdomSelect.value = activeKingdom;
   } else if (activeKingdom && activeKingdom !== 'The Freeholds of Amtgard') {
@@ -38,10 +37,10 @@ function initProfileGroupSelector() {
     const customKInput = document.getElementById('profile-custom-kingdom');
     if (customKInput) customKInput.value = activeKingdom;
   } else {
-    kingdomSelect.value = '__all__';
+    kingdomSelect.value = kingdoms[0] || 'The Freeholds of Amtgard';
   }
 
-  // Populate park options for the filtered kingdom
+  // Populate park options strictly for the selected kingdom
   populateParkOptions(kingdomSelect.value, activePark);
   updateGroupBannerDisplays();
 }
@@ -69,12 +68,8 @@ function populateParkOptions(filterKingdom, activeParkToSelect = null) {
     customKingdomGroup.classList.toggle('hidden', !isCustomKingdom);
   }
 
-  let parks = [];
-  if (!filterKingdom || filterKingdom === '__all__') {
-    parks = Object.values(AMTGARD_KINGDOMS_AND_PARKS).flat();
-  } else if (AMTGARD_KINGDOMS_AND_PARKS[filterKingdom]) {
-    parks = AMTGARD_KINGDOMS_AND_PARKS[filterKingdom];
-  }
+  // Strictly get the parks for the selected kingdom
+  const parks = AMTGARD_KINGDOMS_AND_PARKS[filterKingdom] || [];
 
   const targetPark = activeParkToSelect !== null ? activeParkToSelect : getActivePark();
 
@@ -84,6 +79,7 @@ function populateParkOptions(filterKingdom, activeParkToSelect = null) {
     parkOptions += `<option value="" disabled selected>-- Select a Park --</option>`;
   }
 
+  // Only render the parks belonging to the selected kingdom
   parkOptions += parks.map(p => `<option value="${p}">${p}</option>`).join('');
   parkOptions += `<option value="__custom__">➕ Other / Custom Park</option>`;
   parkSelect.innerHTML = parkOptions;
