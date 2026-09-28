@@ -135,9 +135,81 @@ function getKingdomForPark(parkName) {
   return currentKingdom || 'The Freeholds of Amtgard';
 }
 
+// Load or initialize a player's relational park profile sheet
+async function loadUserParkProfile(userId, park, kingdom = null) {
+  if (!userId || !park) return null;
+  const targetKingdom = kingdom || getKingdomForPark(park);
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('user_park_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('park', park)
+      .maybeSingle();
+
+    if (!error && data) {
+      return data;
+    }
+
+    // Insert new park profile sheet if none exists yet
+    const { data: newRow, error: insertErr } = await supabaseClient
+      .from('user_park_profiles')
+      .upsert({
+        user_id: userId,
+        park: park,
+        kingdom: targetKingdom,
+        role: 'player',
+        gold: 0
+      }, { onConflict: 'user_id, park' })
+      .select('*')
+      .single();
+
+    if (!insertErr && newRow) {
+      return newRow;
+    }
+  } catch (err) {
+    console.warn('Could not read/insert user_park_profiles:', err);
+  }
+
+  // Graceful in-memory fallback
+  return {
+    user_id: userId,
+    park: park,
+    kingdom: targetKingdom,
+    role: 'player',
+    gold: 0
+  };
+}
+
+// UI helper to sync role badge and Questmaster panel visibility with the active park's sheet
+function syncUserRoleUI(role) {
+  const roleBadgeEl = document.getElementById('role-badge');
+  const navAdminEl = document.getElementById('nav-admin');
+
+  const isQM = role === 'questmaster' || role === 'admin' || currentProfile?.role === 'admin';
+
+  if (roleBadgeEl) {
+    roleBadgeEl.innerText = (role || 'player').toUpperCase();
+    roleBadgeEl.style.display = 'inline-block';
+  }
+
+  if (navAdminEl) {
+    navAdminEl.classList.toggle('hidden', !isQM);
+  }
+
+  if (isQM && typeof fetchQMQueues === 'function') {
+    fetchQMQueues();
+    fetchQMQuests();
+  }
+}
+
 // Isolated Park Currency (Gold) Management
 function getParkGold(profile, park) {
   const targetPark = park || (typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest"));
+  if (currentParkProfile && currentParkProfile.park === targetPark) {
+    return Number(currentParkProfile.gold) || 0;
+  }
   let parkGoldMap = profile?.park_gold;
   if (typeof parkGoldMap === 'string') {
     try { parkGoldMap = JSON.parse(parkGoldMap); } catch (e) { parkGoldMap = {}; }
@@ -150,21 +222,21 @@ function getParkGold(profile, park) {
 
 async function updateParkGold(amountOrNewTotal, isDelta = false, park = null) {
   const targetPark = park || (typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest"));
-  if (!currentProfile) currentProfile = {};
+  const targetKingdom = getKingdomForPark(targetPark);
 
-  let parkGoldMap = currentProfile.park_gold;
-  if (typeof parkGoldMap === 'string') {
-    try { parkGoldMap = JSON.parse(parkGoldMap); } catch (e) { parkGoldMap = {}; }
-  }
-  if (!parkGoldMap || typeof parkGoldMap !== 'object') {
-    parkGoldMap = {};
-  }
+  const currentAmt = (currentParkProfile && currentParkProfile.park === targetPark)
+    ? Number(currentParkProfile.gold) || 0
+    : getParkGold(currentProfile, targetPark);
 
-  const currentAmt = Number(parkGoldMap[targetPark]) || 0;
   const nextGold = isDelta ? Math.max(0, currentAmt + amountOrNewTotal) : Math.max(0, amountOrNewTotal);
 
-  parkGoldMap[targetPark] = nextGold;
-  currentProfile.park_gold = parkGoldMap;
+  if (!currentParkProfile) {
+    currentParkProfile = { user_id: currentUser?.id, park: targetPark, kingdom: targetKingdom, role: 'player', gold: nextGold };
+  } else if (currentParkProfile.park === targetPark) {
+    currentParkProfile.gold = nextGold;
+  }
+
+  if (!currentProfile) currentProfile = {};
   currentProfile.gold = nextGold;
 
   const goldEl = document.getElementById('profile-gold');
@@ -175,24 +247,37 @@ async function updateParkGold(amountOrNewTotal, isDelta = false, park = null) {
 
   if (currentUser) {
     try {
-      const { error } = await supabaseClient
+      // 1. Relational update on user_park_profiles
+      await supabaseClient
+        .from('user_park_profiles')
+        .upsert({
+          user_id: currentUser.id,
+          park: targetPark,
+          kingdom: targetKingdom,
+          gold: nextGold
+        }, { onConflict: 'user_id, park' });
+
+      // 2. Backup update on profiles table
+      let parkGoldMap = currentProfile.park_gold;
+      if (typeof parkGoldMap === 'string') {
+        try { parkGoldMap = JSON.parse(parkGoldMap); } catch (e) { parkGoldMap = {}; }
+      }
+      if (!parkGoldMap || typeof parkGoldMap !== 'object') parkGoldMap = {};
+      parkGoldMap[targetPark] = nextGold;
+      currentProfile.park_gold = parkGoldMap;
+
+      await supabaseClient
         .from('profiles')
         .update({
           park_gold: parkGoldMap,
           gold: nextGold
         })
         .eq('id', currentUser.id);
-
-      if (error) {
-        await supabaseClient
-          .from('profiles')
-          .update({ gold: nextGold })
-          .eq('id', currentUser.id);
-      }
     } catch (e) {
       console.warn('Could not persist park gold:', e);
     }
   }
+}
 
   return nextGold;
 }

@@ -107,35 +107,48 @@ async function saveActivePark(newPark) {
 
   const derivedKingdom = getKingdomForPark(newPark);
 
-  // Update reactive local state
+  // 1. Update reactive local state
   currentPark = newPark;
   currentKingdom = derivedKingdom;
+
+  // 2. Load or initialize the relational park profile sheet
+  currentParkProfile = await loadUserParkProfile(currentUser?.id, newPark, derivedKingdom);
+
   if (!currentProfile) currentProfile = {};
   currentProfile.park = newPark;
   currentProfile.kingdom = derivedKingdom;
 
-  // Sync isolated gold display for newly active park
-  const newParkGold = getParkGold(currentProfile, newPark);
+  // 3. Sync isolated gold display for newly active park
+  const newParkGold = Number(currentParkProfile?.gold) || 0;
   currentProfile.gold = newParkGold;
   const goldEl = document.getElementById('profile-gold');
   if (goldEl) goldEl.innerText = newParkGold;
 
-  // Update top banner display
+  // 4. Synchronize role UI (badge & Questmaster panel access) for this park
+  const activeRole = currentParkProfile?.role || 'player';
+  syncUserRoleUI(activeRole);
+
+  // 5. Update top banner display
   updateGroupBannerDisplays();
 
-  // Persist group affiliation to Supabase profiles
+  // 6. Persist last active location to Supabase profiles
   if (currentUser) {
     try {
       await supabaseClient
         .from('profiles')
-        .update({ park: newPark, kingdom: derivedKingdom })
+        .update({ 
+          park: newPark, 
+          kingdom: derivedKingdom,
+          last_active_park: newPark,
+          last_active_kingdom: derivedKingdom
+        })
         .eq('id', currentUser.id);
     } catch (e) {
       console.warn('Profile update error:', e);
     }
   }
 
-  // Fetch isolated inventory for the newly active park
+  // 7. Fetch isolated inventory for the newly active park
   await fetchUserInventory();
 }
 
@@ -156,33 +169,19 @@ async function fetchUserInventory() {
   if (!currentUser) return;
 
   const activePark = getActivePark();
-  const activeKingdom = getActiveKingdom();
   updateGroupBannerDisplays();
 
-  const { data: inventory, error } = await supabaseClient
+  // Strictly fetch inventory items belonging to the active park from the database
+  const { data: parkInventory, error } = await supabaseClient
     .from('user_inventory')
     .select('*')
-    .eq('user_id', currentUser.id);
+    .eq('user_id', currentUser.id)
+    .eq('park', activePark);
 
   if (error) {
     console.error("Error fetching inventory:", error);
     return;
   }
-
-  // Gracefully adopt any legacy items with NULL park to active park
-  const unassigned = (inventory || []).filter(item => !item.park);
-  if (unassigned.length > 0) {
-    const unassignedIds = unassigned.map(item => item.id);
-    supabaseClient
-      .from('user_inventory')
-      .update({ park: activePark, kingdom: activeKingdom })
-      .in('id', unassignedIds)
-      .then();
-    unassigned.forEach(item => { item.park = activePark; item.kingdom = activeKingdom; });
-  }
-
-  // Strictly isolate inventory items for the player's active park
-  const parkInventory = (inventory || []).filter(item => item.park === activePark);
 
   if (!parkInventory || parkInventory.length === 0) {
     if (profileList) {
@@ -322,10 +321,11 @@ async function buyItem(itemName, cost, durationHours) {
     return;
   }
 
-  const { data: inventoryRows, error: inventoryError } = await supabaseClient
+  const { data: parkInventory, error: inventoryError } = await supabaseClient
     .from('user_inventory')
     .select('*')
-    .eq('user_id', currentUser.id);
+    .eq('user_id', currentUser.id)
+    .eq('park', activePark);
 
   if (inventoryError) {
     alert("⚠️ Could not load your current inventory: " + inventoryError.message);
@@ -333,9 +333,7 @@ async function buyItem(itemName, cost, durationHours) {
   }
 
   // Pouch category capacity is strictly isolated to the active park's inventory
-  const parkInventory = (inventoryRows || []).filter(row => (row.park === activePark || !row.park));
-
-  const activeByCategory = parkInventory.reduce((acc, row) => {
+  const activeByCategory = (parkInventory || []).reduce((acc, row) => {
     const itemCategory = getCategoryForItemName(row.item_name);
     if (itemCategory) {
       acc[itemCategory] = (acc[itemCategory] || 0) + 1;

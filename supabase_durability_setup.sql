@@ -28,8 +28,19 @@ UPDATE public.profiles
       gold = 0,
       park_gold = jsonb_build_object('Delver''s Rest', 0, 'Beta - Test', 0);
 
+-- Disable user triggers temporarily so backfilling columns is not blocked by legacy row caps
+ALTER TABLE public.user_inventory DISABLE TRIGGER USER;
+
 UPDATE public.user_inventory 
   SET kingdom = 'The Freeholds of Amtgard', park = 'Delver''s Rest';
+
+ALTER TABLE public.user_inventory ENABLE TRIGGER USER;
+
+-- Drop legacy trigger that was preventing updates and not scoping by park (limits are handled per-park in app)
+DROP TRIGGER IF EXISTS trigger_enforce_inventory_cap ON public.user_inventory;
+DROP TRIGGER IF EXISTS enforce_inventory_cap_trigger ON public.user_inventory;
+DROP TRIGGER IF EXISTS trg_enforce_inventory_cap ON public.user_inventory;
+DROP TRIGGER IF EXISTS check_inventory_limit ON public.user_inventory;
 
 -- 5. Row Level Security Policies for user_inventory
 ALTER TABLE public.user_inventory ENABLE ROW LEVEL SECURITY;

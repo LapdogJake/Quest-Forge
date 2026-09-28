@@ -289,16 +289,27 @@ async function qmCompleteAndPayEncounter(queueId, rewardGold, pcUserIds, monster
       }
       if (!parkGoldMap || typeof parkGoldMap !== 'object') parkGoldMap = {};
       const currentParkAmt = Number(parkGoldMap[park]) || 0;
-      parkGoldMap[park] = currentParkAmt + rewardGold;
+      const nextGold = currentParkAmt + rewardGold;
+      parkGoldMap[park] = nextGold;
 
+      // Update both profiles and relational user_park_profiles
       await supabaseClient.from('profiles').update({
         gold: (p.gold || 0) + rewardGold,
         park_gold: parkGoldMap
       }).eq('id', userId);
 
+      await supabaseClient.from('user_park_profiles').upsert({
+        user_id: userId,
+        park: park,
+        kingdom: getKingdomForPark(park),
+        gold: nextGold
+      }, { onConflict: 'user_id, park' });
+
       if (currentUser && currentUser.id === userId) {
         if (!currentProfile) currentProfile = {};
         currentProfile.park_gold = parkGoldMap;
+        if (!currentParkProfile) currentParkProfile = {};
+        if (currentParkProfile.park === park) currentParkProfile.gold = nextGold;
         const activePark = typeof getActivePark === 'function' ? getActivePark() : park;
         currentProfile.gold = Number(parkGoldMap[activePark]) || 0;
         const goldEl = document.getElementById('profile-gold');
@@ -318,16 +329,27 @@ async function qmCompleteAndPayEncounter(queueId, rewardGold, pcUserIds, monster
       }
       if (!parkGoldMap || typeof parkGoldMap !== 'object') parkGoldMap = {};
       const currentParkAmt = Number(parkGoldMap[park]) || 0;
-      parkGoldMap[park] = currentParkAmt + rewardGold;
+      const nextGold = currentParkAmt + rewardGold;
+      parkGoldMap[park] = nextGold;
 
+      // Update both profiles and relational user_park_profiles
       await supabaseClient.from('profiles').update({
         gold: (m.gold || 0) + rewardGold,
         park_gold: parkGoldMap
       }).eq('id', userId);
 
+      await supabaseClient.from('user_park_profiles').upsert({
+        user_id: userId,
+        park: park,
+        kingdom: getKingdomForPark(park),
+        gold: nextGold
+      }, { onConflict: 'user_id, park' });
+
       if (currentUser && currentUser.id === userId) {
         if (!currentProfile) currentProfile = {};
         currentProfile.park_gold = parkGoldMap;
+        if (!currentParkProfile) currentParkProfile = {};
+        if (currentParkProfile.park === park) currentParkProfile.gold = nextGold;
         const activePark = typeof getActivePark === 'function' ? getActivePark() : park;
         currentProfile.gold = Number(parkGoldMap[activePark]) || 0;
         const goldEl = document.getElementById('profile-gold');

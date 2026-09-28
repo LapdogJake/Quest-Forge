@@ -18,41 +18,38 @@ async function initDashboard() {
     .single();
 
   currentProfile = profile || {};
-  currentKingdom = profile?.kingdom || currentUser.user_metadata?.kingdom || 'The Freeholds of Amtgard';
-  currentPark = profile?.park || currentUser.user_metadata?.park || "Delver's Rest";
-  currentProfile.kingdom = currentKingdom;
+
+  // 1. Resolve player's active park
+  currentPark = profile?.last_active_park || profile?.park || currentUser.user_metadata?.park || "Delver's Rest";
+  currentKingdom = getKingdomForPark(currentPark);
   currentProfile.park = currentPark;
+  currentProfile.kingdom = currentKingdom;
 
+  // 2. Load the player's relational park profile sheet
+  currentParkProfile = await loadUserParkProfile(currentUser.id, currentPark, currentKingdom);
+
+  // 3. User display and UI state
   const displayName = profile?.username || currentUser.user_metadata?.username || currentUser.email;
-
   const userDisplayEl = document.getElementById('user-display');
   const goldEl = document.getElementById('profile-gold');
-  const roleBadgeEl = document.getElementById('role-badge');
-  const navAdminEl = document.getElementById('nav-admin');
-
-  const activeParkGold = getParkGold(currentProfile, currentPark);
-  currentProfile.gold = activeParkGold;
 
   if (userDisplayEl) userDisplayEl.innerText = displayName;
-  if (goldEl) goldEl.innerText = activeParkGold;
 
-  // Initialize Amtgard Group Selection
+  const activeGold = Number(currentParkProfile?.gold) || 0;
+  currentProfile.gold = activeGold;
+  if (goldEl) goldEl.innerText = activeGold;
+
+  // 4. Synchronize role UI (badge & Questmaster panel access) for this park
+  const activeRole = currentParkProfile?.role || profile?.role || 'player';
+  syncUserRoleUI(activeRole);
+
+  // 5. Initialize Park Selector & affiliation banner
   initProfileGroupSelector();
-
-  if (profile?.role === 'questmaster' || profile?.role === 'admin') {
-    if (navAdminEl) navAdminEl.classList.remove('hidden');
-    if (roleBadgeEl) {
-      roleBadgeEl.innerText = profile.role.toUpperCase();
-      roleBadgeEl.style.display = 'inline-block';
-    }
-    fetchQMQueues();
-    fetchQMQuests();
-  }
 
   await fetchUserSlotState();
   fetchQuests();
   fetchMonsterEncounters();
-  fetchUserInventory();
+  await fetchUserInventory();
   renderStoreCatalog();
 }
 

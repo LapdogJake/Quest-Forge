@@ -4,6 +4,7 @@
 
 let currentUser = null;
 let currentProfile = null;
+let currentParkProfile = null;
 let currentKingdom = null;
 let currentPark = null;
 let activeBattleQuest = null;
