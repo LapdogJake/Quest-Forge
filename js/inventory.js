@@ -25,17 +25,10 @@ function initProfileGroupSelector() {
 
   // Populate Kingdom options strictly from AMTGARD_KINGDOMS_AND_PARKS
   const kingdoms = Object.keys(AMTGARD_KINGDOMS_AND_PARKS);
-  let kingdomOptions = kingdoms.map(k => `<option value="${k}">${k}</option>`).join('');
-  kingdomOptions += `<option value="__custom__">➕ Other / Custom Kingdom</option>`;
-  kingdomSelect.innerHTML = kingdomOptions;
+  kingdomSelect.innerHTML = kingdoms.map(k => `<option value="${k}">${k}</option>`).join('');
 
-  // Set filter to the active park's kingdom if available
   if (kingdoms.includes(activeKingdom)) {
     kingdomSelect.value = activeKingdom;
-  } else if (activeKingdom && activeKingdom !== 'The Freeholds of Amtgard') {
-    kingdomSelect.value = '__custom__';
-    const customKInput = document.getElementById('profile-custom-kingdom');
-    if (customKInput) customKInput.value = activeKingdom;
   } else {
     kingdomSelect.value = kingdoms[0] || 'The Freeholds of Amtgard';
   }
@@ -56,95 +49,63 @@ function updateGroupBannerDisplays() {
   if (pDisplay) pDisplay.innerText = activePark;
 }
 
-function populateParkOptions(filterKingdom, activeParkToSelect = null) {
+function populateParkOptions(filterKingdom, parkToSelect = null) {
   const parkSelect = document.getElementById('profile-park-select');
-  const customInputsRow = document.getElementById('profile-custom-inputs-row');
-  const customKingdomGroup = document.getElementById('custom-kingdom-group');
-  const customParkGroup = document.getElementById('custom-park-group');
   if (!parkSelect) return;
-
-  const isCustomKingdom = filterKingdom === '__custom__';
-  if (customKingdomGroup) {
-    customKingdomGroup.classList.toggle('hidden', !isCustomKingdom);
-  }
 
   // Strictly get the parks for the selected kingdom
   const parks = AMTGARD_KINGDOMS_AND_PARKS[filterKingdom] || [];
+  parkSelect.innerHTML = parks.map(p => `<option value="${p}">${p}</option>`).join('');
 
-  const targetPark = activeParkToSelect !== null ? activeParkToSelect : getActivePark();
-
-  let parkOptions = '';
-  const parkInList = parks.includes(targetPark);
-  if (!parkInList && targetPark && targetPark !== '__custom__') {
-    parkOptions += `<option value="" disabled selected>-- Select a Park --</option>`;
-  }
-
-  // Only render the parks belonging to the selected kingdom
-  parkOptions += parks.map(p => `<option value="${p}">${p}</option>`).join('');
-  parkOptions += `<option value="__custom__">➕ Other / Custom Park</option>`;
-  parkSelect.innerHTML = parkOptions;
-
-  if (parkInList) {
+  const targetPark = parkToSelect !== null ? parkToSelect : getActivePark();
+  if (parks.includes(targetPark)) {
     parkSelect.value = targetPark;
-    if (customParkGroup) customParkGroup.classList.add('hidden');
-  } else if (targetPark === '__custom__') {
-    parkSelect.value = '__custom__';
-    if (customParkGroup) {
-      customParkGroup.classList.remove('hidden');
-      const customPInput = document.getElementById('profile-custom-park');
-      if (customPInput) customPInput.value = '';
-    }
-  } else {
-    if (customParkGroup) customParkGroup.classList.add('hidden');
-  }
-
-  if (customInputsRow) {
-    const showRow = isCustomKingdom || parkSelect.value === '__custom__';
-    customInputsRow.classList.toggle('hidden', !showRow);
+  } else if (parks.length > 0) {
+    parkSelect.value = parks[0];
   }
 }
 
-// Kingdom dropdown is strictly a filter: repopulates Park options WITHOUT saving or changing active park
+// Kingdom dropdown is strictly a filter: updates Park options without changing active park
 function handleKingdomFilterChange() {
   const kingdomSelect = document.getElementById('profile-kingdom-select');
   if (!kingdomSelect) return;
-  const filterKingdom = kingdomSelect.value;
-  populateParkOptions(filterKingdom, getActivePark());
+  populateParkOptions(kingdomSelect.value);
 }
 
-// Park dropdown is the actual value selector: selecting a park sets the active park
-function handleParkSelectChange() {
+// User commits to a park by clicking "Change Park"
+async function handleCommitParkChange() {
   const parkSelect = document.getElementById('profile-park-select');
-  const customInputsRow = document.getElementById('profile-custom-inputs-row');
-  const customParkGroup = document.getElementById('custom-park-group');
-  const kingdomSelect = document.getElementById('profile-kingdom-select');
   if (!parkSelect) return;
 
   const selectedPark = parkSelect.value;
   if (!selectedPark) return;
 
-  const isCustomPark = selectedPark === '__custom__';
-  const isCustomKingdom = kingdomSelect && kingdomSelect.value === '__custom__';
-
-  if (customParkGroup) {
-    customParkGroup.classList.toggle('hidden', !isCustomPark);
-  }
-  if (customInputsRow) {
-    customInputsRow.classList.toggle('hidden', !isCustomKingdom && !isCustomPark);
+  const btn = document.getElementById('btn-change-park');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerText = "Switching...";
   }
 
-  if (!isCustomPark) {
-    saveActivePark(selectedPark);
-  } else {
-    const customPInput = document.getElementById('profile-custom-park');
-    if (customPInput) customPInput.focus();
+  try {
+    await saveActivePark(selectedPark);
+
+    // Auto-collapse the Park - Selector accordion after changing park
+    const body = document.getElementById('park-selector-accordion-body');
+    const chevron = document.getElementById('park-selector-chevron');
+    if (body) body.classList.add('hidden');
+    if (chevron) chevron.innerText = "▼";
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerText = "Change Park";
+    }
   }
 }
 
-async function saveActivePark(newPark, customKingdom = null) {
-  if (!newPark || newPark === '__custom__') return;
+async function saveActivePark(newPark) {
+  if (!newPark) return;
 
-  const derivedKingdom = customKingdom || getKingdomForPark(newPark);
+  const derivedKingdom = getKingdomForPark(newPark);
 
   // Update reactive local state
   currentPark = newPark;
@@ -178,30 +139,10 @@ async function saveActivePark(newPark, customKingdom = null) {
   await fetchUserInventory();
 }
 
-function handleCustomGroupChange() {
-  const customParkInput = document.getElementById('profile-custom-park');
-  const customKingdomInput = document.getElementById('profile-custom-kingdom');
-  const parkVal = customParkInput?.value.trim();
-  const kingdomVal = customKingdomInput?.value.trim() || 'The Freeholds of Amtgard';
-
-  if (parkVal) {
-    saveActivePark(parkVal, kingdomVal);
-  }
-}
-
 // Backwards-compatible aliases
-function handleKingdomSelectChange() {
-  handleKingdomFilterChange();
-}
-
-async function saveProfileGroup() {
-  const parkSelect = document.getElementById('profile-park-select');
-  if (parkSelect && parkSelect.value && parkSelect.value !== '__custom__') {
-    await saveActivePark(parkSelect.value);
-  } else {
-    handleCustomGroupChange();
-  }
-}
+function handleParkSelectChange() {}
+function handleKingdomSelectChange() { handleKingdomFilterChange(); }
+async function saveProfileGroup() { await handleCommitParkChange(); }
 
 // ==============================================================================
 // 2. Isolated Park Inventory Fetching & Display

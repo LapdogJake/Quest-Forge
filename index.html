@@ -37,30 +37,27 @@
           </div>
         </div>
 
-        <!-- Kingdom & Park Selector -->
-        <div class="form-row" style="margin-top: 14px;">
-          <div class="form-group" style="margin-bottom: 0;">
-            <label for="profile-kingdom-select">Kingdom (Filter)</label>
-            <select id="profile-kingdom-select" class="form-control" onchange="handleKingdomFilterChange()">
-            </select>
-          </div>
-          <div class="form-group" style="margin-bottom: 0;">
-            <label for="profile-park-select">Active Park</label>
-            <select id="profile-park-select" class="form-control" onchange="handleParkSelectChange()">
-            </select>
-          </div>
+        <!-- Collapsible Park Selector Accordion -->
+        <div class="accordion-header" onclick="toggleParkSelectorAccordion()">
+          <span>📍 Park - Selector</span>
+          <span id="park-selector-chevron">▼</span>
         </div>
-
-        <!-- Custom Inputs (visible only if Custom selected) -->
-        <div id="profile-custom-inputs-row" class="form-row hidden" style="margin-top: 8px;">
-          <div class="form-group hidden" id="custom-kingdom-group" style="margin-bottom: 0;">
-            <label for="profile-custom-kingdom">Custom Kingdom</label>
-            <input type="text" id="profile-custom-kingdom" class="form-control" placeholder="Kingdom name" onchange="handleCustomGroupChange()">
+        <div id="park-selector-accordion-body" class="accordion-content hidden">
+          <div class="form-row" style="margin-top: 4px;">
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label for="profile-kingdom-select">Kingdom</label>
+              <select id="profile-kingdom-select" class="form-control" onchange="handleKingdomFilterChange()">
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label for="profile-park-select">Park</label>
+              <select id="profile-park-select" class="form-control">
+              </select>
+            </div>
           </div>
-          <div class="form-group hidden" id="custom-park-group" style="margin-bottom: 0;">
-            <label for="profile-custom-park">Custom Park</label>
-            <input type="text" id="profile-custom-park" class="form-control" placeholder="Park name" onchange="handleCustomGroupChange()">
-          </div>
+          <button id="btn-change-park" class="btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="handleCommitParkChange()">
+            Change Park
+          </button>
         </div>
 
         <!-- Dual Slot Holder -->
@@ -288,13 +285,13 @@
   </nav>
 
   <!-- Modular Scripts -->
-  <script src="js/config.js?v=3"></script>
-  <script src="js/state.js?v=3"></script>
-  <script src="js/utils.js?v=3"></script>
-  <script src="js/inventory.js?v=3"></script>
-  <script src="js/encounters.js?v=3"></script>
-  <script src="js/quests.js?v=3"></script>
-  <script src="js/app.js?v=3"></script>
+  <script src="js/config.js?v=4"></script>
+  <script src="js/state.js?v=4"></script>
+  <script src="js/utils.js?v=4"></script>
+  <script src="js/inventory.js?v=4"></script>
+  <script src="js/encounters.js?v=4"></script>
+  <script src="js/quests.js?v=4"></script>
+  <script src="js/app.js?v=4"></script>
 </body>
 
 </html>

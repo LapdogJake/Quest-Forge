@@ -73,6 +73,22 @@ function switchQMSubTab(subTabName) {
 }
 
 
+// Profile Park Selector Accordion Toggle
+function toggleParkSelectorAccordion() {
+  const accordionBody = document.getElementById('park-selector-accordion-body');
+  const chevron = document.getElementById('park-selector-chevron');
+  if (!accordionBody) return;
+  const isHidden = accordionBody.classList.contains('hidden');
+
+  if (isHidden) {
+    accordionBody.classList.remove('hidden');
+    if (chevron) chevron.innerText = "▲";
+  } else {
+    accordionBody.classList.add('hidden');
+    if (chevron) chevron.innerText = "▼";
+  }
+}
+
 // Profile Accordion Toggle
 function toggleProfileInventoryAccordion() {
   const accordionBody = document.getElementById('profile-inventory-accordion-body');
