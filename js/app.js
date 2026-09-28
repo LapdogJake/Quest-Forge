@@ -30,8 +30,11 @@ async function initDashboard() {
   const roleBadgeEl = document.getElementById('role-badge');
   const navAdminEl = document.getElementById('nav-admin');
 
+  const activeParkGold = getParkGold(currentProfile, currentPark);
+  currentProfile.gold = activeParkGold;
+
   if (userDisplayEl) userDisplayEl.innerText = displayName;
-  if (goldEl) goldEl.innerText = profile?.gold || 0;
+  if (goldEl) goldEl.innerText = activeParkGold;
 
   // Initialize Amtgard Group Selection
   initProfileGroupSelector();

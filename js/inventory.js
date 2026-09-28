@@ -144,6 +144,12 @@ async function saveProfileGroup() {
   currentProfile.kingdom = finalKingdom;
   currentProfile.park = finalPark;
 
+  // Sync isolated gold display for newly active park
+  const newParkGold = getParkGold(currentProfile, finalPark);
+  currentProfile.gold = newParkGold;
+  const goldEl = document.getElementById('profile-gold');
+  if (goldEl) goldEl.innerText = newParkGold;
+
   // Persist group affiliation to Supabase profiles
   if (currentUser) {
     try {
@@ -217,45 +223,57 @@ async function fetchUserInventory() {
 
   const isCombatLocked = Boolean(activeBattleQuest || activeMonsterClaim);
 
+  const calcFn = (typeof calculateItemValue === 'function')
+    ? calculateItemValue
+    : (bp, cur, mx) => (!mx || mx <= 0 ? 0 : Math.max(0, Math.round((bp || 0) * (Math.max(0, cur) / mx))));
+
   // Profile Accordion: Item rows display item name and current durability
   if (profileList) {
-    profileList.innerHTML = parkInventory.map(item => {
-      const durabilityMax = Number(item.durability_max ?? getCategoryDurabilityMax(getCategoryForItemName(item.item_name)) ?? 1);
-      const durabilityCurrent = Number(item.durability_current ?? durabilityMax);
-      const normalizedCurrent = Math.max(0, durabilityCurrent);
-      const currentValue = calculateItemValue(item.base_cost, normalizedCurrent, durabilityMax);
+    try {
+      profileList.innerHTML = parkInventory.map(item => {
+        const durabilityMax = Number(item.durability_max ?? getCategoryDurabilityMax(getCategoryForItemName(item.item_name)) ?? 1);
+        const durabilityCurrent = Number(item.durability_current ?? durabilityMax);
+        const normalizedCurrent = Math.max(0, durabilityCurrent);
+        const currentValue = calcFn(item.base_cost, normalizedCurrent, durabilityMax);
 
-      return `<div class="item-card">
-        <div class="item-info">
-          <h4>${item.item_name}</h4>
-          <small style="color:var(--gold);">Value: ${currentValue}g</small>
-          <small style="color:var(--text-muted);">
-            Durability: ${normalizedCurrent}/${durabilityMax}
-          </small>
-        </div>
-      </div>`;
-    }).join('');
+        return `<div class="item-card">
+          <div class="item-info">
+            <h4>${item.item_name || 'Item'}</h4>
+            <small style="color:var(--gold);">Value: ${currentValue}g</small>
+            <small style="color:var(--text-muted);">
+              Durability: ${normalizedCurrent}/${durabilityMax}
+            </small>
+          </div>
+        </div>`;
+      }).join('');
+    } catch (err) {
+      console.error('Error rendering profile inventory list:', err);
+    }
   }
 
   // Merchant Store "Sell Back" Sub-tab: Resale list isolated to active park
   if (sellList) {
-    sellList.innerHTML = parkInventory.map(item => {
-      const durabilityMax = Number(item.durability_max ?? getCategoryDurabilityMax(getCategoryForItemName(item.item_name)) ?? 1);
-      const durabilityCurrent = Number(item.durability_current ?? durabilityMax);
-      const normalizedCurrent = Math.max(0, durabilityCurrent);
-      const sellGoldValue = calculateItemValue(item.base_cost, normalizedCurrent, durabilityMax);
+    try {
+      sellList.innerHTML = parkInventory.map(item => {
+        const durabilityMax = Number(item.durability_max ?? getCategoryDurabilityMax(getCategoryForItemName(item.item_name)) ?? 1);
+        const durabilityCurrent = Number(item.durability_current ?? durabilityMax);
+        const normalizedCurrent = Math.max(0, durabilityCurrent);
+        const sellGoldValue = calcFn(item.base_cost, normalizedCurrent, durabilityMax);
 
-      return `<div class="item-card">
-        <div class="item-info">
-          <h4>${item.item_name}</h4>
-          <small>Resale Value: <strong style="color:var(--gold);">${sellGoldValue} Gold</strong> (${normalizedCurrent}/${durabilityMax} dur)</small>
-          <small style="color:var(--text-muted);">Base: ${item.base_cost || 1}g</small>
-        </div>
-        <button class="btn-sell" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="sellItem('${item.id}', ${sellGoldValue}, '${item.item_name}')">
-          ${isCombatLocked ? '🔒 In Battle' : `Sell (${sellGoldValue}g)`}
-        </button>
-      </div>`;
-    }).join('');
+        return `<div class="item-card">
+          <div class="item-info">
+            <h4>${item.item_name || 'Item'}</h4>
+            <small>Resale Value: <strong style="color:var(--gold);">${sellGoldValue} Gold</strong> (${normalizedCurrent}/${durabilityMax} dur)</small>
+            <small style="color:var(--text-muted);">Base: ${item.base_cost || 1}g</small>
+          </div>
+          <button class="btn-sell" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="sellItem('${item.id}', ${sellGoldValue}, '${item.item_name}')">
+            ${isCombatLocked ? '🔒 In Battle' : `Sell (${sellGoldValue}g)`}
+          </button>
+        </div>`;
+      }).join('');
+    } catch (err) {
+      console.error('Error rendering store sell list:', err);
+    }
   }
 }
 
@@ -299,7 +317,11 @@ async function buyItem(itemName, cost, durationHours) {
     return;
   }
 
-  if ((currentProfile?.gold || 0) < cost) {
+  const activePark = getActivePark();
+  const activeKingdom = getActiveKingdom();
+  const currentParkGold = getParkGold(currentProfile, activePark);
+
+  if (currentParkGold < cost) {
     alert("⚠️ Not enough gold to purchase this item!");
     return;
   }
@@ -309,9 +331,6 @@ async function buyItem(itemName, cost, durationHours) {
     alert("⚠️ This item does not belong to a recognized category.");
     return;
   }
-
-  const activePark = getActivePark();
-  const activeKingdom = getActiveKingdom();
 
   const { data: inventoryRows, error: inventoryError } = await supabaseClient
     .from('user_inventory')
@@ -357,12 +376,8 @@ async function buyItem(itemName, cost, durationHours) {
 
   if (error) { alert("Error buying item: " + error.message); return; }
 
-  // Deduct Gold from Profile
-  const newGold = currentProfile.gold - cost;
-  await supabaseClient.from('profiles').update({ gold: newGold }).eq('id', currentUser.id);
-  currentProfile.gold = newGold;
-  const goldEl = document.getElementById('profile-gold');
-  if (goldEl) goldEl.innerText = newGold;
+  // Deduct Gold from isolated park wallet
+  await updateParkGold(cost * -1, true, activePark);
 
   alert(`🛒 Purchased ${itemName} for ${cost} Gold!`);
   await fetchUserInventory();
@@ -392,12 +407,9 @@ async function sellItem(itemId, goldValue, itemName) {
     return;
   }
 
-  const newGold = (currentProfile.gold || 0) + goldValue;
-  await supabaseClient.from('profiles').update({ gold: newGold }).eq('id', currentUser.id);
-
-  currentProfile.gold = newGold;
-  const goldEl = document.getElementById('profile-gold');
-  if (goldEl) goldEl.innerText = newGold;
+  const activePark = getActivePark();
+  // Credit gold to isolated park wallet
+  await updateParkGold(goldValue, true, activePark);
 
   alert(`🪙 Sold ${itemName} for ${goldValue} Gold!`);
   await fetchUserInventory();

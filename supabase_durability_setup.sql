@@ -7,7 +7,8 @@
 -- 1. Ensure Columns Exist on profiles with Beta Defaults
 ALTER TABLE public.profiles 
   ADD COLUMN IF NOT EXISTS kingdom TEXT DEFAULT 'The Freeholds of Amtgard',
-  ADD COLUMN IF NOT EXISTS park TEXT DEFAULT 'Delver''s Rest';
+  ADD COLUMN IF NOT EXISTS park TEXT DEFAULT 'Delver''s Rest',
+  ADD COLUMN IF NOT EXISTS park_gold JSONB DEFAULT '{}'::jsonb;
 
 -- 2. Ensure Columns Exist on user_inventory with Beta Defaults
 ALTER TABLE public.user_inventory 
@@ -22,7 +23,10 @@ CREATE INDEX IF NOT EXISTS idx_user_inventory_user_park
 
 -- 4. Set / Reset all existing user profiles and items to the single Beta group
 UPDATE public.profiles 
-  SET kingdom = 'The Freeholds of Amtgard', park = 'Delver''s Rest';
+  SET kingdom = 'The Freeholds of Amtgard', 
+      park = 'Delver''s Rest',
+      gold = 0,
+      park_gold = jsonb_build_object('Delver''s Rest', 0, 'Beta - Test', 0);
 
 UPDATE public.user_inventory 
   SET kingdom = 'The Freeholds of Amtgard', park = 'Delver''s Rest';

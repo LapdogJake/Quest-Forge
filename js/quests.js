@@ -495,11 +495,7 @@ async function completeQuest(userQuestId, rewardGold) {
     .single();
   const isCombat = uq?.quests?.category === 'Battle' || uq?.quests?.category === 'Combat';
 
-  const { data: profile } = await supabaseClient.from('profiles').select('gold').eq('id', currentUser.id).single();
-
-  await supabaseClient.from('profiles').update({
-    gold: (profile?.gold || 0) + rewardGold
-  }).eq('id', currentUser.id);
+  await updateParkGold(rewardGold, true);
 
   await supabaseClient.from('user_quests').update({ status: 'completed' }).eq('id', userQuestId);
 

@@ -18,9 +18,14 @@ const DURABILITY_LIMITS = {
   'Legendary': 30
 };
 
-// Amtgard Kingdoms and Parks (Beta: The Freeholds of Amtgard -> Delver's Rest)
+// Amtgard Kingdoms and Parks (Beta Testing: The Freeholds of Amtgard & Beta - Test)
 const AMTGARD_KINGDOMS_AND_PARKS = {
   "The Freeholds of Amtgard": [
+    "Delver's Rest",
+    "Beta - Test"
+  ],
+  "Beta - Test": [
+    "Beta - Test",
     "Delver's Rest"
   ]
 };

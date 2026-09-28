@@ -88,6 +88,13 @@ function toggleProfileInventoryAccordion() {
   }
 }
 
+// Linear 1:1 Item Value & Durability Calculator
+function calculateItemValue(basePrice, currentDurability, maxDurability) {
+  if (!maxDurability || maxDurability <= 0) return 0;
+  const ratio = Math.max(0, currentDurability) / maxDurability;
+  return Math.max(0, Math.round((basePrice || 0) * ratio));
+}
+
 // Catalog category matchers
 function getCategoryForItemName(itemName) {
   const match = STORE_CATALOG.find(item => item.item_name === itemName);
@@ -96,4 +103,66 @@ function getCategoryForItemName(itemName) {
 
 function getCategoryDurabilityMax(category) {
   return DURABILITY_LIMITS[category] || 1;
+}
+
+// Isolated Park Currency (Gold) Management
+function getParkGold(profile, park) {
+  const targetPark = park || (typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest"));
+  let parkGoldMap = profile?.park_gold;
+  if (typeof parkGoldMap === 'string') {
+    try { parkGoldMap = JSON.parse(parkGoldMap); } catch (e) { parkGoldMap = {}; }
+  }
+  if (parkGoldMap && typeof parkGoldMap === 'object' && parkGoldMap[targetPark] !== undefined) {
+    return Number(parkGoldMap[targetPark]) || 0;
+  }
+  return 0;
+}
+
+async function updateParkGold(amountOrNewTotal, isDelta = false, park = null) {
+  const targetPark = park || (typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest"));
+  if (!currentProfile) currentProfile = {};
+
+  let parkGoldMap = currentProfile.park_gold;
+  if (typeof parkGoldMap === 'string') {
+    try { parkGoldMap = JSON.parse(parkGoldMap); } catch (e) { parkGoldMap = {}; }
+  }
+  if (!parkGoldMap || typeof parkGoldMap !== 'object') {
+    parkGoldMap = {};
+  }
+
+  const currentAmt = Number(parkGoldMap[targetPark]) || 0;
+  const nextGold = isDelta ? Math.max(0, currentAmt + amountOrNewTotal) : Math.max(0, amountOrNewTotal);
+
+  parkGoldMap[targetPark] = nextGold;
+  currentProfile.park_gold = parkGoldMap;
+  currentProfile.gold = nextGold;
+
+  const goldEl = document.getElementById('profile-gold');
+  const activeParkNow = typeof getActivePark === 'function' ? getActivePark() : currentPark;
+  if (goldEl && targetPark === activeParkNow) {
+    goldEl.innerText = nextGold;
+  }
+
+  if (currentUser) {
+    try {
+      const { error } = await supabaseClient
+        .from('profiles')
+        .update({
+          park_gold: parkGoldMap,
+          gold: nextGold
+        })
+        .eq('id', currentUser.id);
+
+      if (error) {
+        await supabaseClient
+          .from('profiles')
+          .update({ gold: nextGold })
+          .eq('id', currentUser.id);
+      }
+    } catch (e) {
+      console.warn('Could not persist park gold:', e);
+    }
+  }
+
+  return nextGold;
 }
