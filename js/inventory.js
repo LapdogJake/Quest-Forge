@@ -8,11 +8,11 @@ function getActivePark() {
 }
 
 function getActiveKingdom() {
-  return currentProfile?.kingdom || currentKingdom || 'The Freeholds of Amtgard';
+  return getKingdomForPark(getActivePark());
 }
 
 // ==============================================================================
-// 1. Group Selector (Kingdom & Park)
+// 1. Group Selector (Kingdom Filter & Active Park Value)
 // ==============================================================================
 
 function initProfileGroupSelector() {
@@ -20,31 +20,35 @@ function initProfileGroupSelector() {
   const parkSelect = document.getElementById('profile-park-select');
   if (!kingdomSelect || !parkSelect) return;
 
-  const activeKingdom = getActiveKingdom();
   const activePark = getActivePark();
+  const activeKingdom = getActiveKingdom();
 
-  // Populate Kingdom options
+  // Populate Kingdom filter options
   const kingdoms = Object.keys(AMTGARD_KINGDOMS_AND_PARKS);
-  let kingdomOptions = kingdoms.map(k => `<option value="${k}">${k}</option>`).join('');
+  let kingdomOptions = `<option value="__all__">All Kingdoms (Filter)</option>`;
+  kingdomOptions += kingdoms.map(k => `<option value="${k}">${k}</option>`).join('');
   kingdomOptions += `<option value="__custom__">➕ Other / Custom Kingdom</option>`;
   kingdomSelect.innerHTML = kingdomOptions;
 
-  // Set selected kingdom (or custom if not in standard list)
+  // Set filter to the active park's kingdom if available, otherwise __all__
   if (kingdoms.includes(activeKingdom)) {
     kingdomSelect.value = activeKingdom;
-  } else {
+  } else if (activeKingdom && activeKingdom !== 'The Freeholds of Amtgard') {
     kingdomSelect.value = '__custom__';
     const customKInput = document.getElementById('profile-custom-kingdom');
     if (customKInput) customKInput.value = activeKingdom;
+  } else {
+    kingdomSelect.value = '__all__';
   }
 
-  populateParkOptions(activeKingdom, activePark);
+  // Populate park options for the filtered kingdom
+  populateParkOptions(kingdomSelect.value, activePark);
   updateGroupBannerDisplays();
 }
 
 function updateGroupBannerDisplays() {
-  const activeKingdom = getActiveKingdom();
   const activePark = getActivePark();
+  const activeKingdom = getActiveKingdom();
 
   const kDisplay = document.getElementById('display-profile-kingdom');
   const pDisplay = document.getElementById('display-profile-park');
@@ -53,34 +57,49 @@ function updateGroupBannerDisplays() {
   if (pDisplay) pDisplay.innerText = activePark;
 }
 
-function populateParkOptions(selectedKingdom, activeParkToSelect = null) {
+function populateParkOptions(filterKingdom, activeParkToSelect = null) {
   const parkSelect = document.getElementById('profile-park-select');
   const customInputsRow = document.getElementById('profile-custom-inputs-row');
   const customKingdomGroup = document.getElementById('custom-kingdom-group');
   const customParkGroup = document.getElementById('custom-park-group');
   if (!parkSelect) return;
 
-  const isCustomKingdom = selectedKingdom === '__custom__';
+  const isCustomKingdom = filterKingdom === '__custom__';
   if (customKingdomGroup) {
     customKingdomGroup.classList.toggle('hidden', !isCustomKingdom);
   }
 
-  const parks = AMTGARD_KINGDOMS_AND_PARKS[selectedKingdom] || [];
-  let parkOptions = parks.map(p => `<option value="${p}">${p}</option>`).join('');
+  let parks = [];
+  if (!filterKingdom || filterKingdom === '__all__') {
+    parks = Object.values(AMTGARD_KINGDOMS_AND_PARKS).flat();
+  } else if (AMTGARD_KINGDOMS_AND_PARKS[filterKingdom]) {
+    parks = AMTGARD_KINGDOMS_AND_PARKS[filterKingdom];
+  }
+
+  const targetPark = activeParkToSelect !== null ? activeParkToSelect : getActivePark();
+
+  let parkOptions = '';
+  const parkInList = parks.includes(targetPark);
+  if (!parkInList && targetPark && targetPark !== '__custom__') {
+    parkOptions += `<option value="" disabled selected>-- Select a Park --</option>`;
+  }
+
+  parkOptions += parks.map(p => `<option value="${p}">${p}</option>`).join('');
   parkOptions += `<option value="__custom__">➕ Other / Custom Park</option>`;
   parkSelect.innerHTML = parkOptions;
 
-  const targetPark = activeParkToSelect || getActivePark();
-  if (parks.includes(targetPark)) {
+  if (parkInList) {
     parkSelect.value = targetPark;
     if (customParkGroup) customParkGroup.classList.add('hidden');
-  } else {
+  } else if (targetPark === '__custom__') {
     parkSelect.value = '__custom__';
     if (customParkGroup) {
       customParkGroup.classList.remove('hidden');
       const customPInput = document.getElementById('profile-custom-park');
-      if (customPInput) customPInput.value = targetPark || '';
+      if (customPInput) customPInput.value = '';
     }
+  } else {
+    if (customParkGroup) customParkGroup.classList.add('hidden');
   }
 
   if (customInputsRow) {
@@ -89,23 +108,27 @@ function populateParkOptions(selectedKingdom, activeParkToSelect = null) {
   }
 }
 
-function handleKingdomSelectChange() {
+// Kingdom dropdown is strictly a filter: repopulates Park options WITHOUT saving or changing active park
+function handleKingdomFilterChange() {
   const kingdomSelect = document.getElementById('profile-kingdom-select');
   if (!kingdomSelect) return;
-  const selectedKingdom = kingdomSelect.value;
-  populateParkOptions(selectedKingdom);
-  saveProfileGroup();
+  const filterKingdom = kingdomSelect.value;
+  populateParkOptions(filterKingdom, getActivePark());
 }
 
+// Park dropdown is the actual value selector: selecting a park sets the active park
 function handleParkSelectChange() {
   const parkSelect = document.getElementById('profile-park-select');
   const customInputsRow = document.getElementById('profile-custom-inputs-row');
   const customParkGroup = document.getElementById('custom-park-group');
   const kingdomSelect = document.getElementById('profile-kingdom-select');
-  if (!parkSelect || !kingdomSelect) return;
+  if (!parkSelect) return;
 
-  const isCustomPark = parkSelect.value === '__custom__';
-  const isCustomKingdom = kingdomSelect.value === '__custom__';
+  const selectedPark = parkSelect.value;
+  if (!selectedPark) return;
+
+  const isCustomPark = selectedPark === '__custom__';
+  const isCustomKingdom = kingdomSelect && kingdomSelect.value === '__custom__';
 
   if (customParkGroup) {
     customParkGroup.classList.toggle('hidden', !isCustomPark);
@@ -114,56 +137,74 @@ function handleParkSelectChange() {
     customInputsRow.classList.toggle('hidden', !isCustomKingdom && !isCustomPark);
   }
 
-  if (!isCustomPark && !isCustomKingdom) {
-    saveProfileGroup();
+  if (!isCustomPark) {
+    saveActivePark(selectedPark);
+  } else {
+    const customPInput = document.getElementById('profile-custom-park');
+    if (customPInput) customPInput.focus();
   }
 }
 
-async function saveProfileGroup() {
-  const kingdomSelect = document.getElementById('profile-kingdom-select');
-  const parkSelect = document.getElementById('profile-park-select');
-  const customKingdomInput = document.getElementById('profile-custom-kingdom');
-  const customParkInput = document.getElementById('profile-custom-park');
+async function saveActivePark(newPark, customKingdom = null) {
+  if (!newPark || newPark === '__custom__') return;
 
-  if (!kingdomSelect || !parkSelect) return;
-
-  let finalKingdom = kingdomSelect.value === '__custom__'
-    ? (customKingdomInput?.value.trim() || 'The Freeholds of Amtgard')
-    : kingdomSelect.value;
-
-  let finalPark = parkSelect.value === '__custom__'
-    ? (customParkInput?.value.trim() || "Delver's Rest")
-    : parkSelect.value;
-
-  if (!finalKingdom || !finalPark) return;
+  const derivedKingdom = customKingdom || getKingdomForPark(newPark);
 
   // Update reactive local state
-  currentPark = finalPark;
-  currentKingdom = finalKingdom;
+  currentPark = newPark;
+  currentKingdom = derivedKingdom;
   if (!currentProfile) currentProfile = {};
-  currentProfile.kingdom = finalKingdom;
-  currentProfile.park = finalPark;
+  currentProfile.park = newPark;
+  currentProfile.kingdom = derivedKingdom;
 
   // Sync isolated gold display for newly active park
-  const newParkGold = getParkGold(currentProfile, finalPark);
+  const newParkGold = getParkGold(currentProfile, newPark);
   currentProfile.gold = newParkGold;
   const goldEl = document.getElementById('profile-gold');
   if (goldEl) goldEl.innerText = newParkGold;
+
+  // Update top banner display
+  updateGroupBannerDisplays();
 
   // Persist group affiliation to Supabase profiles
   if (currentUser) {
     try {
       await supabaseClient
         .from('profiles')
-        .update({ kingdom: finalKingdom, park: finalPark })
+        .update({ park: newPark, kingdom: derivedKingdom })
         .eq('id', currentUser.id);
     } catch (e) {
       console.warn('Profile update error:', e);
     }
   }
 
-  updateGroupBannerDisplays();
+  // Fetch isolated inventory for the newly active park
   await fetchUserInventory();
+}
+
+function handleCustomGroupChange() {
+  const customParkInput = document.getElementById('profile-custom-park');
+  const customKingdomInput = document.getElementById('profile-custom-kingdom');
+  const parkVal = customParkInput?.value.trim();
+  const kingdomVal = customKingdomInput?.value.trim() || 'The Freeholds of Amtgard';
+
+  if (parkVal) {
+    saveActivePark(parkVal, kingdomVal);
+  }
+}
+
+// Backwards-compatible aliases
+function handleKingdomSelectChange() {
+  handleKingdomFilterChange();
+}
+
+async function saveProfileGroup() {
+  const parkSelect = document.getElementById('profile-park-select');
+  if (parkSelect && parkSelect.value && parkSelect.value !== '__custom__') {
+    await saveActivePark(parkSelect.value);
+  } else {
+    handleCustomGroupChange();
+  }
 }
 
 // ==============================================================================
@@ -230,15 +271,19 @@ async function fetchUserInventory() {
   // Profile Accordion: Item rows display item name and current durability
   if (profileList) {
     try {
-      profileList.innerHTML = parkInventory.map(item => {
-        const durabilityMax = Number(item.durability_max ?? getCategoryDurabilityMax(getCategoryForItemName(item.item_name)) ?? 1);
-        const durabilityCurrent = Number(item.durability_current ?? durabilityMax);
+      const cardsHtml = parkInventory.map(item => {
+        const itemName = item?.item_name || 'Item';
+        const cat = getCategoryForItemName(itemName);
+        const fallbackMax = getCategoryDurabilityMax(cat) || 1;
+        const durabilityMax = Math.max(1, Number(item?.durability_max || fallbackMax));
+        const durabilityCurrent = Number(item?.durability_current !== undefined && item?.durability_current !== null ? item.durability_current : durabilityMax);
         const normalizedCurrent = Math.max(0, durabilityCurrent);
-        const currentValue = calcFn(item.base_cost, normalizedCurrent, durabilityMax);
+        const baseCost = Math.max(1, Number(item?.base_cost || 1));
+        const currentValue = calcFn(baseCost, normalizedCurrent, durabilityMax);
 
         return `<div class="item-card">
           <div class="item-info">
-            <h4>${item.item_name || 'Item'}</h4>
+            <h4>${itemName}</h4>
             <small style="color:var(--gold);">Value: ${currentValue}g</small>
             <small style="color:var(--text-muted);">
               Durability: ${normalizedCurrent}/${durabilityMax}
@@ -246,33 +291,41 @@ async function fetchUserInventory() {
           </div>
         </div>`;
       }).join('');
+      profileList.innerHTML = cardsHtml || `<p class="empty-state">Your pouch is empty. Visit the Store to buy supplies!</p>`;
     } catch (err) {
       console.error('Error rendering profile inventory list:', err);
+      profileList.innerHTML = `<p class="empty-state" style="color:var(--danger);">Error rendering pouch: ${err.message}</p>`;
     }
   }
 
   // Merchant Store "Sell Back" Sub-tab: Resale list isolated to active park
   if (sellList) {
     try {
-      sellList.innerHTML = parkInventory.map(item => {
-        const durabilityMax = Number(item.durability_max ?? getCategoryDurabilityMax(getCategoryForItemName(item.item_name)) ?? 1);
-        const durabilityCurrent = Number(item.durability_current ?? durabilityMax);
+      const sellCardsHtml = parkInventory.map(item => {
+        const itemName = item?.item_name || 'Item';
+        const cat = getCategoryForItemName(itemName);
+        const fallbackMax = getCategoryDurabilityMax(cat) || 1;
+        const durabilityMax = Math.max(1, Number(item?.durability_max || fallbackMax));
+        const durabilityCurrent = Number(item?.durability_current !== undefined && item?.durability_current !== null ? item.durability_current : durabilityMax);
         const normalizedCurrent = Math.max(0, durabilityCurrent);
-        const sellGoldValue = calcFn(item.base_cost, normalizedCurrent, durabilityMax);
+        const baseCost = Math.max(1, Number(item?.base_cost || 1));
+        const sellGoldValue = calcFn(baseCost, normalizedCurrent, durabilityMax);
 
         return `<div class="item-card">
           <div class="item-info">
-            <h4>${item.item_name || 'Item'}</h4>
+            <h4>${itemName}</h4>
             <small>Resale Value: <strong style="color:var(--gold);">${sellGoldValue} Gold</strong> (${normalizedCurrent}/${durabilityMax} dur)</small>
-            <small style="color:var(--text-muted);">Base: ${item.base_cost || 1}g</small>
+            <small style="color:var(--text-muted);">Base: ${baseCost}g</small>
           </div>
-          <button class="btn-sell" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="sellItem('${item.id}', ${sellGoldValue}, '${item.item_name}')">
+          <button class="btn-sell" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="sellItem('${item.id}', ${sellGoldValue}, '${itemName}')">
             ${isCombatLocked ? '🔒 In Battle' : `Sell (${sellGoldValue}g)`}
           </button>
         </div>`;
       }).join('');
+      sellList.innerHTML = sellCardsHtml || `<p class="empty-state">No items available to sell.</p>`;
     } catch (err) {
       console.error('Error rendering store sell list:', err);
+      sellList.innerHTML = `<p class="empty-state" style="color:var(--danger);">Error rendering store sell list: ${err.message}</p>`;
     }
   }
 }

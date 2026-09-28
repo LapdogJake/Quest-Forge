@@ -280,21 +280,59 @@ async function qmCompleteAndPayEncounter(queueId, rewardGold, pcUserIds, monster
 
   // 1. Concurrently award PCs
   const pcPayoutPromises = (pcUserIds || []).map(async (userId) => {
-    const { data: p } = await supabaseClient.from('profiles').select('gold').eq('id', userId).single();
+    const { data: p } = await supabaseClient.from('profiles').select('gold, park, park_gold').eq('id', userId).single();
     if (p) {
+      const park = p.park || "Delver's Rest";
+      let parkGoldMap = p.park_gold;
+      if (typeof parkGoldMap === 'string') {
+        try { parkGoldMap = JSON.parse(parkGoldMap); } catch (e) { parkGoldMap = {}; }
+      }
+      if (!parkGoldMap || typeof parkGoldMap !== 'object') parkGoldMap = {};
+      const currentParkAmt = Number(parkGoldMap[park]) || 0;
+      parkGoldMap[park] = currentParkAmt + rewardGold;
+
       await supabaseClient.from('profiles').update({
-        gold: (p.gold || 0) + rewardGold
+        gold: (p.gold || 0) + rewardGold,
+        park_gold: parkGoldMap
       }).eq('id', userId);
+
+      if (currentUser && currentUser.id === userId) {
+        if (!currentProfile) currentProfile = {};
+        currentProfile.park_gold = parkGoldMap;
+        const activePark = typeof getActivePark === 'function' ? getActivePark() : park;
+        currentProfile.gold = Number(parkGoldMap[activePark]) || 0;
+        const goldEl = document.getElementById('profile-gold');
+        if (goldEl) goldEl.innerText = currentProfile.gold;
+      }
     }
   });
 
   // 2. Concurrently award Monsters
   const monsterPayoutPromises = (monsterUserIds || []).map(async (userId) => {
-    const { data: m } = await supabaseClient.from('profiles').select('gold').eq('id', userId).single();
+    const { data: m } = await supabaseClient.from('profiles').select('gold, park, park_gold').eq('id', userId).single();
     if (m) {
+      const park = m.park || "Delver's Rest";
+      let parkGoldMap = m.park_gold;
+      if (typeof parkGoldMap === 'string') {
+        try { parkGoldMap = JSON.parse(parkGoldMap); } catch (e) { parkGoldMap = {}; }
+      }
+      if (!parkGoldMap || typeof parkGoldMap !== 'object') parkGoldMap = {};
+      const currentParkAmt = Number(parkGoldMap[park]) || 0;
+      parkGoldMap[park] = currentParkAmt + rewardGold;
+
       await supabaseClient.from('profiles').update({
-        gold: (m.gold || 0) + rewardGold
+        gold: (m.gold || 0) + rewardGold,
+        park_gold: parkGoldMap
       }).eq('id', userId);
+
+      if (currentUser && currentUser.id === userId) {
+        if (!currentProfile) currentProfile = {};
+        currentProfile.park_gold = parkGoldMap;
+        const activePark = typeof getActivePark === 'function' ? getActivePark() : park;
+        currentProfile.gold = Number(parkGoldMap[activePark]) || 0;
+        const goldEl = document.getElementById('profile-gold');
+        if (goldEl) goldEl.innerText = currentProfile.gold;
+      }
     }
   });
 

@@ -21,12 +21,10 @@ const DURABILITY_LIMITS = {
 // Amtgard Kingdoms and Parks (Beta Testing: The Freeholds of Amtgard & Beta - Test)
 const AMTGARD_KINGDOMS_AND_PARKS = {
   "The Freeholds of Amtgard": [
-    "Delver's Rest",
-    "Beta - Test"
+    "Delver's Rest"
   ],
   "Beta - Test": [
-    "Beta - Test",
-    "Delver's Rest"
+    "Beta - Test"
   ]
 };
 

@@ -88,11 +88,12 @@ function toggleProfileInventoryAccordion() {
   }
 }
 
-// Linear 1:1 Item Value & Durability Calculator
+// Linear 1:1 Item Value & Durability Calculator (Static baseline pricing across parks)
 function calculateItemValue(basePrice, currentDurability, maxDurability) {
-  if (!maxDurability || maxDurability <= 0) return 0;
+  const price = Math.max(1, Number(basePrice || 1));
+  if (!maxDurability || maxDurability <= 0) return price;
   const ratio = Math.max(0, currentDurability) / maxDurability;
-  return Math.max(0, Math.round((basePrice || 0) * ratio));
+  return Math.max(1, Math.round(price * ratio));
 }
 
 // Catalog category matchers
@@ -103,6 +104,19 @@ function getCategoryForItemName(itemName) {
 
 function getCategoryDurabilityMax(category) {
   return DURABILITY_LIMITS[category] || 1;
+}
+
+// Lookup Kingdom for a given Park (Kingdom is a sorting filter)
+function getKingdomForPark(parkName) {
+  if (!parkName) return 'The Freeholds of Amtgard';
+  if (typeof AMTGARD_KINGDOMS_AND_PARKS === 'object') {
+    for (const [kingdom, parks] of Object.entries(AMTGARD_KINGDOMS_AND_PARKS)) {
+      if (Array.isArray(parks) && parks.includes(parkName)) {
+        return kingdom;
+      }
+    }
+  }
+  return currentKingdom || 'The Freeholds of Amtgard';
 }
 
 // Isolated Park Currency (Gold) Management
