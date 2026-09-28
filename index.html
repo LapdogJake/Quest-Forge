@@ -24,61 +24,30 @@
           </div>
         </div>
 
-        <!-- Active Group Affiliation Banner -->
-        <div id="profile-group-banner" class="profile-group-banner">
-          <div class="group-banner-item">
-            <small>Kingdom</small>
-            <span id="display-profile-kingdom" class="group-val">Loading...</span>
+        <!-- Kingdom & Park Selector -->
+        <div class="form-row" style="margin-top: 14px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="profile-kingdom-select">Kingdom</label>
+            <select id="profile-kingdom-select" class="form-control" onchange="handleKingdomSelectChange()">
+            </select>
           </div>
-          <div class="group-banner-divider">✦</div>
-          <div class="group-banner-item">
-            <small>Active Park</small>
-            <span id="display-profile-park" class="group-val">Loading...</span>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="profile-park-select">Park</label>
+            <select id="profile-park-select" class="form-control" onchange="handleParkSelectChange()">
+            </select>
           </div>
         </div>
 
-        <!-- Group Selection & Park Switcher Card -->
-        <div class="profile-group-card">
-          <div class="profile-group-header">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span style="font-size:16px;">🏰</span>
-              <span style="font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:0.5px;">Group Selection</span>
-            </div>
-            <span class="active-park-pill" id="profile-park-scope-pill">Isolated Inventory</span>
+        <!-- Custom Inputs (visible only if Custom selected) -->
+        <div id="profile-custom-inputs-row" class="form-row hidden" style="margin-top: 8px;">
+          <div class="form-group hidden" id="custom-kingdom-group" style="margin-bottom: 0;">
+            <label for="profile-custom-kingdom">Custom Kingdom</label>
+            <input type="text" id="profile-custom-kingdom" class="form-control" placeholder="Kingdom name" onchange="saveProfileGroup()">
           </div>
-          <p style="font-size:11px; color:var(--text-muted); margin-bottom:10px; line-height:1.4;">
-            Select your Kingdom & Park chapter. Your gear and item pouch are strictly isolated to each local park.
-          </p>
-
-          <div class="form-row">
-            <div class="form-group" style="margin-bottom:8px;">
-              <label for="profile-kingdom-select">Kingdom</label>
-              <select id="profile-kingdom-select" class="form-control" onchange="handleKingdomSelectChange()">
-              </select>
-            </div>
-            <div class="form-group" style="margin-bottom:8px;">
-              <label for="profile-park-select">Park</label>
-              <select id="profile-park-select" class="form-control" onchange="handleParkSelectChange()">
-              </select>
-            </div>
+          <div class="form-group hidden" id="custom-park-group" style="margin-bottom: 0;">
+            <label for="profile-custom-park">Custom Park</label>
+            <input type="text" id="profile-custom-park" class="form-control" placeholder="Park name" onchange="saveProfileGroup()">
           </div>
-
-          <!-- Custom Text Inputs (visible if "Custom / Other" selected) -->
-          <div id="profile-custom-inputs-row" class="form-row hidden" style="margin-top:6px;">
-            <div class="form-group hidden" id="custom-kingdom-group" style="margin-bottom:8px;">
-              <label for="profile-custom-kingdom">Custom Kingdom</label>
-              <input type="text" id="profile-custom-kingdom" class="form-control" placeholder="Enter Kingdom name">
-            </div>
-            <div class="form-group hidden" id="custom-park-group" style="margin-bottom:8px;">
-              <label for="profile-custom-park">Custom Park</label>
-              <input type="text" id="profile-custom-park" class="form-control" placeholder="Enter Park name">
-            </div>
-          </div>
-
-          <button id="btn-save-group" class="btn btn-secondary" style="margin-top:6px; padding:9px 12px; font-size:12px;" onclick="saveProfileGroup()">
-            💾 Switch & Save Active Park
-          </button>
-          <div id="group-save-status" style="font-size:12px; margin-top:6px; text-align:center; min-height:16px;"></div>
         </div>
 
         <!-- Dual Slot Holder -->
@@ -103,12 +72,12 @@
 
         <!-- Collapsible Inventory Accordion -->
         <div class="accordion-header" onclick="toggleProfileInventoryAccordion()">
-          <span>🎒 <span id="profile-inventory-title">Park Inventory</span> <small id="profile-inventory-count" style="color:var(--text-muted); font-weight:normal;">(0 items)</small></span>
+          <span>🎒 Inventory <small id="profile-inventory-count" style="color:var(--text-muted); font-weight:normal;">(0 items)</small></span>
           <span id="profile-inventory-chevron">▼</span>
         </div>
         <div id="profile-inventory-accordion-body" class="accordion-content hidden">
           <div id="profile-inventory-list" class="item-grid">
-            <p class="empty-state">Loading park inventory...</p>
+            <p class="empty-state">Your pouch is empty. Visit the Store to buy supplies!</p>
           </div>
         </div>
 
@@ -145,17 +114,6 @@
     <section id="tab-store" class="tab-view hidden">
       <div class="card card-store">
         <h2>Store</h2>
-
-        <!-- Active Park Store Scoping Banner -->
-        <div id="store-park-banner" class="store-park-indicator">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span>📍 Active Park: <strong id="store-active-park-display" style="color:var(--gold);">Delver's Rest</strong></span>
-            <span id="store-active-kingdom-display" style="font-size:11px; color:var(--text-muted);">The Freeholds of Amtgard</span>
-          </div>
-          <small style="color:var(--text-muted); display:block; font-size:11px; margin-top:3px;">
-            Gear purchases & inventory slot caps apply exclusively to this park's pouch.
-          </small>
-        </div>
 
         <div class="qm-subnav">
           <button id="store-subnav-buy" class="qm-subnav-btn active" onclick="switchStoreSubTab('buy')">Buy

@@ -35,7 +35,6 @@ async function initDashboard() {
 
   // Initialize Amtgard Group Selection
   initProfileGroupSelector();
-  updateGroupBannerDisplays();
 
   if (profile?.role === 'questmaster' || profile?.role === 'admin') {
     if (navAdminEl) navAdminEl.classList.remove('hidden');

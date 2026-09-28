@@ -39,7 +39,6 @@ function initProfileGroupSelector() {
   }
 
   populateParkOptions(activeKingdom, activePark);
-  updateGroupBannerDisplays();
 }
 
 function populateParkOptions(selectedKingdom, activeParkToSelect = null) {
@@ -83,7 +82,7 @@ function handleKingdomSelectChange() {
   if (!kingdomSelect) return;
   const selectedKingdom = kingdomSelect.value;
   populateParkOptions(selectedKingdom);
-  handleParkSelectChange();
+  saveProfileGroup();
 }
 
 function handleParkSelectChange() {
@@ -102,6 +101,10 @@ function handleParkSelectChange() {
   if (customInputsRow) {
     customInputsRow.classList.toggle('hidden', !isCustomKingdom && !isCustomPark);
   }
+
+  if (!isCustomPark && !isCustomKingdom) {
+    saveProfileGroup();
+  }
 }
 
 async function saveProfileGroup() {
@@ -109,30 +112,18 @@ async function saveProfileGroup() {
   const parkSelect = document.getElementById('profile-park-select');
   const customKingdomInput = document.getElementById('profile-custom-kingdom');
   const customParkInput = document.getElementById('profile-custom-park');
-  const statusEl = document.getElementById('group-save-status');
 
   if (!kingdomSelect || !parkSelect) return;
 
   let finalKingdom = kingdomSelect.value === '__custom__'
-    ? (customKingdomInput?.value.trim() || 'Custom Kingdom')
+    ? (customKingdomInput?.value.trim() || 'The Freeholds of Amtgard')
     : kingdomSelect.value;
 
   let finalPark = parkSelect.value === '__custom__'
-    ? (customParkInput?.value.trim() || 'Custom Park')
+    ? (customParkInput?.value.trim() || "Delver's Rest")
     : parkSelect.value;
 
-  if (!finalKingdom || !finalPark) {
-    if (statusEl) {
-      statusEl.style.color = 'var(--danger)';
-      statusEl.innerText = '⚠️ Please specify both a Kingdom and a Park.';
-    }
-    return;
-  }
-
-  if (statusEl) {
-    statusEl.style.color = 'var(--text-muted)';
-    statusEl.innerText = 'Switching park & scoping inventory...';
-  }
+  if (!finalKingdom || !finalPark) return;
 
   // Update reactive local state
   currentPark = finalPark;
@@ -144,46 +135,16 @@ async function saveProfileGroup() {
   // Persist group affiliation to Supabase profiles
   if (currentUser) {
     try {
-      const { error } = await supabaseClient
+      await supabaseClient
         .from('profiles')
         .update({ kingdom: finalKingdom, park: finalPark })
         .eq('id', currentUser.id);
-
-      if (error) {
-        console.warn('Profile group persistence warning:', error.message);
-      }
     } catch (e) {
       console.warn('Profile update error:', e);
     }
   }
 
-  updateGroupBannerDisplays();
   await fetchUserInventory();
-
-  if (statusEl) {
-    statusEl.style.color = 'var(--success)';
-    statusEl.innerText = `✅ Active Park set to ${finalPark}! Inventory switched.`;
-    setTimeout(() => {
-      if (statusEl) statusEl.innerText = '';
-    }, 4000);
-  }
-}
-
-function updateGroupBannerDisplays() {
-  const activeKingdom = getActiveKingdom();
-  const activePark = getActivePark();
-
-  const kDisplay = document.getElementById('display-profile-kingdom');
-  const pDisplay = document.getElementById('display-profile-park');
-  const invTitle = document.getElementById('profile-inventory-title');
-  const storePark = document.getElementById('store-active-park-display');
-  const storeKingdom = document.getElementById('store-active-kingdom-display');
-
-  if (kDisplay) kDisplay.innerText = activeKingdom;
-  if (pDisplay) pDisplay.innerText = activePark;
-  if (invTitle) invTitle.innerText = `${activePark} Inventory`;
-  if (storePark) storePark.innerText = activePark;
-  if (storeKingdom) storeKingdom.innerText = activeKingdom;
 }
 
 // ==============================================================================
@@ -199,7 +160,6 @@ async function fetchUserInventory() {
 
   const activePark = getActivePark();
   const activeKingdom = getActiveKingdom();
-  updateGroupBannerDisplays();
 
   const { data: inventory, error } = await supabaseClient
     .from('user_inventory')
@@ -228,22 +188,22 @@ async function fetchUserInventory() {
 
   if (!parkInventory || parkInventory.length === 0) {
     if (profileList) {
-      profileList.innerHTML = `<p class="empty-state">Your pouch is empty at <strong style="color:var(--primary);">${activePark}</strong>.<br><small>Visit the Store to acquire gear for this chapter!</small></p>`;
+      profileList.innerHTML = `<p class="empty-state">Your pouch is empty. Visit the Store to buy supplies!</p>`;
     }
     if (sellList) {
-      sellList.innerHTML = `<p class="empty-state">No items available to sell at <strong style="color:var(--gold);">${activePark}</strong>.</p>`;
+      sellList.innerHTML = `<p class="empty-state">No items available to sell.</p>`;
     }
-    if (countLabel) countLabel.innerText = `(0 items at ${activePark})`;
+    if (countLabel) countLabel.innerText = "(0 items)";
     return;
   }
 
   if (countLabel) {
-    countLabel.innerText = `(${parkInventory.length} item${parkInventory.length === 1 ? '' : 's'} at ${activePark})`;
+    countLabel.innerText = `(${parkInventory.length} item${parkInventory.length === 1 ? '' : 's'})`;
   }
 
   const isCombatLocked = Boolean(activeBattleQuest || activeMonsterClaim);
 
-  // Profile Accordion: Item rows display item name, durability, and scoped park
+  // Profile Accordion: Item rows display item name and current durability
   if (profileList) {
     profileList.innerHTML = parkInventory.map(item => {
       const durabilityMax = Number(item.durability_max ?? getCategoryDurabilityMax(getCategoryForItemName(item.item_name)) ?? 1);
@@ -256,7 +216,7 @@ async function fetchUserInventory() {
           <h4>${item.item_name}</h4>
           <small style="color:var(--gold);">Value: ${currentValue}g</small>
           <small style="color:var(--text-muted);">
-            Durability: ${normalizedCurrent}/${durabilityMax} • 📍 ${item.park || activePark}
+            Durability: ${normalizedCurrent}/${durabilityMax}
           </small>
         </div>
       </div>`;
@@ -275,7 +235,7 @@ async function fetchUserInventory() {
         <div class="item-info">
           <h4>${item.item_name}</h4>
           <small>Resale Value: <strong style="color:var(--gold);">${sellGoldValue} Gold</strong> (${normalizedCurrent}/${durabilityMax} dur)</small>
-          <small style="color:var(--text-muted);">Base: ${item.base_cost || 1}g • 📍 ${item.park || activePark}</small>
+          <small style="color:var(--text-muted);">Base: ${item.base_cost || 1}g</small>
         </div>
         <button class="btn-sell" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="sellItem('${item.id}', ${sellGoldValue}, '${item.item_name}')">
           ${isCombatLocked ? '🔒 In Battle' : `Sell (${sellGoldValue}g)`}
@@ -364,7 +324,7 @@ async function buyItem(itemName, cost, durationHours) {
   const categoryLimit = INVENTORY_LIMITS[category];
 
   if (currentCategoryCount >= categoryLimit) {
-    alert(`⚠️ Your ${category} pouch at ${activePark} is full. You can carry ${categoryLimit} ${category}${categoryLimit === 1 ? '' : 's'} at most in this chapter.`);
+    alert(`⚠️ Your ${category} pouch is full. You can carry ${categoryLimit} ${category}${categoryLimit === 1 ? '' : 's'} at most.`);
     return;
   }
 
@@ -390,7 +350,7 @@ async function buyItem(itemName, cost, durationHours) {
   const goldEl = document.getElementById('profile-gold');
   if (goldEl) goldEl.innerText = newGold;
 
-  alert(`🛒 Purchased ${itemName} for ${cost} Gold! Stored in your ${activePark} inventory.`);
+  alert(`🛒 Purchased ${itemName} for ${cost} Gold!`);
   await fetchUserInventory();
 }
 
@@ -413,7 +373,7 @@ async function sellItem(itemId, goldValue, itemName) {
   }
 
   if (!deletedRows || deletedRows.length === 0) {
-    alert("⚠️ This item could not be found in your active park pouch.");
+    alert("⚠️ This item could not be found in your pouch.");
     await fetchUserInventory();
     return;
   }
