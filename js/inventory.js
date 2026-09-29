@@ -275,7 +275,7 @@ function renderStoreCatalog() {
   if (!container) return;
 
   const isCombatLocked = Boolean(activeBattleQuest || activeMonsterClaim);
-  const categories = ['Trinket', 'Talisman', 'Legendary'];
+  const categories = ['Trinket', 'Talismans', 'Artifacts'];
 
   container.innerHTML = categories.map(category => {
     const items = STORE_CATALOG.filter(item => item.category === category);
@@ -332,18 +332,26 @@ async function buyItem(itemName, cost, durationHours) {
 
   // Pouch category capacity is strictly isolated to the active park's inventory
   const activeByCategory = (parkInventory || []).reduce((acc, row) => {
-    const itemCategory = getCategoryForItemName(row.item_name);
+    let itemCategory = getCategoryForItemName(row.item_name);
+    if (itemCategory === 'Talisman') itemCategory = 'Talismans';
+    if (itemCategory === 'Artifact' || itemCategory === 'Legendary') itemCategory = 'Artifacts';
+    if (itemCategory === 'Trinkets') itemCategory = 'Trinket';
     if (itemCategory) {
       acc[itemCategory] = (acc[itemCategory] || 0) + 1;
     }
     return acc;
   }, {});
 
-  const currentCategoryCount = activeByCategory[category] || 0;
-  const categoryLimit = INVENTORY_LIMITS[category];
+  let normalizedCategory = category;
+  if (normalizedCategory === 'Talisman') normalizedCategory = 'Talismans';
+  if (normalizedCategory === 'Artifact' || normalizedCategory === 'Legendary') normalizedCategory = 'Artifacts';
+  if (normalizedCategory === 'Trinkets') normalizedCategory = 'Trinket';
+
+  const currentCategoryCount = activeByCategory[normalizedCategory] || 0;
+  const categoryLimit = INVENTORY_LIMITS[normalizedCategory] || INVENTORY_LIMITS[category] || 1;
 
   if (currentCategoryCount >= categoryLimit) {
-    alert(`⚠️ Your ${category} pouch is full. You can carry ${categoryLimit} ${category}${categoryLimit === 1 ? '' : 's'} at most.`);
+    alert(`⚠️ Your ${normalizedCategory} pouch is full. You can carry ${categoryLimit} ${normalizedCategory} at most.`);
     return;
   }
 

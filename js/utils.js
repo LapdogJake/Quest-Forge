@@ -114,11 +114,14 @@ function calculateItemValue(basePrice, currentDurability, maxDurability) {
 
 // Catalog category matchers
 function getCategoryForItemName(itemName) {
-  const match = STORE_CATALOG.find(item => item.item_name === itemName);
+  if (!itemName) return null;
+  const normalized = itemName.replace(/’/g, "'").trim().toLowerCase();
+  const match = STORE_CATALOG.find(item => item.item_name.replace(/’/g, "'").trim().toLowerCase() === normalized);
   return match?.category || null;
 }
 
 function getCategoryDurabilityMax(category) {
+  if (!category) return 1;
   return DURABILITY_LIMITS[category] || 1;
 }
 
