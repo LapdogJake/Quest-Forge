@@ -574,8 +574,12 @@ async function createBattle() {
 
   let { error } = await supabaseClient.from('quests').insert(battlePayload);
 
-  if (error && (error.message.includes('qm_id') || error.message.includes('qm_username') || error.message.includes('park') || error.message.includes('kingdom') || error.message.includes('monsters_are_npc') || error.message.includes('allowed_items') || error.message.includes('reward_gold_defeat'))) {
-    const fallbackPayload = { ...battlePayload };
+  if (error) {
+    let fallbackPayload = { ...battlePayload };
+    const colMatch = error.message.match(/'([^']+)' column/) || error.message.match(/column ["']?([^"'\s]+)["']? of relation/);
+    if (colMatch && colMatch[1] && colMatch[1] in fallbackPayload) {
+      delete fallbackPayload[colMatch[1]];
+    }
     if (error.message.includes('qm_id') || error.message.includes('qm_username')) {
       delete fallbackPayload.qm_id;
       delete fallbackPayload.qm_username;
@@ -651,9 +655,6 @@ async function createAdventureQuest() {
     threat_level,
     verification_method,
     reward_gold,
-    reward_gold_defeat: 0,
-    monsters_are_npc: false,
-    allowed_items: '',
     requirements: '',
     description,
     scenario_card: '',
@@ -667,14 +668,18 @@ async function createAdventureQuest() {
 
   let { error } = await supabaseClient.from('quests').insert(questPayload);
 
-  if (error && (error.message.includes('qm_id') || error.message.includes('qm_username') || error.message.includes('park') || error.message.includes('kingdom'))) {
-    const fallbackPayload = { ...questPayload };
-    if (error.message.includes('qm_id') || error.message.includes('qm_username')) {
-      delete fallbackPayload.qm_id;
-      delete fallbackPayload.qm_username;
+  // Resilient retry loop if any optional column is missing in Supabase schema cache
+  if (error) {
+    let fallbackPayload = { ...questPayload };
+    const colMatch = error.message.match(/'([^']+)' column/) || error.message.match(/column ["']?([^"'\s]+)["']? of relation/);
+    if (colMatch && colMatch[1] && colMatch[1] in fallbackPayload) {
+      delete fallbackPayload[colMatch[1]];
     }
-    if (error.message.includes('park')) delete fallbackPayload.park;
-    if (error.message.includes('kingdom')) delete fallbackPayload.kingdom;
+    // Delete any non-core columns if still erroring
+    delete fallbackPayload.qm_id;
+    delete fallbackPayload.qm_username;
+    delete fallbackPayload.park;
+    delete fallbackPayload.kingdom;
     let retry = await supabaseClient.from('quests').insert(fallbackPayload);
     error = retry.error;
   }
