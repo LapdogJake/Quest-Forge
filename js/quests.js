@@ -440,10 +440,16 @@ async function qmDeleteQuest(questId, questTitle) {
     // 2. Delete user quest assignments/records
     await supabaseClient.from('user_quests').delete().eq('quest_id', questId);
 
-    // 3. Delete the quest itself
-    const { error } = await supabaseClient.from('quests').delete().eq('id', questId);
+    // 3. Delete the quest itself with .select() to verify rows affected
+    const { data: deletedRows, error } = await supabaseClient.from('quests').delete().eq('id', questId).select();
+    
     if (error) {
       alert("Failed to delete quest: " + error.message);
+      return;
+    }
+
+    if (!deletedRows || deletedRows.length === 0) {
+      alert("⚠️ Database blocked deleting this quest.\n\nThis happens when Supabase Row-Level Security (RLS) is missing DELETE policies.\n\nPlease run the SQL in 'supabase_quest_management_setup.sql' in your Supabase SQL Editor!");
       return;
     }
 
@@ -460,6 +466,8 @@ async function qmDeleteQuest(questId, questTitle) {
     alert("Error deleting quest: " + (err.message || err));
   }
 }
+
+window.qmDeleteQuest = qmDeleteQuest;
 
 async function toggleQuestDeployment(questId, currentActiveState) {
   const nextState = !currentActiveState;
