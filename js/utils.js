@@ -339,12 +339,23 @@ async function updateParkGold(amountOrNewTotal, isDelta = false, park = null, qm
 
   if (currentUser) {
     try {
-      // 1. Relational update on user_park_profiles for this specific QM reign
-      await supabaseClient
-        .from('user_park_profiles')
-        .update({ gold: nextGold })
-        .eq('user_id', currentUser.id)
-        .eq('park', targetPark);
+      if (currentParkProfile?.id) {
+        await supabaseClient
+          .from('user_park_profiles')
+          .update({ gold: nextGold })
+          .eq('id', currentParkProfile.id);
+      } else {
+        let query = supabaseClient
+          .from('user_park_profiles')
+          .update({ gold: nextGold })
+          .eq('user_id', currentUser.id)
+          .eq('park', targetPark);
+
+        if (targetQMId) {
+          query = query.eq('qm_id', targetQMId);
+        }
+        await query;
+      }
     } catch (e) {
       console.warn('Could not persist park gold:', e);
     }

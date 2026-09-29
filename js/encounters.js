@@ -576,53 +576,88 @@ async function qmFinishBattle(queueId, questId, victoryGold, defeatGold) {
 async function awardFighterGold(userId, goldAmt) {
   if (!userId || !goldAmt || goldAmt <= 0) return;
 
-  const { data: p } = await supabaseClient
-    .from('profiles')
-    .select('gold, park, park_gold')
-    .eq('id', userId)
-    .single();
+  const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
+  const activeKingdom = typeof getActiveKingdom === 'function' ? getActiveKingdom() : (typeof getKingdomForPark === 'function' ? getKingdomForPark(activePark) : 'The Freeholds of Amtgard');
+  const activeQMId = currentQMId || null;
 
-  if (!p) return;
+  try {
+    // 1. Fetch or initialize the user's specific park & QM reign character sheet
+    let profileQuery = supabaseClient
+      .from('user_park_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('park', activePark);
 
-  const park = p.park || "Delver's Rest";
-  let parkGoldMap = p.park_gold;
-  if (typeof parkGoldMap === 'string') {
-    try { parkGoldMap = JSON.parse(parkGoldMap); } catch (e) { parkGoldMap = {}; }
-  }
-  if (!parkGoldMap || typeof parkGoldMap !== 'object') parkGoldMap = {};
-
-  const currentParkAmt = Number(parkGoldMap[park]) || 0;
-  const nextGold = currentParkAmt + goldAmt;
-  parkGoldMap[park] = nextGold;
-
-  // Update profiles
-  await supabaseClient.from('profiles').update({
-    gold: (p.gold || 0) + goldAmt,
-    park_gold: parkGoldMap
-  }).eq('id', userId);
-
-  // Update user_park_profiles
-  await supabaseClient.from('user_park_profiles').upsert({
-    user_id: userId,
-    park: park,
-    kingdom: typeof getKingdomForPark === 'function' ? getKingdomForPark(park) : 'The Freeholds of Amtgard',
-    gold: nextGold
-  }, { onConflict: 'user_id, park' });
-
-  // Reactive sync if current logged-in user
-  if (currentUser && currentUser.id === userId) {
-    if (!currentProfile) currentProfile = {};
-    currentProfile.park_gold = parkGoldMap;
-    if (!currentParkProfile) currentParkProfile = {};
-    if (currentParkProfile.park === park) currentParkProfile.gold = nextGold;
-    const activePark = typeof getActivePark === 'function' ? getActivePark() : park;
-    currentProfile.gold = Number(parkGoldMap[activePark]) || 0;
-    const goldEl = document.getElementById('profile-gold');
-    if (typeof syncGoldDisplays === 'function') {
-      syncGoldDisplays(currentProfile.gold);
-    } else if (goldEl) {
-      goldEl.innerText = currentProfile.gold;
+    if (activeQMId) {
+      profileQuery = profileQuery.eq('qm_id', activeQMId);
     }
+
+    const { data: existingParkProfile } = await profileQuery.maybeSingle();
+
+    let nextGold = goldAmt;
+    if (existingParkProfile) {
+      nextGold = (Number(existingParkProfile.gold) || 0) + goldAmt;
+      await supabaseClient
+        .from('user_park_profiles')
+        .update({ gold: nextGold })
+        .eq('id', existingParkProfile.id);
+    } else {
+      const { data: inserted } = await supabaseClient
+        .from('user_park_profiles')
+        .insert({
+          user_id: userId,
+          park: activePark,
+          kingdom: activeKingdom,
+          qm_id: activeQMId,
+          role: (activeQMId && userId === activeQMId) ? 'questmaster' : 'player',
+          gold: nextGold
+        })
+        .select('*')
+        .maybeSingle();
+      if (inserted && currentUser && currentUser.id === userId) {
+        currentParkProfile = inserted;
+      }
+    }
+
+    // 2. Also update profiles table for backward compatibility with global counters
+    const { data: p } = await supabaseClient
+      .from('profiles')
+      .select('gold, park_gold')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (p) {
+      let parkGoldMap = p.park_gold;
+      if (typeof parkGoldMap === 'string') {
+        try { parkGoldMap = JSON.parse(parkGoldMap); } catch (e) { parkGoldMap = {}; }
+      }
+      if (!parkGoldMap || typeof parkGoldMap !== 'object') parkGoldMap = {};
+      parkGoldMap[activePark] = nextGold;
+
+      await supabaseClient
+        .from('profiles')
+        .update({
+          gold: (Number(p.gold) || 0) + goldAmt,
+          park_gold: parkGoldMap
+        })
+        .eq('id', userId);
+    }
+
+    // 3. If this is the current active player, update active state and UI immediately
+    if (currentUser && currentUser.id === userId) {
+      if (!currentParkProfile) {
+        currentParkProfile = { user_id: userId, park: activePark, kingdom: activeKingdom, qm_id: activeQMId, gold: nextGold };
+      } else {
+        currentParkProfile.gold = nextGold;
+      }
+      if (!currentProfile) currentProfile = {};
+      currentProfile.gold = nextGold;
+      if (typeof syncGoldDisplays === 'function') {
+        syncGoldDisplays(nextGold);
+      }
+    }
+  } catch (err) {
+    console.error(`Error awarding ${goldAmt}g to user ${userId}:`, err);
   }
 }
 
