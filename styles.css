@@ -1,6 +1,9 @@
 :root {
-  --bg: #121212;
-  --card-bg: #1e1e1e;
+  --bg: #141416;
+  --card-bg: #141416;
+  --surface: #1e1e22;
+  --surface-hover: #242429;
+  --card-item: #242429;
   --primary: #8b5cf6;
   --primary-hover: #7c3aed;
   --text: #ffffff;
@@ -21,13 +24,28 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
-body {
+html, body {
   background-color: var(--bg);
   color: var(--text);
   font-family: system-ui, -apple-system, sans-serif;
+  min-height: 100%;
+}
+
+body {
   padding-bottom: 85px;
+}
+
+button, summary, select, input, textarea, .accordion-header, .qm-subnav-btn, .nav-btn {
+  -webkit-tap-highlight-color: transparent;
+}
+
+summary:focus, summary:focus-visible,
+.accordion-header:focus, .accordion-header:focus-visible,
+button:focus-visible, select:focus-visible {
+  outline: none;
 }
 
 .container {
@@ -69,7 +87,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-around;
-  background: #18181b;
+  background: #1e1e22;
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px 14px;
@@ -116,7 +134,7 @@ body {
 }
 
 .slot-box {
-  background: #18181b;
+  background: #1e1e22;
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px;
@@ -152,7 +170,8 @@ body {
 }
 
 .stat-box {
-  background: #27272a;
+  background: #1e1e22;
+  border: 1px solid var(--border);
   padding: 10px 6px;
   border-radius: 8px;
   text-align: center;
@@ -173,7 +192,7 @@ body {
 
 /* Bio Box */
 .bio-box {
-  background: #27272a;
+  background: #1e1e22;
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 12px;
@@ -184,9 +203,9 @@ body {
   white-space: pre-wrap;
 }
 
-/* Accordion Style for Profile Inventory */
+/* Accordion Style for Profile Inventory & Park Selector */
 .accordion-header {
-  background: #27272a;
+  background: #1e1e22;
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 12px;
@@ -197,14 +216,21 @@ body {
   cursor: pointer;
   font-weight: bold;
   font-size: 14px;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .accordion-header:hover {
-  background: #3f3f46;
+  background: #242429;
+}
+
+.accordion-header:active {
+  background: #1e1e22;
 }
 
 .accordion-content {
-  background: #18181b;
+  background: #1e1e22;
   border: 1px solid var(--border);
   border-top: none;
   border-bottom-left-radius: 8px;
@@ -229,7 +255,7 @@ body {
 .store-catalog-list details.store-category {
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: #1f1f23;
+  background: #1e1e22;
   overflow: hidden;
 }
 
@@ -238,12 +264,22 @@ body {
   padding: 12px 14px;
   font-weight: 800;
   color: var(--gold);
-  background: #27272a;
+  background: #1e1e22;
   list-style: none;
-  border-bottom: 1px solid var(--border);
+  user-select: none;
+  -webkit-user-select: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  transition: background 0.15s ease;
+}
+
+.store-catalog-list details.store-category[open] summary.store-category-summary {
+  border-bottom: 1px solid var(--border);
+}
+
+.store-catalog-list details.store-category summary.store-category-summary:hover {
+  background: #242429;
 }
 
 .store-catalog-list details.store-category summary.store-category-summary::-webkit-details-marker {
@@ -266,7 +302,7 @@ body {
 }
 
 .item-card {
-  background: #27272a;
+  background: #242429;
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 14px;
@@ -544,8 +580,8 @@ body {
 }
 
 .queue-box {
-  background: #18181b;
-  border: 1px solid #3f3f46;
+  background: #1e1e22;
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px;
 }
@@ -559,7 +595,7 @@ body {
 
 .party-member-tag {
   display: block;
-  background: #27272a;
+  background: #242429;
   border: 1px solid var(--border);
   padding: 3px 6px;
   border-radius: 6px;
@@ -574,7 +610,7 @@ body {
 .qm-subnav {
   display: flex;
   gap: 4px;
-  background: #18181b;
+  background: #1e1e22;
   padding: 4px;
   border-radius: 8px;
   border: 1px solid var(--border);
@@ -797,9 +833,10 @@ body {
 .bottom-nav {
   position: fixed;
   bottom: 0;
+  left: 0;
   width: 100%;
   height: 65px;
-  background: var(--card-bg);
+  background: var(--bg);
   display: flex;
   justify-content: space-around;
   align-items: center;
@@ -820,6 +857,8 @@ body {
   gap: 3px;
   flex: 1;
   padding: 6px 0;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
 }
 
 .nav-btn.active {
