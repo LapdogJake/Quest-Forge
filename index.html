@@ -171,12 +171,10 @@
         <h2>👑 Questmaster Panel</h2>
 
         <div class="qm-subnav">
-          <button id="qm-subnav-create" class="qm-subnav-btn active" onclick="switchQMSubTab('create')">➕ Forge
-            Quest</button>
-          <button id="qm-subnav-library" class="qm-subnav-btn" onclick="switchQMSubTab('library')">📜 Quest
-            Catalog</button>
-          <button id="qm-subnav-queues" class="qm-subnav-btn" onclick="switchQMSubTab('queues')">⚔️ Battle
-            Catalog</button>
+          <button id="qm-subnav-battle" class="qm-subnav-btn active" onclick="switchQMSubTab('battle')">⚔️ Forge Battle</button>
+          <button id="qm-subnav-quest" class="qm-subnav-btn" onclick="switchQMSubTab('quest')">📜 Forge Quest</button>
+          <button id="qm-subnav-queues" class="qm-subnav-btn" onclick="switchQMSubTab('queues')">⚔️ Battle Catalog</button>
+          <button id="qm-subnav-library" class="qm-subnav-btn" onclick="switchQMSubTab('library')">📜 Quest Catalog</button>
         </div>
 
         <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px; background:#18181b; padding:8px 12px; border-radius:6px; border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
@@ -184,42 +182,34 @@
           <strong id="display-qm-park" style="color:var(--gold);">Delver's Rest</strong>
         </div>
 
-        <!-- SUB-TAB 1: QUEST CREATOR -->
-        <div id="qm-subtab-create">
+        <!-- SUB-TAB 1: BATTLE CREATOR -->
+        <div id="qm-subtab-battle">
           <div class="form-group">
-            <label>Title</label>
-            <input type="text" id="qm-title" class="form-control" placeholder="Title">
-          </div>
-
-          <div class="form-group">
-            <label>Category</label>
-            <select id="qm-category" class="form-control">
-              <option value="Battle">Battle</option>
-              <option value="Adventure">Adventure</option>
-            </select>
+            <label>Battle Title</label>
+            <input type="text" id="qm-battle-title" class="form-control" placeholder="Battle Title">
           </div>
 
           <div class="form-row">
             <div class="form-group">
               <label>Victory Reward</label>
-              <input type="number" id="qm-gold-victory" class="form-control" value="15" min="0">
+              <input type="number" id="qm-battle-gold-victory" class="form-control" value="15" min="0">
             </div>
             <div class="form-group">
               <label>Defeated Reward</label>
-              <input type="number" id="qm-gold-defeat" class="form-control" value="10" min="0">
+              <input type="number" id="qm-battle-gold-defeat" class="form-control" value="10" min="0">
             </div>
           </div>
 
           <div class="form-group">
-            <label>Description</label>
-            <textarea id="qm-description" class="form-control" style="min-height:70px;"
-              placeholder="Description"></textarea>
+            <label>Public Description</label>
+            <textarea id="qm-battle-description" class="form-control" style="min-height:70px;"
+              placeholder="Public battle description for heroes"></textarea>
           </div>
 
           <div class="form-group"
             style="background:#1e1e22; padding:10px; border-radius:8px; border:1px dashed var(--primary);">
             <label style="color:#c084fc;">Hidden Scenario Description</label>
-            <textarea id="qm-scenario" class="form-control" style="min-height:80px;"
+            <textarea id="qm-battle-scenario" class="form-control" style="min-height:80px;"
               placeholder="Monsters can only see this."></textarea>
           </div>
 
@@ -246,28 +236,57 @@
 
             <div style="border-top:1px solid #27272a; padding-top:10px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
               <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; margin:0;">
-                <input type="checkbox" id="qm-monsters-are-npc" style="width:16px; height:16px;">
+                <input type="checkbox" id="qm-battle-monsters-are-npc" style="width:16px; height:16px;">
                 <span>No Durability loss on Monster</span>
               </label>
               <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; margin:0;">
-                <input type="checkbox" id="qm-repeatable" style="width:16px; height:16px;">
-                <span>Repeatable Quest</span>
+                <input type="checkbox" id="qm-battle-repeatable" style="width:16px; height:16px;">
+                <span>Repeatable Battle</span>
               </label>
             </div>
           </div>
 
-          <button class="btn btn-primary" onclick="createQuest()">Save</button>
+          <button class="btn btn-primary" onclick="createBattle()">Save Battle</button>
         </div>
 
-        <!-- SUB-TAB 2: QUEST LIBRARY -->
+        <!-- SUB-TAB 2: QUEST CREATOR (NON-COMBAT) -->
+        <div id="qm-subtab-quest" class="hidden">
+          <div class="form-group">
+            <label>Quest Title</label>
+            <input type="text" id="qm-quest-title" class="form-control" placeholder="Quest Title">
+          </div>
+
+          <div class="form-group">
+            <label>Reward Gold</label>
+            <input type="number" id="qm-quest-gold" class="form-control" value="15" min="0">
+          </div>
+
+          <div class="form-group">
+            <label>Description & Objectives</label>
+            <textarea id="qm-quest-description" class="form-control" style="min-height:90px;"
+              placeholder="Quest objectives and requirements"></textarea>
+          </div>
+
+          <div class="form-group"
+            style="background:#18181b; padding:12px; border-radius:8px; border:1px solid var(--border);">
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; margin:0;">
+              <input type="checkbox" id="qm-quest-repeatable" style="width:16px; height:16px;">
+              <span>Repeatable Quest</span>
+            </label>
+          </div>
+
+          <button class="btn btn-primary" onclick="createAdventureQuest()">Save Quest</button>
+        </div>
+
+        <!-- SUB-TAB 3: QUEST LIBRARY -->
         <div id="qm-subtab-library" class="hidden">
-          <h3 class="section-title" style="color:var(--primary);">📜 Quest Catalog (Adventures)</h3>
+          <h3 class="section-title" style="color:var(--primary);">📜 Quest Catalog</h3>
           <div id="qm-quest-list">
             <p class="empty-state">Loading quest catalog...</p>
           </div>
         </div>
 
-        <!-- SUB-TAB 3: BATTLE CATALOG -->
+        <!-- SUB-TAB 4: BATTLE CATALOG -->
         <div id="qm-subtab-queues" class="hidden">
           <h3 class="section-title" style="color:var(--gold);">⚔️ Battle Catalog</h3>
           <div id="qm-queue-list">

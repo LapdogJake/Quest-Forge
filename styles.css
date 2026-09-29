@@ -609,9 +609,10 @@ button:focus-visible, select:focus-visible {
 /* Sub-Navigation Tabs */
 .qm-subnav {
   display: flex;
-  gap: 4px;
+  flex-wrap: wrap;
+  gap: 6px;
   background: #1e1e22;
-  padding: 4px;
+  padding: 6px;
   border-radius: 8px;
   border: 1px solid var(--border);
   margin-top: 12px;
@@ -619,8 +620,8 @@ button:focus-visible, select:focus-visible {
 }
 
 .qm-subnav-btn {
-  flex: 1;
-  padding: 8px 6px;
+  flex: 1 1 calc(50% - 6px);
+  padding: 9px 6px;
   border: none;
   background: transparent;
   color: var(--text-muted);

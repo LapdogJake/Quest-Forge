@@ -64,24 +64,24 @@ function switchStoreSubTab(subTab) {
 
 // Questmaster Panel sub-navigation
 function switchQMSubTab(subTabName) {
-  document.getElementById('qm-subtab-create').classList.add('hidden');
-  document.getElementById('qm-subtab-library').classList.add('hidden');
-  document.getElementById('qm-subtab-queues').classList.add('hidden');
+  const tabs = ['battle', 'quest', 'library', 'queues'];
+  tabs.forEach(tab => {
+    const el = document.getElementById(`qm-subtab-${tab}`) || (tab === 'battle' ? document.getElementById('qm-subtab-create') : null);
+    if (el) el.classList.add('hidden');
+    const navBtn = document.getElementById(`qm-subnav-${tab}`) || (tab === 'battle' ? document.getElementById('qm-subnav-create') : null);
+    if (navBtn) navBtn.classList.remove('active');
+  });
 
-  document.getElementById('qm-subnav-create').classList.remove('active');
-  document.getElementById('qm-subnav-library').classList.remove('active');
-  document.getElementById('qm-subnav-queues').classList.remove('active');
+  const normalized = (subTabName === 'create') ? 'battle' : subTabName;
+  const targetTab = document.getElementById(`qm-subtab-${normalized}`) || (normalized === 'battle' ? document.getElementById('qm-subtab-create') : null);
+  const targetNav = document.getElementById(`qm-subnav-${normalized}`) || (normalized === 'battle' ? document.getElementById('qm-subnav-create') : null);
 
-  if (subTabName === 'create') {
-    document.getElementById('qm-subtab-create').classList.remove('hidden');
-    document.getElementById('qm-subnav-create').classList.add('active');
-  } else if (subTabName === 'library') {
-    document.getElementById('qm-subtab-library').classList.remove('hidden');
-    document.getElementById('qm-subnav-library').classList.add('active');
+  if (targetTab) targetTab.classList.remove('hidden');
+  if (targetNav) targetNav.classList.add('active');
+
+  if (normalized === 'library') {
     fetchQMQuests();
-  } else if (subTabName === 'queues') {
-    document.getElementById('qm-subtab-queues').classList.remove('hidden');
-    document.getElementById('qm-subnav-queues').classList.add('active');
+  } else if (normalized === 'queues') {
     fetchQMQueues();
   }
 }

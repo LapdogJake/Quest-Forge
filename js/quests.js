@@ -514,31 +514,23 @@ async function toggleQuestDeployment(questId, currentActiveState) {
   await fetchMonsterEncounters();
 }
 
-async function createQuest() {
-  const title = document.getElementById('qm-title')?.value.trim();
-  const category = document.getElementById('qm-category')?.value || 'Battle';
+async function createBattle() {
+  const title = (document.getElementById('qm-battle-title') || document.getElementById('qm-title'))?.value.trim();
+  const category = 'Battle';
+  const participation_type = 'Group';
+  const threat_level = 'Safe';
+  const verification_method = 'Quest Master';
 
-  // Safe automatic defaults for removed fields
-  const participation_type = document.getElementById('qm-type')?.value || (category === 'Battle' ? 'Group' : 'Solo');
-  const threat_level = document.getElementById('qm-threat')?.value || 'Safe';
-  // All Adventures are Honor verified, all Battles are Quest Master verified
-  const verification_method = category === 'Battle' ? 'Quest Master' : 'Honor';
-
-  // Two reward boxes: Victory and Defeated
-  const victoryInput = document.getElementById('qm-gold-victory') || document.getElementById('qm-gold');
-  const defeatInput = document.getElementById('qm-gold-defeat');
+  const victoryInput = document.getElementById('qm-battle-gold-victory') || document.getElementById('qm-gold-victory') || document.getElementById('qm-gold');
+  const defeatInput = document.getElementById('qm-battle-gold-defeat') || document.getElementById('qm-gold-defeat');
   const reward_gold_victory = victoryInput ? (parseInt(victoryInput.value) || 0) : 0;
   const reward_gold_defeat = defeatInput ? (parseInt(defeatInput.value) || 0) : 0;
 
-  const requirements = document.getElementById('qm-requirements')?.value.trim() || '';
-  const description = document.getElementById('qm-description')?.value.trim() || '';
-  const scenario_card = document.getElementById('qm-scenario')?.value.trim() || '';
-  const repeatable = Boolean(document.getElementById('qm-repeatable')?.checked);
+  const description = (document.getElementById('qm-battle-description') || document.getElementById('qm-description'))?.value.trim() || '';
+  const scenario_card = (document.getElementById('qm-battle-scenario') || document.getElementById('qm-scenario'))?.value.trim() || '';
+  const repeatable = Boolean((document.getElementById('qm-battle-repeatable') || document.getElementById('qm-repeatable'))?.checked);
+  const monsters_are_npc = Boolean((document.getElementById('qm-battle-monsters-are-npc') || document.getElementById('qm-monsters-are-npc'))?.checked);
 
-  // Monsters are NPC rule
-  const monsters_are_npc = Boolean(document.getElementById('qm-monsters-are-npc')?.checked);
-
-  // Magic item durability permissions
   const allowTrinket = document.getElementById('qm-item-trinket') ? document.getElementById('qm-item-trinket').checked : true;
   const allowTalisman = document.getElementById('qm-item-talisman') ? document.getElementById('qm-item-talisman').checked : true;
   const allowArtifact = document.getElementById('qm-item-artifact') ? document.getElementById('qm-item-artifact').checked : true;
@@ -549,9 +541,8 @@ async function createQuest() {
   if (allowArtifact) allowedList.push('Artifact');
   const allowed_items = allowedList.join(',');
 
-  if (!title) { alert("Please enter a Quest Title."); return; }
+  if (!title) { alert("Please enter a Battle Title."); return; }
 
-  // Embed rules metadata into scenario_card as a resilient fallback if columns aren't in Supabase yet
   const rulesMeta = `<!-- RULES: ${JSON.stringify({ monsters_are_npc, allowed_items: allowedList })} -->`;
   const scenarioWithMeta = scenario_card ? `${scenario_card}\n${rulesMeta}` : rulesMeta;
 
@@ -560,7 +551,7 @@ async function createQuest() {
   const activeQMId = currentQMId || currentUser?.id || null;
   const activeQMUsername = currentQMUsername || currentProfile?.username || 'Questmaster';
 
-  const questPayload = {
+  const battlePayload = {
     title,
     category,
     participation_type,
@@ -570,7 +561,7 @@ async function createQuest() {
     reward_gold_defeat: reward_gold_defeat,
     monsters_are_npc,
     allowed_items,
-    requirements,
+    requirements: '',
     description,
     scenario_card: scenarioWithMeta,
     repeatable,
@@ -581,11 +572,10 @@ async function createQuest() {
     is_active: true
   };
 
-  let { error } = await supabaseClient.from('quests').insert(questPayload);
+  let { error } = await supabaseClient.from('quests').insert(battlePayload);
 
-  // If newly introduced columns don't exist in Supabase yet, gracefully fallback without them so saving never breaks
   if (error && (error.message.includes('qm_id') || error.message.includes('qm_username') || error.message.includes('park') || error.message.includes('kingdom') || error.message.includes('monsters_are_npc') || error.message.includes('allowed_items') || error.message.includes('reward_gold_defeat'))) {
-    const fallbackPayload = { ...questPayload };
+    const fallbackPayload = { ...battlePayload };
     if (error.message.includes('qm_id') || error.message.includes('qm_username')) {
       delete fallbackPayload.qm_id;
       delete fallbackPayload.qm_username;
@@ -609,17 +599,21 @@ async function createQuest() {
     error = retry.error;
   }
 
-  if (error) { alert("Failed to save quest: " + error.message); return; }
+  if (error) { alert("Failed to save battle: " + error.message); return; }
 
-  alert(`⚔️ Quest "${title}" saved and opened on field!`);
+  alert(`⚔️ Battle "${title}" saved and opened on field!`);
 
+  if (document.getElementById('qm-battle-title')) document.getElementById('qm-battle-title').value = '';
   if (document.getElementById('qm-title')) document.getElementById('qm-title').value = '';
+  if (document.getElementById('qm-battle-description')) document.getElementById('qm-battle-description').value = '';
   if (document.getElementById('qm-description')) document.getElementById('qm-description').value = '';
+  if (document.getElementById('qm-battle-scenario')) document.getElementById('qm-battle-scenario').value = '';
   if (document.getElementById('qm-scenario')) document.getElementById('qm-scenario').value = '';
-  if (document.getElementById('qm-requirements')) document.getElementById('qm-requirements').value = '';
   if (victoryInput) victoryInput.value = '15';
   if (defeatInput) defeatInput.value = '10';
+  if (document.getElementById('qm-battle-monsters-are-npc')) document.getElementById('qm-battle-monsters-are-npc').checked = false;
   if (document.getElementById('qm-monsters-are-npc')) document.getElementById('qm-monsters-are-npc').checked = false;
+  if (document.getElementById('qm-battle-repeatable')) document.getElementById('qm-battle-repeatable').checked = false;
   if (document.getElementById('qm-repeatable')) document.getElementById('qm-repeatable').checked = false;
   if (document.getElementById('qm-item-trinket')) document.getElementById('qm-item-trinket').checked = true;
   if (document.getElementById('qm-item-talisman')) document.getElementById('qm-item-talisman').checked = true;
@@ -628,10 +622,86 @@ async function createQuest() {
   await fetchUserSlotState();
   await fetchQuests();
   await fetchMonsterEncounters();
+  switchQMSubTab('queues');
+}
+
+async function createAdventureQuest() {
+  const title = (document.getElementById('qm-quest-title') || document.getElementById('qm-title'))?.value.trim();
+  const category = 'Adventure';
+  const participation_type = 'Solo';
+  const threat_level = 'Safe';
+  const verification_method = 'Honor';
+
+  const goldInput = document.getElementById('qm-quest-gold') || document.getElementById('qm-gold-victory') || document.getElementById('qm-gold');
+  const reward_gold = goldInput ? (parseInt(goldInput.value) || 0) : 0;
+  const description = (document.getElementById('qm-quest-description') || document.getElementById('qm-description'))?.value.trim() || '';
+  const repeatable = Boolean((document.getElementById('qm-quest-repeatable') || document.getElementById('qm-repeatable'))?.checked);
+
+  if (!title) { alert("Please enter a Quest Title."); return; }
+
+  const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
+  const activeKingdom = typeof getActiveKingdom === 'function' ? getActiveKingdom() : "The Freeholds of Amtgard";
+  const activeQMId = currentQMId || currentUser?.id || null;
+  const activeQMUsername = currentQMUsername || currentProfile?.username || 'Questmaster';
+
+  const questPayload = {
+    title,
+    category,
+    participation_type,
+    threat_level,
+    verification_method,
+    reward_gold,
+    reward_gold_defeat: 0,
+    monsters_are_npc: false,
+    allowed_items: '',
+    requirements: '',
+    description,
+    scenario_card: '',
+    repeatable,
+    park: activePark,
+    kingdom: activeKingdom,
+    qm_id: activeQMId,
+    qm_username: activeQMUsername,
+    is_active: true
+  };
+
+  let { error } = await supabaseClient.from('quests').insert(questPayload);
+
+  if (error && (error.message.includes('qm_id') || error.message.includes('qm_username') || error.message.includes('park') || error.message.includes('kingdom'))) {
+    const fallbackPayload = { ...questPayload };
+    if (error.message.includes('qm_id') || error.message.includes('qm_username')) {
+      delete fallbackPayload.qm_id;
+      delete fallbackPayload.qm_username;
+    }
+    if (error.message.includes('park')) delete fallbackPayload.park;
+    if (error.message.includes('kingdom')) delete fallbackPayload.kingdom;
+    let retry = await supabaseClient.from('quests').insert(fallbackPayload);
+    error = retry.error;
+  }
+
+  if (error) { alert("Failed to save quest: " + error.message); return; }
+
+  alert(`📜 Quest "${title}" published to catalog!`);
+
+  if (document.getElementById('qm-quest-title')) document.getElementById('qm-quest-title').value = '';
+  if (document.getElementById('qm-title')) document.getElementById('qm-title').value = '';
+  if (document.getElementById('qm-quest-description')) document.getElementById('qm-quest-description').value = '';
+  if (document.getElementById('qm-description')) document.getElementById('qm-description').value = '';
+  if (goldInput) goldInput.value = '15';
+  if (document.getElementById('qm-quest-repeatable')) document.getElementById('qm-quest-repeatable').checked = false;
+  if (document.getElementById('qm-repeatable')) document.getElementById('qm-repeatable').checked = false;
+
+  await fetchUserSlotState();
+  await fetchQuests();
+  switchQMSubTab('library');
+}
+
+async function createQuest() {
+  const category = document.getElementById('qm-category')?.value || 'Battle';
   if (category === 'Battle') {
-    switchQMSubTab('queues');
+    await createBattle();
   } else {
-    switchQMSubTab('library');
+    await createAdventureQuest();
   }
 }
 
