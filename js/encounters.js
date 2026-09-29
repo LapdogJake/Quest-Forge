@@ -266,9 +266,7 @@ async function fetchQMQueues() {
       ? getQuestDurabilityRules(q) 
       : { monstersAreNpc: false, allowedTypes: ['Trinket', 'Talisman', 'Artifact'], defeatGold: 0 };
     const victoryGold = Number(q.reward_gold) || 0;
-    const defeatGold = (q.reward_gold_defeat !== undefined && q.reward_gold_defeat !== null && q.reward_gold_defeat !== 0) 
-      ? Number(q.reward_gold_defeat) 
-      : (rules.defeatGold !== undefined ? Number(rules.defeatGold) : (Number(q.reward_gold_defeat) || 0));
+    const defeatGold = Number(q.reward_gold_defeat) || Number(rules.defeatGold) || 0;
 
     // Determine state
     let state = 'closed'; // 'closed' | 'prepped' | 'live'
@@ -526,12 +524,8 @@ async function qmFinishBattle(queueId, questId, victoryGold, defeatGold) {
     ? getQuestDurabilityRules(questData) 
     : { monstersAreNpc: false, allowedTypes: ['Trinket', 'Talisman', 'Artifact'], defeatGold: 0 };
 
-  const effectiveVictoryGold = victoryGold !== undefined ? Number(victoryGold) : (Number(questData?.reward_gold) || 0);
-  const effectiveDefeatGold = (defeatGold !== undefined && defeatGold !== null && defeatGold !== 0)
-    ? Number(defeatGold)
-    : ((questData?.reward_gold_defeat !== undefined && questData.reward_gold_defeat !== null && questData.reward_gold_defeat !== 0) 
-        ? Number(questData.reward_gold_defeat) 
-        : (rules.defeatGold !== undefined ? Number(rules.defeatGold) : 0));
+  const effectiveVictoryGold = Number(victoryGold) || Number(questData?.reward_gold) || 0;
+  const effectiveDefeatGold = Number(defeatGold) || Number(questData?.reward_gold_defeat) || Number(rules.defeatGold) || 0;
 
   const heroGold = victor === 'heroes' ? effectiveVictoryGold : effectiveDefeatGold;
   const monsterGold = victor === 'monsters' ? effectiveVictoryGold : effectiveDefeatGold;

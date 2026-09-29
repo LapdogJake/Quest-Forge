@@ -156,7 +156,7 @@ function getCategoryDurabilityMax(category) {
 function getQuestDurabilityRules(q) {
   let monstersAreNpc = q?.monsters_are_npc;
   let allowedItems = q?.allowed_items;
-  let defeatGold = q?.reward_gold_defeat;
+  let defeatGold = Number(q?.reward_gold_defeat) || 0;
 
   // Check fallback metadata embedded in scenario_card or description
   const textToCheck = `${q?.scenario_card || ''} ${q?.description || ''}`;
@@ -170,8 +170,8 @@ function getQuestDurabilityRules(q) {
       if (!allowedItems && parsed.allowed_items !== undefined) {
         allowedItems = parsed.allowed_items;
       }
-      if ((defeatGold === undefined || defeatGold === null) && (parsed.reward_gold_defeat !== undefined || parsed.defeat_gold !== undefined)) {
-        defeatGold = parsed.reward_gold_defeat !== undefined ? parsed.reward_gold_defeat : parsed.defeat_gold;
+      if (!defeatGold && (parsed.reward_gold_defeat !== undefined || parsed.defeat_gold !== undefined)) {
+        defeatGold = Number(parsed.reward_gold_defeat !== undefined ? parsed.reward_gold_defeat : parsed.defeat_gold) || 0;
       }
     } catch (e) {
       console.warn("Failed to parse embedded quest rules", e);
