@@ -16,11 +16,16 @@
     <!-- 1. PROFILE TAB -->
     <section id="tab-profile" class="tab-view">
       <div class="card card-profile">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div style="display:flex; align-items:center; gap:8px;">
             <span id="user-display"
-              style="margin-top:6px; font-weight: bold; color: var(--primary); font-size: 20px;">Loading...</span>
-            <span id="role-badge" class="badge badge-type" style="display:none; margin-left:8px;">Questmaster</span>
+              style="font-weight: bold; color: var(--primary); font-size: 20px;">Loading...</span>
+            <span id="role-badge" class="badge badge-type" style="display:none;">Questmaster</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:5px; font-weight:bold; font-size:16px; color:var(--gold);">
+            <span>🪙</span>
+            <span id="profile-gold">0</span>
+            <span style="font-size:12px; color:var(--text-muted); font-weight:normal;">Gold</span>
           </div>
         </div>
 
@@ -37,9 +42,21 @@
           </div>
         </div>
 
-        <!-- Collapsible Park Selector Accordion -->
+        <!-- Dual Slot Holder -->
+        <div class="slot-container">
+          <div class="slot-box">
+            <h5>Battle</h5>
+            <span id="slot-battle-status" class="slot-status slot-free">Available</span>
+          </div>
+          <div class="slot-box">
+            <h5>Adventure</h5>
+            <span id="slot-larpie-status" class="slot-status slot-free">Available</span>
+          </div>
+        </div>
+
+        <!-- Collapsible Kingdom / Park Selector Accordion -->
         <div class="accordion-header" onclick="toggleParkSelectorAccordion()">
-          <span>📍 Park - Selector</span>
+          <span>Kingdom / Park</span>
           <span id="park-selector-chevron">▼</span>
         </div>
         <div id="park-selector-accordion-body" class="accordion-content hidden">
@@ -58,26 +75,6 @@
           <button id="btn-change-park" class="btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="handleCommitParkChange()">
             Change Park
           </button>
-        </div>
-
-        <!-- Dual Slot Holder -->
-        <div class="slot-container">
-          <div class="slot-box">
-            <h5>Battle</h5>
-            <span id="slot-battle-status" class="slot-status slot-free">Available</span>
-          </div>
-          <div class="slot-box">
-            <h5>Adventure</h5>
-            <span id="slot-larpie-status" class="slot-status slot-free">Available</span>
-          </div>
-        </div>
-
-        <!-- Stats Row -->
-        <div class="stats-grid">
-          <div class="stat-box">
-            <small>Gold</small>
-            <p id="profile-gold" style="color:var(--gold);">0</p>
-          </div>
         </div>
 
         <!-- Collapsible Inventory Accordion -->
@@ -123,7 +120,14 @@
     <!-- 5. STORE TAB -->
     <section id="tab-store" class="tab-view hidden">
       <div class="card card-store">
-        <h2>Store</h2>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h2 style="margin:0;">Store</h2>
+          <div style="display:flex; align-items:center; gap:5px; font-weight:bold; font-size:16px; color:var(--gold);">
+            <span>🪙</span>
+            <span id="store-player-gold">0</span>
+            <span style="font-size:12px; color:var(--text-muted); font-weight:normal;">Gold</span>
+          </div>
+        </div>
 
         <div class="qm-subnav">
           <button id="store-subnav-buy" class="qm-subnav-btn active" onclick="switchStoreSubTab('buy')">Buy
@@ -282,13 +286,13 @@
   </nav>
 
   <!-- Modular Scripts -->
-  <script src="js/config.js?v=15"></script>
-  <script src="js/state.js?v=15"></script>
-  <script src="js/utils.js?v=15"></script>
-  <script src="js/inventory.js?v=15"></script>
-  <script src="js/encounters.js?v=15"></script>
-  <script src="js/quests.js?v=15"></script>
-  <script src="js/app.js?v=15"></script>
+  <script src="js/config.js?v=17"></script>
+  <script src="js/state.js?v=17"></script>
+  <script src="js/utils.js?v=17"></script>
+  <script src="js/inventory.js?v=17"></script>
+  <script src="js/encounters.js?v=17"></script>
+  <script src="js/quests.js?v=17"></script>
+  <script src="js/app.js?v=17"></script>
 </body>
 
 </html>

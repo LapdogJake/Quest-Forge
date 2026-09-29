@@ -121,8 +121,11 @@ async function saveActivePark(newPark) {
   // 3. Sync isolated gold display for newly active park
   const newParkGold = Number(currentParkProfile?.gold) || 0;
   currentProfile.gold = newParkGold;
-  const goldEl = document.getElementById('profile-gold');
-  if (goldEl) goldEl.innerText = newParkGold;
+  if (typeof syncGoldDisplays === 'function') {
+    syncGoldDisplays(newParkGold);
+  } else if (goldEl) {
+    goldEl.innerText = newParkGold;
+  }
 
   // 4. Synchronize role UI (badge & Questmaster panel access) for this park
   const activeRole = currentParkProfile?.role || 'player';
@@ -282,7 +285,7 @@ function renderStoreCatalog() {
   container.innerHTML = categories.map(category => {
     const items = STORE_CATALOG.filter(item => item.category === category);
 
-    return `<details class="store-category" ${category === 'Trinket' ? 'open' : ''}>
+    return `<details class="store-category">
       <summary class="store-category-summary">${category}</summary>
       <div class="item-grid store-category-items">
         ${items.map(item => `

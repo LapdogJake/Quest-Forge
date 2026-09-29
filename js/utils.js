@@ -26,9 +26,23 @@ function switchTab(tabName) {
     activeBtn.classList.add('active');
     fetchQMQuests();
     fetchQMQueues();
+  } else if (tabName === 'store') {
+    activeBtn.classList.add('active');
+    const gold = currentParkProfile?.gold ?? currentProfile?.gold ?? 0;
+    syncGoldDisplays(gold);
+    fetchUserInventory();
   } else {
     activeBtn.classList.add('active');
   }
+}
+
+// Synchronize all on-screen gold counter displays (Profile & Store)
+function syncGoldDisplays(goldAmt) {
+  const amt = Number(goldAmt) || 0;
+  const profileGold = document.getElementById('profile-gold');
+  if (profileGold) profileGold.innerText = amt;
+  const storeGold = document.getElementById('store-player-gold');
+  if (storeGold) storeGold.innerText = amt;
 }
 
 // Merchant Store sub-navigation
@@ -293,10 +307,9 @@ async function updateParkGold(amountOrNewTotal, isDelta = false, park = null) {
   if (!currentProfile) currentProfile = {};
   currentProfile.gold = nextGold;
 
-  const goldEl = document.getElementById('profile-gold');
   const activeParkNow = typeof getActivePark === 'function' ? getActivePark() : currentPark;
-  if (goldEl && targetPark === activeParkNow) {
-    goldEl.innerText = nextGold;
+  if (targetPark === activeParkNow) {
+    syncGoldDisplays(nextGold);
   }
 
   if (currentUser) {

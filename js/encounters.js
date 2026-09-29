@@ -588,7 +588,11 @@ async function awardFighterGold(userId, goldAmt) {
     const activePark = typeof getActivePark === 'function' ? getActivePark() : park;
     currentProfile.gold = Number(parkGoldMap[activePark]) || 0;
     const goldEl = document.getElementById('profile-gold');
-    if (goldEl) goldEl.innerText = currentProfile.gold;
+    if (typeof syncGoldDisplays === 'function') {
+      syncGoldDisplays(currentProfile.gold);
+    } else if (goldEl) {
+      goldEl.innerText = currentProfile.gold;
+    }
   }
 }
 

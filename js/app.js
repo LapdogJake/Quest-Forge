@@ -45,7 +45,11 @@ async function initDashboard() {
 
     const activeGold = Number(currentParkProfile?.gold) || 0;
     currentProfile.gold = activeGold;
-    if (goldEl) goldEl.innerText = activeGold;
+    if (typeof syncGoldDisplays === 'function') {
+      syncGoldDisplays(activeGold);
+    } else if (goldEl) {
+      goldEl.innerText = activeGold;
+    }
 
     // 4. Synchronize role UI (badge & Questmaster panel access) for this park
     const activeRole = currentParkProfile?.role || profile?.role || 'player';
