@@ -287,8 +287,6 @@ function renderStoreCatalog() {
           <div class="item-card">
             <div class="item-info">
               <h4>${item.item_name}</h4>
-              <small>${item.description}</small>
-              <small style="color:var(--gold); margin-top:4px;">${item.category} • ${item.usage_limit || '1/Use'} </small>
             </div>
             <button class="btn-buy" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="buyItem('${item.item_name}', ${item.base_cost}, ${item.duration_hours})">
               ${isCombatLocked ? '🔒 In Battle' : `Buy (${item.base_cost}g)`}
