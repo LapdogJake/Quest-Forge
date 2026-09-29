@@ -134,6 +134,48 @@ function getCategoryDurabilityMax(category) {
   return DURABILITY_LIMITS[category] || 1;
 }
 
+// Extract durability wear & participant rules from quest data or embedded metadata
+function getQuestDurabilityRules(q) {
+  let monstersAreNpc = q?.monsters_are_npc;
+  let allowedItems = q?.allowed_items;
+
+  // Check fallback metadata embedded in scenario_card or description
+  const textToCheck = `${q?.scenario_card || ''} ${q?.description || ''}`;
+  const match = textToCheck.match(/<!--\s*RULES:\s*(\{.*?\})\s*-->/);
+  if (match) {
+    try {
+      const parsed = JSON.parse(match[1]);
+      if (monstersAreNpc === undefined && parsed.monsters_are_npc !== undefined) {
+        monstersAreNpc = parsed.monsters_are_npc;
+      }
+      if (!allowedItems && parsed.allowed_items !== undefined) {
+        allowedItems = parsed.allowed_items;
+      }
+    } catch (e) {
+      console.warn("Failed to parse embedded quest rules", e);
+    }
+  }
+
+  // Monsters are NPC rule: default to false (normal battles always reduce monster durability)
+  const isMonsterNpc = Boolean(monstersAreNpc);
+
+  // Allowed magic items: defaults to all 3 categories (Trinket, Talisman, Artifact)
+  let allowedTypes = ['Trinket', 'Talisman', 'Artifact'];
+  if (allowedItems !== undefined && allowedItems !== null) {
+    if (Array.isArray(allowedItems)) {
+      allowedTypes = allowedItems;
+    } else if (typeof allowedItems === 'string') {
+      const trimmed = allowedItems.trim();
+      allowedTypes = trimmed.length === 0 ? [] : trimmed.split(',').map(s => s.trim()).filter(Boolean);
+    }
+  }
+
+  return {
+    monstersAreNpc: isMonsterNpc,
+    allowedTypes: allowedTypes
+  };
+}
+
 // Lookup Kingdom for a given Park (Kingdom is a sorting filter)
 function getKingdomForPark(parkName) {
   if (!parkName) return 'The Freeholds of Amtgard';

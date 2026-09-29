@@ -274,6 +274,11 @@ async function fetchQMQueues() {
     const monsters = activeQueue?.encounter_monsters ? activeQueue.encounter_monsters.map(m => m.profiles).filter(Boolean) : [];
     const queueId = activeQueue?.id || '';
 
+    const rules = typeof getQuestDurabilityRules === 'function' 
+      ? getQuestDurabilityRules(q) 
+      : { monstersAreNpc: false, allowedTypes: ['Trinket', 'Talisman', 'Artifact'] };
+    const scenarioClean = (q.scenario_card || '').replace(/<!--\s*RULES:.*?-->/gs, '').trim();
+
     return `
       <div class="quest-card" style="border: 2px solid ${borderColor}; margin-bottom: 16px;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
@@ -283,6 +288,14 @@ async function fetchQMQueues() {
               <span class="badge badge-battle">Battle</span>
               <span class="badge badge-type" style="color:var(--gold); border-color:var(--gold);">🏆 Victory: +${victoryGold}g</span>
               <span class="badge badge-type" style="color:#94a3b8; border-color:#64748b;">💀 Defeat: +${defeatGold}g</span>
+              ${rules.monstersAreNpc 
+                ? '<span class="badge badge-monster" title="Monster queue does not lose durability">👹 Monster: NPC</span>' 
+                : '<span class="badge badge-type" title="Monster queue loses durability">👹 Monster: Player</span>'}
+              ${rules.allowedTypes.length === 3 
+                ? '<span class="badge badge-active" title="All item categories lose durability">✨ All Items Active</span>' 
+                : (rules.allowedTypes.length === 0 
+                  ? '<span class="badge badge-threat-loot" title="No magic items lose durability">🚫 No Magic Items</span>' 
+                  : `<span class="badge badge-type">✨ ${rules.allowedTypes.join(', ')}</span>`)}
               ${q.repeatable ? '<span class="badge badge-adventure">🔁 Repeatable</span>' : ''}
             </div>
           </div>
@@ -291,10 +304,10 @@ async function fetchQMQueues() {
 
         ${q.description ? `<p style="font-size:13px; color:var(--text-muted); margin:4px 0 10px 0;">${q.description}</p>` : ''}
 
-        ${q.scenario_card ? `
+        ${scenarioClean ? `
           <div class="scenario-card-box" style="margin-bottom:12px;">
             <h5 style="color:var(--warning); margin:0 0 4px 0; font-size:12px;">🔒 Secret Scenario Card</h5>
-            <p style="font-size:12px; margin:0;">${q.scenario_card}</p>
+            <p style="font-size:12px; margin:0;">${scenarioClean}</p>
           </div>
         ` : ''}
 
@@ -453,6 +466,7 @@ async function qmFinishBattle(queueId, questId, victoryGold, defeatGold) {
       .from('quest_queues')
       .select(`
         id,
+        quest_id,
         queue_members(user_id),
         encounter_monsters(user_id)
       `)
@@ -462,8 +476,26 @@ async function qmFinishBattle(queueId, questId, victoryGold, defeatGold) {
     if (queueData) {
       pcUserIds = (queueData.queue_members || []).map(m => m.user_id).filter(Boolean);
       monsterUserIds = (queueData.encounter_monsters || []).map(m => m.user_id).filter(Boolean);
+      if (!questId && queueData.quest_id) {
+        questId = queueData.quest_id;
+      }
     }
   }
+
+  // Fetch quest details to get durability & participant rules
+  let questData = null;
+  if (questId) {
+    const { data: qd } = await supabaseClient
+      .from('quests')
+      .select('*')
+      .eq('id', questId)
+      .single();
+    questData = qd;
+  }
+
+  const rules = typeof getQuestDurabilityRules === 'function' 
+    ? getQuestDurabilityRules(questData) 
+    : { monstersAreNpc: false, allowedTypes: ['Trinket', 'Talisman', 'Artifact'] };
 
   const heroGold = victor === 'heroes' ? victoryGold : defeatGold;
   const monsterGold = victor === 'monsters' ? victoryGold : defeatGold;
@@ -472,7 +504,10 @@ async function qmFinishBattle(queueId, questId, victoryGold, defeatGold) {
   const confirmMsg = `Declare ${victorName} the Victor?\n\n` +
     `• Heroes Line (${pcUserIds.length} players): ${heroGold}g each (${victor === 'heroes' ? 'VICTORY' : 'DEFEAT'})\n` +
     `• Monster Line (${monsterUserIds.length} players): ${monsterGold}g each (${victor === 'monsters' ? 'VICTORY' : 'DEFEAT'})\n\n` +
-    `This will distribute gold, apply gear durability wear to Heroes, and conclude the battle.`;
+    `Item Wear Rules:\n` +
+    `• Magic Items Active: ${rules.allowedTypes.length > 0 ? rules.allowedTypes.join(', ') : 'None (Restricted)'}\n` +
+    `• Monster Queue Wear: ${rules.monstersAreNpc ? 'NPC (NO wear)' : 'Active (Takes wear)'}\n\n` +
+    `Distribute gold & durability wear?`;
 
   if (!confirm(confirmMsg)) return;
 
@@ -482,10 +517,17 @@ async function qmFinishBattle(queueId, questId, victoryGold, defeatGold) {
   // 2. Award Gold to Monsters
   const monsterPayouts = monsterUserIds.map(uid => awardFighterGold(uid, monsterGold));
 
-  // 3. Durability wear on Heroes
-  const durabilityWear = pcUserIds.map(uid => applyCombatDurabilityDamage(uid));
+  // 3. Durability wear on Heroes (always applies to active items)
+  const heroDurabilityWear = pcUserIds.map(uid => applyCombatDurabilityDamage(uid, rules.allowedTypes));
 
-  // 4. Mark queues completed and close battle quest
+  // 4. Durability wear on Monsters:
+  // If monsters are NPC, NO wear is applied to monsters!
+  // If monsters are NOT NPC (default for normal battles), monsters take wear on allowed items!
+  const monsterDurabilityWear = rules.monstersAreNpc
+    ? []
+    : monsterUserIds.map(uid => applyCombatDurabilityDamage(uid, rules.allowedTypes));
+
+  // 5. Mark queues completed and close battle quest
   const queueUpdates = [];
   if (queueId) {
     queueUpdates.push(supabaseClient.from('quest_queues').update({ status: 'completed' }).eq('id', queueId));
@@ -495,7 +537,7 @@ async function qmFinishBattle(queueId, questId, victoryGold, defeatGold) {
     queueUpdates.push(supabaseClient.from('quests').update({ is_active: false }).eq('id', questId));
   }
 
-  await Promise.allSettled([...heroPayouts, ...monsterPayouts, ...durabilityWear, ...queueUpdates]);
+  await Promise.allSettled([...heroPayouts, ...monsterPayouts, ...heroDurabilityWear, ...monsterDurabilityWear, ...queueUpdates]);
 
   alert(`🎉 Battle finished! ${victorName} victorious!\nRewards distributed and equipment durability updated.`);
   initDashboard();

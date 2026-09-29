@@ -415,28 +415,47 @@ async function sellItem(itemId, goldValue, itemName) {
 // 4. Durability Combat Damage Scoping
 // ==============================================================================
 
-async function applyCombatDurabilityDamage(userId) {
+async function applyCombatDurabilityDamage(userId, allowedCategories = null) {
   if (!userId) return;
   const activePark = getActivePark();
 
-  // 1. Attempt server-side atomic RPC with target_park parameter
-  try {
-    const { error: rpcError } = await supabaseClient.rpc('apply_combat_durability_damage', {
-      target_user_id: userId,
-      target_park: activePark
-    });
-
-    if (!rpcError) {
-      if (currentUser && userId === currentUser.id) {
-        await fetchUserInventory();
-      }
-      return;
-    }
-  } catch (err) {
-    // Fall back to client-side batch processing if RPC is not deployed or has older signature
+  // If allowedCategories is explicitly an empty list, no items consume durability
+  if (Array.isArray(allowedCategories) && allowedCategories.length === 0) {
+    return;
   }
 
-  // 2. Client-side fallback: isolate durability damage to the active park's items
+  // Normalize allowedCategories into lowercased strings
+  let allowedSet = null;
+  if (Array.isArray(allowedCategories)) {
+    allowedSet = new Set(
+      allowedCategories.flatMap(cat => {
+        const c = String(cat).toLowerCase().trim();
+        return [c, c.endsWith('s') ? c.slice(0, -1) : c + 's'];
+      })
+    );
+  }
+
+  // 1. Attempt server-side atomic RPC ONLY if ALL magic items are allowed (no restrictions)
+  const isUnrestricted = !allowedSet || (allowedSet.has('trinket') && allowedSet.has('talisman') && allowedSet.has('artifact'));
+  if (isUnrestricted) {
+    try {
+      const { error: rpcError } = await supabaseClient.rpc('apply_combat_durability_damage', {
+        target_user_id: userId,
+        target_park: activePark
+      });
+
+      if (!rpcError) {
+        if (currentUser && userId === currentUser.id) {
+          await fetchUserInventory();
+        }
+        return;
+      }
+    } catch (err) {
+      // Fall back to client-side batch processing
+    }
+  }
+
+  // 2. Client-side processing: isolate durability damage to the active park's items and filter by allowed categories
   const { data: rows, error } = await supabaseClient
     .from('user_inventory')
     .select('*')
@@ -453,8 +472,21 @@ async function applyCombatDurabilityDamage(userId) {
   const rowsToUpdate = [];
 
   for (const row of parkRows) {
-    const category = getCategoryForItemName(row.item_name);
-    const defaultMax = getCategoryDurabilityMax(category);
+    const rawCategory = getCategoryForItemName(row.item_name);
+    const category = (rawCategory || '').toLowerCase().trim();
+
+    // Check if item's category is restricted
+    if (allowedSet) {
+      const isAllowed = allowedSet.has(category) || 
+                        allowedSet.has(category + 's') || 
+                        (category.endsWith('s') && allowedSet.has(category.slice(0, -1)));
+      if (!isAllowed) {
+        // Skip restricted magic items - do not consume durability
+        continue;
+      }
+    }
+
+    const defaultMax = getCategoryDurabilityMax(rawCategory);
     const durabilityMax = Number(row.durability_max ?? defaultMax ?? 1);
     const durabilityCurrent = Number(row.durability_current ?? durabilityMax);
 

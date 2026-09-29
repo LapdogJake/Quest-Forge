@@ -449,7 +449,25 @@ async function createQuest() {
   const scenario_card = document.getElementById('qm-scenario')?.value.trim() || '';
   const repeatable = Boolean(document.getElementById('qm-repeatable')?.checked);
 
+  // Monsters are NPC rule
+  const monsters_are_npc = Boolean(document.getElementById('qm-monsters-are-npc')?.checked);
+
+  // Magic item durability permissions
+  const allowTrinket = document.getElementById('qm-item-trinket') ? document.getElementById('qm-item-trinket').checked : true;
+  const allowTalisman = document.getElementById('qm-item-talisman') ? document.getElementById('qm-item-talisman').checked : true;
+  const allowArtifact = document.getElementById('qm-item-artifact') ? document.getElementById('qm-item-artifact').checked : true;
+
+  const allowedList = [];
+  if (allowTrinket) allowedList.push('Trinket');
+  if (allowTalisman) allowedList.push('Talisman');
+  if (allowArtifact) allowedList.push('Artifact');
+  const allowed_items = allowedList.join(',');
+
   if (!title) { alert("Please enter a Quest Title."); return; }
+
+  // Embed rules metadata into scenario_card as a resilient fallback if columns aren't in Supabase yet
+  const rulesMeta = `<!-- RULES: ${JSON.stringify({ monsters_are_npc, allowed_items: allowedList })} -->`;
+  const scenarioWithMeta = scenario_card ? `${scenario_card}\n${rulesMeta}` : rulesMeta;
 
   const questPayload = {
     title,
@@ -459,19 +477,30 @@ async function createQuest() {
     verification_method,
     reward_gold: reward_gold_victory,
     reward_gold_defeat: reward_gold_defeat,
+    monsters_are_npc,
+    allowed_items,
     requirements,
     description,
-    scenario_card,
+    scenario_card: scenarioWithMeta,
     repeatable,
     is_active: true
   };
 
   let { error } = await supabaseClient.from('quests').insert(questPayload);
 
-  // If reward_gold_defeat column doesn't exist in Supabase yet, gracefully fallback without it so saving never breaks
-  if (error && error.message && error.message.includes('reward_gold_defeat')) {
-    delete questPayload.reward_gold_defeat;
-    const retry = await supabaseClient.from('quests').insert(questPayload);
+  // If newly introduced columns don't exist in Supabase yet, gracefully fallback without them so saving never breaks
+  if (error && (error.message.includes('monsters_are_npc') || error.message.includes('allowed_items') || error.message.includes('reward_gold_defeat'))) {
+    const fallbackPayload = { ...questPayload };
+    if (error.message.includes('monsters_are_npc')) delete fallbackPayload.monsters_are_npc;
+    if (error.message.includes('allowed_items')) delete fallbackPayload.allowed_items;
+    if (error.message.includes('reward_gold_defeat')) delete fallbackPayload.reward_gold_defeat;
+    let retry = await supabaseClient.from('quests').insert(fallbackPayload);
+    if (retry.error && (retry.error.message.includes('monsters_are_npc') || retry.error.message.includes('allowed_items') || retry.error.message.includes('reward_gold_defeat'))) {
+      delete fallbackPayload.monsters_are_npc;
+      delete fallbackPayload.allowed_items;
+      delete fallbackPayload.reward_gold_defeat;
+      retry = await supabaseClient.from('quests').insert(fallbackPayload);
+    }
     error = retry.error;
   }
 
@@ -485,6 +514,10 @@ async function createQuest() {
   if (document.getElementById('qm-requirements')) document.getElementById('qm-requirements').value = '';
   if (victoryInput) victoryInput.value = '25';
   if (defeatInput) defeatInput.value = '5';
+  if (document.getElementById('qm-monsters-are-npc')) document.getElementById('qm-monsters-are-npc').checked = false;
+  if (document.getElementById('qm-item-trinket')) document.getElementById('qm-item-trinket').checked = true;
+  if (document.getElementById('qm-item-talisman')) document.getElementById('qm-item-talisman').checked = true;
+  if (document.getElementById('qm-item-artifact')) document.getElementById('qm-item-artifact').checked = true;
 
   await fetchUserSlotState();
   await fetchQuests();
@@ -527,7 +560,7 @@ async function acceptQuest(questId) {
 async function completeQuest(userQuestId, rewardGold) {
   const { data: uq } = await supabaseClient
     .from('user_quests')
-    .select('quest_id, quests(category)')
+    .select('quest_id, quests(*)')
     .eq('id', userQuestId)
     .single();
   const isCombat = uq?.quests?.category === 'Battle' || uq?.quests?.category === 'Combat';
@@ -537,7 +570,8 @@ async function completeQuest(userQuestId, rewardGold) {
   await supabaseClient.from('user_quests').update({ status: 'completed' }).eq('id', userQuestId);
 
   if (isCombat) {
-    await applyCombatDurabilityDamage(currentUser.id);
+    const rules = typeof getQuestDurabilityRules === 'function' ? getQuestDurabilityRules(uq?.quests) : { allowedTypes: null };
+    await applyCombatDurabilityDamage(currentUser.id, rules.allowedTypes);
   }
 
   initDashboard();
