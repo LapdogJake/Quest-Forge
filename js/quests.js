@@ -391,9 +391,9 @@ async function fetchQMQuests() {
       </div>
 
       <div class="tag-container" style="margin-top:6px;">
-        <span class="badge badge-type">${q.participation_type}</span>
         <span class="badge ${q.category === 'Battle' || q.category === 'Combat' ? 'badge-battle' : 'badge-adventure'}">${q.category}</span>
-        <span class="badge badge-type">🪙 ${q.reward_gold} Gold</span>
+        <span class="badge badge-type">🏆 Victory: ${q.reward_gold}g</span>
+        ${q.reward_gold_defeat !== undefined && q.reward_gold_defeat !== null ? `<span class="badge badge-type">💀 Defeat: ${q.reward_gold_defeat}g</span>` : ''}
       </div>
 
       <p style="margin-top:6px;">${q.description || 'No public description.'}</p>
@@ -427,31 +427,62 @@ async function toggleQuestDeployment(questId, currentActiveState) {
 }
 
 async function createQuest() {
-  const title = document.getElementById('qm-title').value.trim();
-  const category = document.getElementById('qm-category').value;
-  const participation_type = document.getElementById('qm-type').value;
-  const threat_level = document.getElementById('qm-threat').value;
-  const verification_method = document.getElementById('qm-verification').value;
-  const reward_gold = parseInt(document.getElementById('qm-gold').value) || 0;
-  const requirements = document.getElementById('qm-requirements').value.trim();
-  const description = document.getElementById('qm-description').value.trim();
-  const scenario_card = document.getElementById('qm-scenario').value.trim();
-  const repeatable = document.getElementById('qm-repeatable').checked;
+  const title = document.getElementById('qm-title')?.value.trim();
+  const category = document.getElementById('qm-category')?.value || 'Battle';
+
+  // Safe automatic defaults for removed fields
+  const participation_type = document.getElementById('qm-type')?.value || (category === 'Battle' ? 'Group' : 'Solo');
+  const threat_level = document.getElementById('qm-threat')?.value || 'Safe';
+  // All Adventures are Honor verified, all Battles are Quest Master verified
+  const verification_method = category === 'Battle' ? 'Quest Master' : 'Honor';
+
+  // Two reward boxes: Victory and Defeated
+  const victoryInput = document.getElementById('qm-gold-victory') || document.getElementById('qm-gold');
+  const defeatInput = document.getElementById('qm-gold-defeat');
+  const reward_gold_victory = victoryInput ? (parseInt(victoryInput.value) || 0) : 0;
+  const reward_gold_defeat = defeatInput ? (parseInt(defeatInput.value) || 0) : 0;
+
+  const requirements = document.getElementById('qm-requirements')?.value.trim() || '';
+  const description = document.getElementById('qm-description')?.value.trim() || '';
+  const scenario_card = document.getElementById('qm-scenario')?.value.trim() || '';
+  const repeatable = Boolean(document.getElementById('qm-repeatable')?.checked);
 
   if (!title) { alert("Please enter a Quest Title."); return; }
 
-  const { error } = await supabaseClient.from('quests').insert({
-    title, category, participation_type, threat_level, verification_method,
-    reward_gold, requirements, description, scenario_card, repeatable, is_active: true
-  });
+  const questPayload = {
+    title,
+    category,
+    participation_type,
+    threat_level,
+    verification_method,
+    reward_gold: reward_gold_victory,
+    reward_gold_defeat: reward_gold_defeat,
+    requirements,
+    description,
+    scenario_card,
+    repeatable,
+    is_active: true
+  };
+
+  let { error } = await supabaseClient.from('quests').insert(questPayload);
+
+  // If reward_gold_defeat column doesn't exist in Supabase yet, gracefully fallback without it so saving never breaks
+  if (error && error.message && error.message.includes('reward_gold_defeat')) {
+    delete questPayload.reward_gold_defeat;
+    const retry = await supabaseClient.from('quests').insert(questPayload);
+    error = retry.error;
+  }
 
   if (error) { alert("Failed to save quest: " + error.message); return; }
 
   alert(`⚔️ Quest "${title}" saved and opened on field!`);
 
-  document.getElementById('qm-title').value = '';
-  document.getElementById('qm-description').value = '';
-  document.getElementById('qm-scenario').value = '';
+  if (document.getElementById('qm-title')) document.getElementById('qm-title').value = '';
+  if (document.getElementById('qm-description')) document.getElementById('qm-description').value = '';
+  if (document.getElementById('qm-scenario')) document.getElementById('qm-scenario').value = '';
+  if (document.getElementById('qm-requirements')) document.getElementById('qm-requirements').value = '';
+  if (victoryInput) victoryInput.value = '25';
+  if (defeatInput) defeatInput.value = '5';
 
   await fetchUserSlotState();
   await fetchQuests();

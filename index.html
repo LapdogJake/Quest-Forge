@@ -152,8 +152,6 @@
     <section id="tab-admin" class="tab-view hidden">
       <div class="card">
         <h2>👑 Questmaster Control</h2>
-        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Forge quests & manage field encounter
-          queues</p>
 
         <div class="qm-subnav">
           <button id="qm-subnav-create" class="qm-subnav-btn active" onclick="switchQMSubTab('create')">➕ Forge
@@ -173,44 +171,23 @@
             <input type="text" id="qm-title" class="form-control" placeholder="e.g. Defend the Siege Engine">
           </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label>Category</label>
-              <select id="qm-category" class="form-control">
-                <option value="Battle">Battle (Heroes Tab)</option>
-                <option value="Adventure">Adventure (Arts/Sci/Social)</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Participation</label>
-              <select id="qm-type" class="form-control">
-                <option value="Solo">Solo</option>
-                <option value="Group">Group</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label>Threat Level</label>
-              <select id="qm-threat" class="form-control">
-                <option value="Safe">Safe</option>
-                <option value="Loot Drop">Loot Drop</option>
-                <option value="Permanent Death">Permanent Death</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Verification</label>
-              <select id="qm-verification" class="form-control">
-                <option value="Quest Master">Quest Master</option>
-                <option value="Honor">Honor</option>
-              </select>
-            </div>
-          </div>
-
           <div class="form-group">
-            <label>PC Gold Reward</label>
-            <input type="number" id="qm-gold" class="form-control" value="25">
+            <label>Category</label>
+            <select id="qm-category" class="form-control">
+              <option value="Battle">Battle</option>
+              <option value="Adventure">Adventure</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Victory Gold Reward</label>
+              <input type="number" id="qm-gold-victory" class="form-control" value="25" min="0">
+            </div>
+            <div class="form-group">
+              <label>Defeated Gold Reward</label>
+              <input type="number" id="qm-gold-defeat" class="form-control" value="5" min="0">
+            </div>
           </div>
 
           <div class="form-group">
@@ -219,14 +196,14 @@
           </div>
 
           <div class="form-group">
-            <label>Public Description (Player-Facing)</label>
+            <label>Public Description</label>
             <textarea id="qm-description" class="form-control" style="min-height:70px;"
               placeholder="Public lore objectives..."></textarea>
           </div>
 
           <div class="form-group"
-            style="background:#27272a; padding:10px; border-radius:8px; border:1px dashed var(--primary);">
-            <label style="color:#c084fc;">🔒 Hidden Scenario Card & Monster Stat Block</label>
+            style="background:#1e1e22; padding:10px; border-radius:8px; border:1px dashed var(--primary);">
+            <label style="color:#c084fc;">Hidden Scenario Description</label>
             <textarea id="qm-scenario" class="form-control" style="min-height:80px;"
               placeholder="Battlefield setup, secret objectives, monster role templates..."></textarea>
           </div>
@@ -236,7 +213,7 @@
             <label for="qm-repeatable" style="margin:0; cursor:pointer;">Repeatable Quest</label>
           </div>
 
-          <button class="btn btn-primary" onclick="createQuest()">🚀 Save to Library</button>
+          <button class="btn btn-primary" onclick="createQuest()">Save</button>
         </div>
 
         <!-- SUB-TAB 2: QUEST LIBRARY -->
@@ -283,13 +260,13 @@
   </nav>
 
   <!-- Modular Scripts -->
-  <script src="js/config.js?v=10"></script>
-  <script src="js/state.js?v=10"></script>
-  <script src="js/utils.js?v=10"></script>
-  <script src="js/inventory.js?v=10"></script>
-  <script src="js/encounters.js?v=10"></script>
-  <script src="js/quests.js?v=10"></script>
-  <script src="js/app.js?v=10"></script>
+  <script src="js/config.js?v=11"></script>
+  <script src="js/state.js?v=11"></script>
+  <script src="js/utils.js?v=11"></script>
+  <script src="js/inventory.js?v=11"></script>
+  <script src="js/encounters.js?v=11"></script>
+  <script src="js/quests.js?v=11"></script>
+  <script src="js/app.js?v=11"></script>
 </body>
 
 </html>
