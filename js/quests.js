@@ -366,7 +366,7 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
   `;
 }
 
-// QM Catalog Engine
+// QM Catalog Engine (Non-Battle Quests only)
 async function fetchQMQuests() {
   const container = document.getElementById('qm-quest-list');
   if (!container) return;
@@ -376,12 +376,15 @@ async function fetchQMQuests() {
     .select('*')
     .order('created_at', { ascending: false });
 
-  if (!quests || quests.length === 0) {
-    container.innerHTML = `<p class="empty-state">No saved quests in the catalog.</p>`;
+  // Only non-battle (Adventure) quests are shown in the Quest Catalog tab
+  const nonBattleQuests = (quests || []).filter(q => q.category !== 'Battle' && q.category !== 'Combat');
+
+  if (nonBattleQuests.length === 0) {
+    container.innerHTML = `<p class="empty-state">No non-battle quests in the catalog.</p>`;
     return;
   }
 
-  container.innerHTML = quests.map(q => `
+  container.innerHTML = nonBattleQuests.map(q => `
     <div class="quest-card" style="border-left: 4px solid ${q.is_active ? 'var(--success)' : '#52525b'};">
       <div style="display:flex; justify-content:space-between; align-items:flex-start;">
         <h4>${q.title}</h4>
@@ -391,9 +394,8 @@ async function fetchQMQuests() {
       </div>
 
       <div class="tag-container" style="margin-top:6px;">
-        <span class="badge ${q.category === 'Battle' || q.category === 'Combat' ? 'badge-battle' : 'badge-adventure'}">${q.category}</span>
-        <span class="badge badge-type">🏆 Victory: ${q.reward_gold}g</span>
-        ${q.reward_gold_defeat !== undefined && q.reward_gold_defeat !== null ? `<span class="badge badge-type">💀 Defeat: ${q.reward_gold_defeat}g</span>` : ''}
+        <span class="badge badge-adventure">${q.category || 'Adventure'}</span>
+        <span class="badge badge-type">🪙 ${q.reward_gold} Gold</span>
       </div>
 
       <p style="margin-top:6px;">${q.description || 'No public description.'}</p>
@@ -401,7 +403,7 @@ async function fetchQMQuests() {
       <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
         <button class="${q.is_active ? 'btn-toggle-draft' : 'btn-toggle-active'}" 
           onclick="toggleQuestDeployment('${q.id}', ${q.is_active})">
-          ${q.is_active ? '🔴 Close Field Openings' : '🚀 Open Encounter on Field'}
+          ${q.is_active ? '🔴 Close Field Openings' : '🚀 Open Quest on Field'}
         </button>
       </div>
     </div>
@@ -487,7 +489,11 @@ async function createQuest() {
   await fetchUserSlotState();
   await fetchQuests();
   await fetchMonsterEncounters();
-  switchQMSubTab('library');
+  if (category === 'Battle') {
+    switchQMSubTab('queues');
+  } else {
+    switchQMSubTab('library');
+  }
 }
 
 async function acceptQuest(questId) {

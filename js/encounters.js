@@ -195,181 +195,365 @@ async function leaveQueue(queueId) {
   }
 }
 
+// ==============================================================================
+// Questmaster: Battle Catalog & Field Encounter State Management
+// ==============================================================================
+
 async function fetchQMQueues() {
   const container = document.getElementById('qm-queue-list');
   if (!container) return;
 
-  const { data: queues } = await supabaseClient
-    .from('quest_queues')
-    .select(`
-      *, 
-      quests(*), 
-      queue_members(*, profiles(id, username)),
-      encounter_monsters(*, profiles(id, username))
-    `)
-    .in('status', ['waiting', 'active'])
-    .order('created_at', { ascending: true });
+  // 1. Fetch all combat/battle quests
+  const { data: battleQuests, error: questError } = await supabaseClient
+    .from('quests')
+    .select('*')
+    .or('category.eq.Battle,category.eq.Combat')
+    .order('created_at', { ascending: false });
 
-  if (!queues || queues.length === 0) {
-    container.innerHTML = `<p class="empty-state">No live encounter lines open on the field.</p>`;
+  if (questError) {
+    container.innerHTML = `<p class="empty-state" style="color:var(--danger);">Error loading battles: ${questError.message}</p>`;
     return;
   }
 
-  container.innerHTML = queues.map(qq => {
-    if (!qq.quests) return '';
-    const pcs = qq.queue_members ? qq.queue_members.map(m => m.profiles) : [];
-    const monsters = qq.encounter_monsters ? qq.encounter_monsters.map(m => m.profiles) : [];
-    const isLive = qq.status === 'active';
+  if (!battleQuests || battleQuests.length === 0) {
+    container.innerHTML = `<p class="empty-state">No battle quests found. Create one in the Forge Quest tab!</p>`;
+    return;
+  }
+
+  // 2. Fetch all open/live queues for battle quests with roster profiles
+  const questIds = battleQuests.map(q => q.id);
+  const { data: openQueues } = await supabaseClient
+    .from('quest_queues')
+    .select(`
+      *,
+      queue_members(*, profiles(id, username)),
+      encounter_monsters(*, profiles(id, username))
+    `)
+    .in('quest_id', questIds)
+    .in('status', ['waiting', 'active'])
+    .order('created_at', { ascending: false });
+
+  // Map latest open queue by quest_id
+  const queuesByQuest = new Map();
+  (openQueues || []).forEach(qq => {
+    if (!queuesByQuest.has(qq.quest_id)) {
+      queuesByQuest.set(qq.quest_id, qq);
+    }
+  });
+
+  // 3. Render cards with state management (Standby -> Prepping -> Live -> Finish)
+  container.innerHTML = battleQuests.map(q => {
+    const activeQueue = queuesByQuest.get(q.id);
+    const victoryGold = Number(q.reward_gold) || 0;
+    const defeatGold = Number(q.reward_gold_defeat) || 0;
+
+    // Determine state
+    let state = 'closed'; // 'closed' | 'prepped' | 'live'
+    if (activeQueue) {
+      if (activeQueue.status === 'active') {
+        state = 'live';
+      } else if (activeQueue.status === 'waiting') {
+        state = 'prepped';
+      }
+    } else if (q.is_active) {
+      state = 'prepped';
+    }
+
+    // Border and badge styles based on state
+    let borderColor = '#3f3f46';
+    let statusBadge = `<span class="badge badge-draft">🔴 STANDBY</span>`;
+    if (state === 'live') {
+      borderColor = '#dc2626';
+      statusBadge = `<span class="badge badge-active" style="background:#dc2626; color:white; border-color:#ef4444;">⚔️ LIVE IN COMBAT</span>`;
+    } else if (state === 'prepped') {
+      borderColor = 'var(--gold)';
+      statusBadge = `<span class="badge badge-threat-loot" style="background:#ca8a04; color:#0f172a; border-color:#eab308;">⏳ PREPPED (LINE OPEN)</span>`;
+    }
+
+    const pcs = activeQueue?.queue_members ? activeQueue.queue_members.map(m => m.profiles).filter(Boolean) : [];
+    const monsters = activeQueue?.encounter_monsters ? activeQueue.encounter_monsters.map(m => m.profiles).filter(Boolean) : [];
+    const queueId = activeQueue?.id || '';
 
     return `
-      <div class="quest-card" style="border: 2px solid ${isLive ? 'var(--success)' : 'var(--gold)'};">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-          <h4>${qq.quests.title}</h4>
-          <span class="badge ${isLive ? 'badge-active' : 'badge-threat-loot'}">${isLive ? '⚔️ IN PROGRESS' : '⏳ PREPPING'}</span>
+      <div class="quest-card" style="border: 2px solid ${borderColor}; margin-bottom: 16px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+          <div>
+            <h4 style="margin:0 0 4px 0;">${q.title}</h4>
+            <div class="tag-container" style="margin-bottom:6px;">
+              <span class="badge badge-battle">Battle</span>
+              <span class="badge badge-type" style="color:var(--gold); border-color:var(--gold);">🏆 Victory: +${victoryGold}g</span>
+              <span class="badge badge-type" style="color:#94a3b8; border-color:#64748b;">💀 Defeat: +${defeatGold}g</span>
+              ${q.repeatable ? '<span class="badge badge-adventure">🔁 Repeatable</span>' : ''}
+            </div>
+          </div>
+          <div>${statusBadge}</div>
         </div>
 
-        <div class="dual-queue-grid">
-          <div class="queue-box">
-            <h5 style="color:var(--primary);">⚔️ PC Line (${pcs.length})</h5>
-            ${pcs.length > 0
-              ? pcs.map(p => `<span class="party-member-tag">👤 ${p?.username || 'Warrior'}</span>`).join('')
-              : '<p style="font-size:11px; color:var(--text-muted);">No PCs yet</p>'
-            }
-          </div>
+        ${q.description ? `<p style="font-size:13px; color:var(--text-muted); margin:4px 0 10px 0;">${q.description}</p>` : ''}
 
-          <div class="queue-box" style="border-color:var(--monster);">
-            <h5 style="color:var(--monster);">👹 Monster Line (${monsters.length})</h5>
-            ${monsters.length > 0
-              ? monsters.map(m => `<span class="party-member-tag" style="border-color:var(--monster);">👹 ${m?.username || 'Monster'}</span>`).join('')
-              : '<p style="font-size:11px; color:var(--text-muted);">No monsters yet</p>'
-            }
-          </div>
-        </div>
-
-        ${qq.quests.scenario_card ? `
-          <div class="scenario-card-box">
-            <h5>🔒 Secret Scenario Card</h5>
-            <p>${qq.quests.scenario_card}</p>
+        ${q.scenario_card ? `
+          <div class="scenario-card-box" style="margin-bottom:12px;">
+            <h5 style="color:var(--warning); margin:0 0 4px 0; font-size:12px;">🔒 Secret Scenario Card</h5>
+            <p style="font-size:12px; margin:0;">${q.scenario_card}</p>
           </div>
         ` : ''}
 
-        <div style="display:flex; gap:8px; margin-top:12px;">
-          ${!isLive ? `
-            <button class="btn-accept" style="width:50%;" onclick="qmSetQueueStatus('${qq.id}', 'active')">🚀 Launch Encounter</button>
-          ` : ''}
-          <button class="btn-complete" style="width:${isLive ? '100%' : '50%'};" 
-            onclick="qmCompleteAndPayEncounter('${qq.id}', ${qq.quests.reward_gold}, ${JSON.stringify((qq.queue_members || []).map(m => m.user_id || m.profiles?.id).filter(Boolean)).replace(/"/g, '&quot;')}, ${JSON.stringify((qq.encounter_monsters || []).map(m => m.user_id || m.profiles?.id).filter(Boolean)).replace(/"/g, '&quot;')})">
-            🏆 Complete & Pay All
-          </button>
-        </div>
+        ${state === 'closed' ? `
+          <!-- STATE 1: CLOSED / STANDBY -->
+          <div style="margin-top:12px;">
+            <button class="btn-accept" style="width:100%; font-size:13px; padding:10px;" onclick="qmLaunchBattle('${q.id}')">
+              🚀 Launch Battle to Field (Open Line)
+            </button>
+          </div>
+        ` : `
+          <!-- DUAL QUEUE ROSTER (PREPPED OR LIVE) -->
+          <div class="dual-queue-grid" style="margin-bottom:12px;">
+            <div class="queue-box">
+              <h5 style="color:var(--primary); margin:0 0 6px 0;">⚔️ Heroes / PC Line (${pcs.length})</h5>
+              ${pcs.length > 0
+                ? pcs.map(p => `<span class="party-member-tag">👤 ${p?.username || 'Warrior'}</span>`).join('')
+                : '<p style="font-size:11px; color:var(--text-muted); margin:4px 0;">No heroes in line yet.</p>'
+              }
+            </div>
+
+            <div class="queue-box" style="border-color:var(--monster);">
+              <h5 style="color:var(--monster); margin:0 0 6px 0;">👹 Monster Line (${monsters.length})</h5>
+              ${monsters.length > 0
+                ? monsters.map(m => `<span class="party-member-tag" style="border-color:var(--monster);">👹 ${m?.username || 'Monster'}</span>`).join('')
+                : '<p style="font-size:11px; color:var(--text-muted); margin:4px 0;">No monsters in line yet.</p>'
+              }
+            </div>
+          </div>
+
+          <!-- ALWAYS-PRESENT VICTOR SELECTION BOX -->
+          <div style="background:rgba(0,0,0,0.3); border:1px solid var(--border); border-radius:6px; padding:10px; margin-bottom:12px;">
+            <label for="qm-victor-${queueId || q.id}" style="font-weight:bold; font-size:12px; color:var(--gold); display:block; margin-bottom:6px;">
+              🏆 Who is the Victor?
+            </label>
+            <select id="qm-victor-${queueId || q.id}" class="filter-select" style="width:100%; padding:8px; font-size:13px; border-radius:4px; background:var(--bg-secondary); color:var(--text); border:1px solid var(--border);">
+              <option value="heroes" selected>⚔️ Heroes Win (Heroes: ${victoryGold}g | Monsters: ${defeatGold}g)</option>
+              <option value="monsters">👹 Monsters Win (Monsters: ${victoryGold}g | Heroes: ${defeatGold}g)</option>
+            </select>
+          </div>
+
+          <!-- CONTROLS BASED ON STATE -->
+          ${state === 'prepped' ? `
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn-accept" style="flex:2; min-width:140px; font-size:13px; padding:8px;" onclick="qmStartCombat('${queueId}', '${q.id}')">
+                ⚔️ Start Combat (Go Live)
+              </button>
+              <button class="btn-complete" style="flex:2; min-width:140px; font-size:13px; padding:8px;" onclick="qmFinishBattle('${queueId}', '${q.id}', ${victoryGold}, ${defeatGold})">
+                🏁 Finish Battle
+              </button>
+              <button class="btn-leave" style="flex:1; min-width:90px; font-size:12px; padding:8px;" onclick="qmCloseBattle('${q.id}', '${queueId}')">
+                🛑 Close
+              </button>
+            </div>
+          ` : `
+            <div style="display:flex; gap:8px;">
+              <button class="btn-complete" style="flex:3; font-size:14px; padding:10px;" onclick="qmFinishBattle('${queueId}', '${q.id}', ${victoryGold}, ${defeatGold})">
+                🏁 Finish Battle & Distribute Rewards
+              </button>
+              <button class="btn-leave" style="flex:1; font-size:12px; padding:10px;" onclick="qmCloseBattle('${q.id}', '${queueId}')">
+                🛑 Abort
+              </button>
+            </div>
+          `}
+        `}
       </div>
     `;
   }).join('');
 }
 
-async function qmSetQueueStatus(queueId, status) {
-  await supabaseClient.from('quest_queues').update({ status }).eq('id', queueId);
+async function qmLaunchBattle(questId) {
+  const { error: questError } = await supabaseClient
+    .from('quests')
+    .update({ is_active: true })
+    .eq('id', questId);
+
+  if (questError) {
+    alert("Error launching battle: " + questError.message);
+    return;
+  }
+
+  // Ensure an open queue exists with status 'waiting'
+  const { data: existingQueues } = await supabaseClient
+    .from('quest_queues')
+    .select('id')
+    .eq('quest_id', questId)
+    .in('status', ['waiting', 'active']);
+
+  if (!existingQueues || existingQueues.length === 0) {
+    const { error: queueError } = await supabaseClient
+      .from('quest_queues')
+      .insert({ quest_id: questId, status: 'waiting' });
+    if (queueError) {
+      alert("Error opening line: " + queueError.message);
+      return;
+    }
+  }
+
   await fetchUserSlotState();
-  fetchQMQueues();
-  fetchQuests();
-  fetchMonsterEncounters();
+  await fetchQMQueues();
+  await fetchQuests();
+  await fetchMonsterEncounters();
 }
 
-async function qmCompleteAndPayEncounter(queueId, rewardGold, pcUserIds, monsterUserIds) {
-  if (!confirm(`Award PCs (+${rewardGold}g) AND Monsters (+${rewardGold}g)?`)) return;
-
-  // 1. Concurrently award PCs
-  const pcPayoutPromises = (pcUserIds || []).map(async (userId) => {
-    const { data: p } = await supabaseClient.from('profiles').select('gold, park, park_gold').eq('id', userId).single();
-    if (p) {
-      const park = p.park || "Delver's Rest";
-      let parkGoldMap = p.park_gold;
-      if (typeof parkGoldMap === 'string') {
-        try { parkGoldMap = JSON.parse(parkGoldMap); } catch (e) { parkGoldMap = {}; }
-      }
-      if (!parkGoldMap || typeof parkGoldMap !== 'object') parkGoldMap = {};
-      const currentParkAmt = Number(parkGoldMap[park]) || 0;
-      const nextGold = currentParkAmt + rewardGold;
-      parkGoldMap[park] = nextGold;
-
-      // Update both profiles and relational user_park_profiles
-      await supabaseClient.from('profiles').update({
-        gold: (p.gold || 0) + rewardGold,
-        park_gold: parkGoldMap
-      }).eq('id', userId);
-
-      await supabaseClient.from('user_park_profiles').upsert({
-        user_id: userId,
-        park: park,
-        kingdom: getKingdomForPark(park),
-        gold: nextGold
-      }, { onConflict: 'user_id, park' });
-
-      if (currentUser && currentUser.id === userId) {
-        if (!currentProfile) currentProfile = {};
-        currentProfile.park_gold = parkGoldMap;
-        if (!currentParkProfile) currentParkProfile = {};
-        if (currentParkProfile.park === park) currentParkProfile.gold = nextGold;
-        const activePark = typeof getActivePark === 'function' ? getActivePark() : park;
-        currentProfile.gold = Number(parkGoldMap[activePark]) || 0;
-        const goldEl = document.getElementById('profile-gold');
-        if (goldEl) goldEl.innerText = currentProfile.gold;
-      }
+async function qmStartCombat(queueId, questId) {
+  if (!queueId && questId) {
+    await supabaseClient.from('quest_queues').insert({ quest_id: questId, status: 'active' });
+  } else if (queueId) {
+    const { error } = await supabaseClient
+      .from('quest_queues')
+      .update({ status: 'active' })
+      .eq('id', queueId);
+    if (error) {
+      alert("Error starting combat: " + error.message);
+      return;
     }
-  });
+  }
 
-  // 2. Concurrently award Monsters
-  const monsterPayoutPromises = (monsterUserIds || []).map(async (userId) => {
-    const { data: m } = await supabaseClient.from('profiles').select('gold, park, park_gold').eq('id', userId).single();
-    if (m) {
-      const park = m.park || "Delver's Rest";
-      let parkGoldMap = m.park_gold;
-      if (typeof parkGoldMap === 'string') {
-        try { parkGoldMap = JSON.parse(parkGoldMap); } catch (e) { parkGoldMap = {}; }
-      }
-      if (!parkGoldMap || typeof parkGoldMap !== 'object') parkGoldMap = {};
-      const currentParkAmt = Number(parkGoldMap[park]) || 0;
-      const nextGold = currentParkAmt + rewardGold;
-      parkGoldMap[park] = nextGold;
+  await fetchUserSlotState();
+  await fetchQMQueues();
+  await fetchQuests();
+  await fetchMonsterEncounters();
+}
 
-      // Update both profiles and relational user_park_profiles
-      await supabaseClient.from('profiles').update({
-        gold: (m.gold || 0) + rewardGold,
-        park_gold: parkGoldMap
-      }).eq('id', userId);
+async function qmCloseBattle(questId, queueId) {
+  if (!confirm("Close/withdraw this battle from the field? Active queues will be closed.")) return;
 
-      await supabaseClient.from('user_park_profiles').upsert({
-        user_id: userId,
-        park: park,
-        kingdom: getKingdomForPark(park),
-        gold: nextGold
-      }, { onConflict: 'user_id, park' });
-
-      if (currentUser && currentUser.id === userId) {
-        if (!currentProfile) currentProfile = {};
-        currentProfile.park_gold = parkGoldMap;
-        if (!currentParkProfile) currentParkProfile = {};
-        if (currentParkProfile.park === park) currentParkProfile.gold = nextGold;
-        const activePark = typeof getActivePark === 'function' ? getActivePark() : park;
-        currentProfile.gold = Number(parkGoldMap[activePark]) || 0;
-        const goldEl = document.getElementById('profile-gold');
-        if (goldEl) goldEl.innerText = currentProfile.gold;
-      }
-    }
-  });
-
-  // 3. Concurrently close queue and monster lines
-  const queueClosePromises = [
-    supabaseClient.from('quest_queues').update({ status: 'completed' }).eq('id', queueId),
-    supabaseClient.from('encounter_monsters').update({ status: 'completed' }).eq('queue_id', queueId)
+  const updates = [
+    supabaseClient.from('quests').update({ is_active: false }).eq('id', questId)
   ];
+  if (queueId) {
+    updates.push(supabaseClient.from('quest_queues').update({ status: 'completed' }).eq('id', queueId));
+    updates.push(supabaseClient.from('encounter_monsters').update({ status: 'completed' }).eq('queue_id', queueId));
+  } else {
+    updates.push(supabaseClient.from('quest_queues').update({ status: 'completed' }).eq('quest_id', questId).in('status', ['waiting', 'active']));
+  }
 
-  await Promise.allSettled([...pcPayoutPromises, ...monsterPayoutPromises, ...queueClosePromises]);
+  await Promise.allSettled(updates);
 
-  // 4. Concurrently apply combat durability damage to all PCs
-  const durabilityPromises = (pcUserIds || []).map(userId => applyCombatDurabilityDamage(userId));
-  await Promise.allSettled(durabilityPromises);
+  await fetchUserSlotState();
+  await fetchQMQueues();
+  await fetchQuests();
+  await fetchMonsterEncounters();
+}
 
-  alert("🎉 Encounter completed! Gold rewards distributed to PCs and Monsters.");
+async function qmFinishBattle(queueId, questId, victoryGold, defeatGold) {
+  const victorEl = document.getElementById(`qm-victor-${queueId || questId}`);
+  const victor = victorEl ? victorEl.value : 'heroes';
+
+  // Fetch current fighters in this queue
+  let pcUserIds = [];
+  let monsterUserIds = [];
+
+  if (queueId) {
+    const { data: queueData } = await supabaseClient
+      .from('quest_queues')
+      .select(`
+        id,
+        queue_members(user_id),
+        encounter_monsters(user_id)
+      `)
+      .eq('id', queueId)
+      .single();
+
+    if (queueData) {
+      pcUserIds = (queueData.queue_members || []).map(m => m.user_id).filter(Boolean);
+      monsterUserIds = (queueData.encounter_monsters || []).map(m => m.user_id).filter(Boolean);
+    }
+  }
+
+  const heroGold = victor === 'heroes' ? victoryGold : defeatGold;
+  const monsterGold = victor === 'monsters' ? victoryGold : defeatGold;
+  const victorName = victor === 'heroes' ? '⚔️ HEROES' : '👹 MONSTERS';
+
+  const confirmMsg = `Declare ${victorName} the Victor?\n\n` +
+    `• Heroes Line (${pcUserIds.length} players): ${heroGold}g each (${victor === 'heroes' ? 'VICTORY' : 'DEFEAT'})\n` +
+    `• Monster Line (${monsterUserIds.length} players): ${monsterGold}g each (${victor === 'monsters' ? 'VICTORY' : 'DEFEAT'})\n\n` +
+    `This will distribute gold, apply gear durability wear to Heroes, and conclude the battle.`;
+
+  if (!confirm(confirmMsg)) return;
+
+  // 1. Award Gold to Heroes
+  const heroPayouts = pcUserIds.map(uid => awardFighterGold(uid, heroGold));
+
+  // 2. Award Gold to Monsters
+  const monsterPayouts = monsterUserIds.map(uid => awardFighterGold(uid, monsterGold));
+
+  // 3. Durability wear on Heroes
+  const durabilityWear = pcUserIds.map(uid => applyCombatDurabilityDamage(uid));
+
+  // 4. Mark queues completed and close battle quest
+  const queueUpdates = [];
+  if (queueId) {
+    queueUpdates.push(supabaseClient.from('quest_queues').update({ status: 'completed' }).eq('id', queueId));
+    queueUpdates.push(supabaseClient.from('encounter_monsters').update({ status: 'completed' }).eq('queue_id', queueId));
+  }
+  if (questId) {
+    queueUpdates.push(supabaseClient.from('quests').update({ is_active: false }).eq('id', questId));
+  }
+
+  await Promise.allSettled([...heroPayouts, ...monsterPayouts, ...durabilityWear, ...queueUpdates]);
+
+  alert(`🎉 Battle finished! ${victorName} victorious!\nRewards distributed and equipment durability updated.`);
   initDashboard();
+}
+
+async function awardFighterGold(userId, goldAmt) {
+  if (!userId || !goldAmt || goldAmt <= 0) return;
+
+  const { data: p } = await supabaseClient
+    .from('profiles')
+    .select('gold, park, park_gold')
+    .eq('id', userId)
+    .single();
+
+  if (!p) return;
+
+  const park = p.park || "Delver's Rest";
+  let parkGoldMap = p.park_gold;
+  if (typeof parkGoldMap === 'string') {
+    try { parkGoldMap = JSON.parse(parkGoldMap); } catch (e) { parkGoldMap = {}; }
+  }
+  if (!parkGoldMap || typeof parkGoldMap !== 'object') parkGoldMap = {};
+
+  const currentParkAmt = Number(parkGoldMap[park]) || 0;
+  const nextGold = currentParkAmt + goldAmt;
+  parkGoldMap[park] = nextGold;
+
+  // Update profiles
+  await supabaseClient.from('profiles').update({
+    gold: (p.gold || 0) + goldAmt,
+    park_gold: parkGoldMap
+  }).eq('id', userId);
+
+  // Update user_park_profiles
+  await supabaseClient.from('user_park_profiles').upsert({
+    user_id: userId,
+    park: park,
+    kingdom: typeof getKingdomForPark === 'function' ? getKingdomForPark(park) : 'The Freeholds of Amtgard',
+    gold: nextGold
+  }, { onConflict: 'user_id, park' });
+
+  // Reactive sync if current logged-in user
+  if (currentUser && currentUser.id === userId) {
+    if (!currentProfile) currentProfile = {};
+    currentProfile.park_gold = parkGoldMap;
+    if (!currentParkProfile) currentParkProfile = {};
+    if (currentParkProfile.park === park) currentParkProfile.gold = nextGold;
+    const activePark = typeof getActivePark === 'function' ? getActivePark() : park;
+    currentProfile.gold = Number(parkGoldMap[activePark]) || 0;
+    const goldEl = document.getElementById('profile-gold');
+    if (goldEl) goldEl.innerText = currentProfile.gold;
+  }
+}
+
+// Backward compatibility aliases
+async function qmSetQueueStatus(queueId, status) {
+  return qmStartCombat(queueId);
+}
+async function qmCompleteAndPayEncounter(queueId, rewardGold, pcUserIds, monsterUserIds) {
+  return qmFinishBattle(queueId, null, rewardGold, 0);
 }
