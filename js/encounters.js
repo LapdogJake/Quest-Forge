@@ -262,8 +262,13 @@ async function fetchQMQueues() {
   // 3. Render cards with state management (Standby -> Prepping -> Live -> Finish)
   container.innerHTML = battleQuests.map(q => {
     const activeQueue = queuesByQuest.get(q.id);
+    const rules = typeof getQuestDurabilityRules === 'function' 
+      ? getQuestDurabilityRules(q) 
+      : { monstersAreNpc: false, allowedTypes: ['Trinket', 'Talisman', 'Artifact'], defeatGold: 0 };
     const victoryGold = Number(q.reward_gold) || 0;
-    const defeatGold = Number(q.reward_gold_defeat) || 0;
+    const defeatGold = (q.reward_gold_defeat !== undefined && q.reward_gold_defeat !== null && q.reward_gold_defeat !== 0) 
+      ? Number(q.reward_gold_defeat) 
+      : (rules.defeatGold !== undefined ? Number(rules.defeatGold) : (Number(q.reward_gold_defeat) || 0));
 
     // Determine state
     let state = 'closed'; // 'closed' | 'prepped' | 'live'
@@ -292,9 +297,6 @@ async function fetchQMQueues() {
     const monsters = activeQueue?.encounter_monsters ? activeQueue.encounter_monsters.map(m => m.profiles).filter(Boolean) : [];
     const queueId = activeQueue?.id || '';
 
-    const rules = typeof getQuestDurabilityRules === 'function' 
-      ? getQuestDurabilityRules(q) 
-      : { monstersAreNpc: false, allowedTypes: ['Trinket', 'Talisman', 'Artifact'] };
     const scenarioClean = (q.scenario_card || '').replace(/<!--\s*RULES:.*?-->/gs, '').trim();
 
     return `
@@ -522,10 +524,17 @@ async function qmFinishBattle(queueId, questId, victoryGold, defeatGold) {
 
   const rules = typeof getQuestDurabilityRules === 'function' 
     ? getQuestDurabilityRules(questData) 
-    : { monstersAreNpc: false, allowedTypes: ['Trinket', 'Talisman', 'Artifact'] };
+    : { monstersAreNpc: false, allowedTypes: ['Trinket', 'Talisman', 'Artifact'], defeatGold: 0 };
 
-  const heroGold = victor === 'heroes' ? victoryGold : defeatGold;
-  const monsterGold = victor === 'monsters' ? victoryGold : defeatGold;
+  const effectiveVictoryGold = victoryGold !== undefined ? Number(victoryGold) : (Number(questData?.reward_gold) || 0);
+  const effectiveDefeatGold = (defeatGold !== undefined && defeatGold !== null && defeatGold !== 0)
+    ? Number(defeatGold)
+    : ((questData?.reward_gold_defeat !== undefined && questData.reward_gold_defeat !== null && questData.reward_gold_defeat !== 0) 
+        ? Number(questData.reward_gold_defeat) 
+        : (rules.defeatGold !== undefined ? Number(rules.defeatGold) : 0));
+
+  const heroGold = victor === 'heroes' ? effectiveVictoryGold : effectiveDefeatGold;
+  const monsterGold = victor === 'monsters' ? effectiveVictoryGold : effectiveDefeatGold;
   const victorName = victor === 'heroes' ? '⚔️ HEROES' : '👹 MONSTERS';
 
   const confirmMsg = `Declare ${victorName} the Victor?\n\n` +

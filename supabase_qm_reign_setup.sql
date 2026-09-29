@@ -30,10 +30,13 @@ CREATE POLICY "Allow insert on park_questmasters" ON public.park_questmasters FO
 CREATE POLICY "Allow update on park_questmasters" ON public.park_questmasters FOR UPDATE USING (true);
 CREATE POLICY "Allow delete on park_questmasters" ON public.park_questmasters FOR DELETE USING (true);
 
--- 2. Add qm_id and qm_username to public.quests
+-- 2. Add QM tracking & battle rule columns to public.quests
 ALTER TABLE public.quests
   ADD COLUMN IF NOT EXISTS qm_id UUID,
-  ADD COLUMN IF NOT EXISTS qm_username TEXT;
+  ADD COLUMN IF NOT EXISTS qm_username TEXT,
+  ADD COLUMN IF NOT EXISTS reward_gold_defeat INTEGER DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS monsters_are_npc BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS allowed_items TEXT DEFAULT 'Trinket,Talisman,Artifact';
 
 CREATE INDEX IF NOT EXISTS idx_quests_qm_park ON public.quests (park, qm_id);
 

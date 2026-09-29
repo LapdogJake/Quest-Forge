@@ -116,7 +116,7 @@ async function fetchQuests() {
   );
 
   if (!parkQuests || parkQuests.length === 0) {
-    if (combatContainer) combatContainer.innerHTML = `<p class="empty-state">No Active Quests in ${activePark} (${activeQMName}).</p>`;
+    if (combatContainer) combatContainer.innerHTML = `<p class="empty-state">No Active Battles in ${activePark} (${activeQMName}).</p>`;
     if (larpieContainer) {
       const activeAdvHtml = activeAdventureQuests.map(uq => renderActiveAdventureQuestCard(uq)).join('');
       larpieContainer.innerHTML = activeAdvHtml.length > 0 ? activeAdvHtml : `<p class="empty-state">No Active Quests in ${activePark} (${activeQMName}).</p>`;
@@ -127,7 +127,7 @@ async function fetchQuests() {
   const available = parkQuests.filter(q => !activeQuestIds.includes(q.id) && (q.repeatable || !completedQuestIds.includes(q.id)));
 
   const combatQuests = available.filter(q => q.category === 'Battle' || q.category === 'Combat');
-  const larpieQuests = available.filter(q => q.category === 'Adventure' || (q.category !== 'Battle' && q.category !== 'Combat'));
+  const larpieQuests = available.filter(q => q.category === 'Adventure' || q.category === 'Quest' || (q.category !== 'Battle' && q.category !== 'Combat'));
 
   const joinedQueueMap = new Map();
   (myQueueMemberships || []).forEach(m => {
@@ -169,7 +169,7 @@ async function fetchQuests() {
   if (combatContainer) {
     combatContainer.innerHTML = combatQuests.length > 0
       ? combatQuests.map(q => renderAvailableQuestCard(q, 'combat', joinedQueueMap.get(q.id), queueRosterByQuest.get(q.id))).join('')
-      : `<p class="empty-state">No Active Quests.</p>`;
+      : `<p class="empty-state">No Active Battles in ${activePark} (${activeQMName}).</p>`;
   }
 
   if (larpieContainer) {
@@ -543,7 +543,7 @@ async function createBattle() {
 
   if (!title) { alert("Please enter a Battle Title."); return; }
 
-  const rulesMeta = `<!-- RULES: ${JSON.stringify({ monsters_are_npc, allowed_items: allowedList })} -->`;
+  const rulesMeta = `<!-- RULES: ${JSON.stringify({ monsters_are_npc, allowed_items: allowedList, reward_gold_defeat, defeat_gold: reward_gold_defeat })} -->`;
   const scenarioWithMeta = scenario_card ? `${scenario_card}\n${rulesMeta}` : rulesMeta;
 
   const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
