@@ -104,12 +104,21 @@ function toggleProfileInventoryAccordion() {
   }
 }
 
-// Linear 1:1 Item Value & Durability Calculator (Static baseline pricing across parks)
+// Linear 1:1 Item Value & Durability Calculator (Based on buy-side store pricing)
+// Formula: Floor(buyPrice * (currentDurability / maxDurability))
 function calculateItemValue(basePrice, currentDurability, maxDurability) {
-  const price = Math.max(1, Number(basePrice || 1));
+  const price = Math.max(0, Number(basePrice || 0));
   if (!maxDurability || maxDurability <= 0) return price;
-  const ratio = Math.max(0, currentDurability) / maxDurability;
-  return Math.max(1, Math.round(price * ratio));
+  const ratio = Math.min(1, Math.max(0, currentDurability) / maxDurability);
+  return Math.floor(price * ratio);
+}
+
+// Lookup official buy-side store catalog price for an item
+function getItemStorePrice(itemName, fallbackCost = 1) {
+  if (!itemName) return Math.max(1, Number(fallbackCost || 1));
+  const normalized = itemName.replace(/’/g, "'").trim().toLowerCase();
+  const match = STORE_CATALOG.find(item => item.item_name.replace(/’/g, "'").trim().toLowerCase() === normalized);
+  return match?.base_cost !== undefined ? match.base_cost : Math.max(1, Number(fallbackCost || 1));
 }
 
 // Catalog category matchers

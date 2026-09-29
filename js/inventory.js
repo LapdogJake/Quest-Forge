@@ -202,7 +202,7 @@ async function fetchUserInventory() {
 
   const calcFn = (typeof calculateItemValue === 'function')
     ? calculateItemValue
-    : (bp, cur, mx) => (!mx || mx <= 0 ? 0 : Math.max(0, Math.round((bp || 0) * (Math.max(0, cur) / mx))));
+    : (bp, cur, mx) => (!mx || mx <= 0 ? 0 : Math.floor((bp || 0) * (Math.min(1, Math.max(0, cur) / mx))));
 
   // Profile Accordion: Item rows display item name and current durability
   if (profileList) {
@@ -214,8 +214,10 @@ async function fetchUserInventory() {
         const durabilityMax = Math.max(1, Number(item?.durability_max || fallbackMax));
         const durabilityCurrent = Number(item?.durability_current !== undefined && item?.durability_current !== null ? item.durability_current : durabilityMax);
         const normalizedCurrent = Math.max(0, durabilityCurrent);
-        const baseCost = Math.max(1, Number(item?.base_cost || 1));
-        const currentValue = calcFn(baseCost, normalizedCurrent, durabilityMax);
+        const buyStorePrice = (typeof getItemStorePrice === 'function')
+          ? getItemStorePrice(itemName, item?.base_cost)
+          : Math.max(1, Number(item?.base_cost || 1));
+        const currentValue = calcFn(buyStorePrice, normalizedCurrent, durabilityMax);
 
         return `<div class="item-card">
           <div class="item-info">
@@ -244,14 +246,14 @@ async function fetchUserInventory() {
         const durabilityMax = Math.max(1, Number(item?.durability_max || fallbackMax));
         const durabilityCurrent = Number(item?.durability_current !== undefined && item?.durability_current !== null ? item.durability_current : durabilityMax);
         const normalizedCurrent = Math.max(0, durabilityCurrent);
-        const baseCost = Math.max(1, Number(item?.base_cost || 1));
-        const sellGoldValue = calcFn(baseCost, normalizedCurrent, durabilityMax);
+        const buyStorePrice = (typeof getItemStorePrice === 'function')
+          ? getItemStorePrice(itemName, item?.base_cost)
+          : Math.max(1, Number(item?.base_cost || 1));
+        const sellGoldValue = calcFn(buyStorePrice, normalizedCurrent, durabilityMax);
 
         return `<div class="item-card">
           <div class="item-info">
-            <h4>${itemName}</h4>
-            <small>Resale Value: <strong style="color:var(--gold);">${sellGoldValue} Gold</strong> (${normalizedCurrent}/${durabilityMax} dur)</small>
-            <small style="color:var(--text-muted);">Base: ${baseCost}g</small>
+            <h4>${itemName} <span style="font-size: 13px; color: var(--text-muted); font-weight: normal; margin-left: 6px;">(${normalizedCurrent}/${durabilityMax} dur)</span></h4>
           </div>
           <button class="btn-sell" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="sellItem('${item.id}', ${sellGoldValue}, '${itemName}')">
             ${isCombatLocked ? '🔒 In Battle' : `Sell (${sellGoldValue}g)`}
