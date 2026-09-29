@@ -40,6 +40,11 @@
             <small>Active Park</small>
             <span id="display-profile-park" class="group-val">Delver's Rest</span>
           </div>
+          <div class="group-banner-divider">✦</div>
+          <div class="group-banner-item">
+            <small>Questmaster</small>
+            <span id="display-profile-qm" class="group-val" style="color:var(--gold);">👑 Default</span>
+          </div>
         </div>
 
         <!-- Dual Slot Holder -->
@@ -54,27 +59,35 @@
           </div>
         </div>
 
-        <!-- Collapsible Kingdom / Park Selector Accordion -->
+        <!-- Collapsible Kingdom / Park / QM Selector Accordion -->
         <div class="accordion-header" onclick="toggleParkSelectorAccordion()">
-          <span>Kingdom / Park</span>
+          <span>Kingdom / Park / QM</span>
           <span id="park-selector-chevron">▼</span>
         </div>
         <div id="park-selector-accordion-body" class="accordion-content hidden">
-          <div class="form-row" style="margin-top: 4px;">
-            <div class="form-group" style="margin-bottom: 8px;">
-              <label for="profile-kingdom-select">Kingdom</label>
-              <select id="profile-kingdom-select" class="form-control" onchange="handleKingdomFilterChange()">
-              </select>
-            </div>
-            <div class="form-group" style="margin-bottom: 8px;">
-              <label for="profile-park-select">Park</label>
-              <select id="profile-park-select" class="form-control">
-              </select>
-            </div>
+          <div class="form-group" style="margin-bottom: 8px;">
+            <label for="profile-kingdom-select">1. Kingdom</label>
+            <select id="profile-kingdom-select" class="form-control" onchange="handleKingdomFilterChange()">
+            </select>
           </div>
-          <button id="btn-change-park" class="btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="handleCommitParkChange()">
-            Change Park
-          </button>
+          <div class="form-group" style="margin-bottom: 8px;">
+            <label for="profile-park-select">2. Park</label>
+            <select id="profile-park-select" class="form-control" onchange="handleParkFilterChange()">
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom: 8px;">
+            <label for="profile-qm-select">3. Questmaster (Reign)</label>
+            <select id="profile-qm-select" class="form-control">
+            </select>
+          </div>
+          <div style="display:flex; gap:8px; margin-top: 10px;">
+            <button id="btn-change-park" class="btn btn-primary" style="flex: 1; margin-top: 0;" onclick="handleCommitParkChange()">
+              Enter Realm
+            </button>
+            <button id="btn-become-qm" class="btn btn-secondary" style="flex: 1; margin-top: 0; font-size: 12px; background: #3b0764; border: 1px solid #9333ea; color: #f3e8ff;" onclick="handleBecomeQM()">
+              👑 Become QM Here
+            </button>
+          </div>
         </div>
 
         <!-- Collapsible Inventory Accordion -->

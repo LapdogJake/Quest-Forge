@@ -20,20 +20,48 @@ async function initDashboard() {
 
     currentProfile = profile || {};
 
-    // 1. Resolve player's active park
+    // 1. Resolve player's active park & QM reign
     currentPark = profile?.last_active_park || profile?.park || currentUser.user_metadata?.park || "Delver's Rest";
     currentKingdom = (typeof getKingdomForPark === 'function')
       ? getKingdomForPark(currentPark)
       : (profile?.kingdom || 'The Freeholds of Amtgard');
 
+    currentQMId = profile?.last_active_qm_id || null;
+    currentQMUsername = profile?.last_active_qm_username || null;
+
+    if (!currentQMId) {
+      try {
+        const { data: firstQM } = await supabaseClient
+          .from('park_questmasters')
+          .select('*')
+          .eq('park', currentPark)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (firstQM) {
+          currentQMId = firstQM.user_id;
+          currentQMUsername = firstQM.username;
+        } else {
+          currentQMId = null;
+          currentQMUsername = "Default Realm";
+        }
+      } catch (e) {
+        currentQMId = null;
+        currentQMUsername = "Default Realm";
+      }
+    }
+
     currentProfile.park = currentPark;
     currentProfile.kingdom = currentKingdom;
+    currentProfile.last_active_qm_id = currentQMId;
+    currentProfile.last_active_qm_username = currentQMUsername;
 
-    // 2. Load the player's relational park profile sheet
+    // 2. Load the player's relational park/QM profile sheet
     if (typeof loadUserParkProfile === 'function') {
-      currentParkProfile = await loadUserParkProfile(currentUser.id, currentPark, currentKingdom);
+      currentParkProfile = await loadUserParkProfile(currentUser.id, currentPark, currentKingdom, currentQMId);
     } else {
-      currentParkProfile = { park: currentPark, kingdom: currentKingdom, role: profile?.role || 'player', gold: profile?.gold || 0 };
+      currentParkProfile = { park: currentPark, kingdom: currentKingdom, qm_id: currentQMId, role: profile?.role || 'player', gold: profile?.gold || 0 };
     }
 
     // 3. User display and UI state
@@ -51,15 +79,16 @@ async function initDashboard() {
       goldEl.innerText = activeGold;
     }
 
-    // 4. Synchronize role UI (badge & Questmaster panel access) for this park
-    const activeRole = currentParkProfile?.role || profile?.role || 'player';
+    // 4. Synchronize role UI (badge & Questmaster panel access)
+    const isHost = Boolean(currentUser && currentQMId && currentUser.id === currentQMId);
+    const activeRole = isHost ? 'questmaster' : (currentParkProfile?.role || profile?.role || 'player');
     if (typeof syncUserRoleUI === 'function') {
       syncUserRoleUI(activeRole);
     }
 
-    // 5. Initialize Park Selector & affiliation banner
+    // 5. Initialize Park & QM Selector & affiliation banner
     if (typeof initProfileGroupSelector === 'function') {
-      initProfileGroupSelector();
+      await initProfileGroupSelector();
     }
 
     if (typeof fetchUserSlotState === 'function') await fetchUserSlotState();

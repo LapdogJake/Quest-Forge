@@ -23,9 +23,13 @@ async function fetchUserSlotState() {
     .eq('status', 'claimed');
 
   const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
+  const activeQMId = currentQMId;
 
   activeMonsterClaim = (monsterClaims && monsterClaims.length > 0) 
-    ? (monsterClaims.find(mc => !mc.quest_queues?.quests?.park || mc.quest_queues?.quests?.park === activePark) || null)
+    ? (monsterClaims.find(mc => {
+        const q = mc.quest_queues?.quests;
+        return (!q?.park || q?.park === activePark) && (!q?.qm_id || !activeQMId || q?.qm_id === activeQMId);
+      }) || null)
     : null;
 
   // Auto-cleanup any orphan user_quests for quests that have been closed or deactivated by QM
@@ -34,15 +38,15 @@ async function fetchUserSlotState() {
     await supabaseClient.from('user_quests').delete().in('id', orphanQuestIds);
   }
 
-  const activeSoloBattle = userQuests?.find(uq => uq.quests?.is_active && (!uq.quests?.park || uq.quests?.park === activePark) && (uq.quests?.category === 'Battle' || uq.quests?.category === 'Combat'));
+  const activeSoloBattle = userQuests?.find(uq => uq.quests?.is_active && (!uq.quests?.park || uq.quests?.park === activePark) && (!uq.quests?.qm_id || !activeQMId || uq.quests?.qm_id === activeQMId) && (uq.quests?.category === 'Battle' || uq.quests?.category === 'Combat'));
   const activeGroupBattle = queueMemberships?.find(qm => {
     const queue = qm.quest_queues;
     const quest = queue?.quests;
-    return (queue?.status !== 'completed') && quest?.is_active && (!quest?.park || quest?.park === activePark) && (quest?.category === 'Battle' || quest?.category === 'Combat');
+    return (queue?.status !== 'completed') && quest?.is_active && (!quest?.park || quest?.park === activePark) && (!quest?.qm_id || !activeQMId || quest?.qm_id === activeQMId) && (quest?.category === 'Battle' || quest?.category === 'Combat');
   });
 
   activeBattleQuest = activeSoloBattle || activeGroupBattle;
-  activeLarpieQuest = userQuests?.find(uq => uq.quests?.is_active && (!uq.quests?.park || uq.quests?.park === activePark) && (uq.quests?.category === 'Adventure' || (uq.quests?.category !== 'Battle' && uq.quests?.category !== 'Combat')));
+  activeLarpieQuest = userQuests?.find(uq => uq.quests?.is_active && (!uq.quests?.park || uq.quests?.park === activePark) && (!uq.quests?.qm_id || !activeQMId || uq.quests?.qm_id === activeQMId) && (uq.quests?.category === 'Adventure' || (uq.quests?.category !== 'Battle' && uq.quests?.category !== 'Combat')));
 
   const battleStatusEl = document.getElementById('slot-battle-status');
   const larpieStatusEl = document.getElementById('slot-larpie-status');
@@ -79,6 +83,8 @@ async function fetchQuests() {
   if (!currentUser) return;
 
   const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
+  const activeQMId = currentQMId;
+  const activeQMName = typeof getActiveQMUsername === 'function' ? getActiveQMUsername() : 'Default Realm';
 
   const { data: userQuests } = await supabaseClient
     .from('user_quests')
@@ -94,7 +100,7 @@ async function fetchQuests() {
   const completedQuestIds = userQuests ? userQuests.filter(uq => uq.status === 'completed').map(uq => uq.quest_id) : [];
 
   const activeAdventureQuests = userQuests
-    ? userQuests.filter(uq => uq.status === 'accepted' && uq.quests && (!uq.quests.park || uq.quests.park === activePark) && (uq.quests.category === 'Adventure' || (uq.quests.category !== 'Battle' && uq.quests.category !== 'Combat')))
+    ? userQuests.filter(uq => uq.status === 'accepted' && uq.quests && (!uq.quests.park || uq.quests.park === activePark) && (!uq.quests.qm_id || !activeQMId || uq.quests.qm_id === activeQMId) && (uq.quests.category === 'Adventure' || (uq.quests.category !== 'Battle' && uq.quests.category !== 'Combat')))
     : [];
 
   const { data: allQuests } = await supabaseClient
@@ -103,14 +109,17 @@ async function fetchQuests() {
     .eq('is_active', true)
     .order('created_at', { ascending: false });
 
-  // Filter available quests strictly by the player's active park (with backwards compatibility for untagged legacy quests)
-  const parkQuests = (allQuests || []).filter(q => !q.park || q.park === activePark);
+  // Filter available quests strictly by the player's active park AND active QM reign
+  const parkQuests = (allQuests || []).filter(q => 
+    (!q.park || q.park === activePark) &&
+    (!q.qm_id || !activeQMId || q.qm_id === activeQMId)
+  );
 
   if (!parkQuests || parkQuests.length === 0) {
-    if (combatContainer) combatContainer.innerHTML = `<p class="empty-state">No Active Quests in ${activePark}.</p>`;
+    if (combatContainer) combatContainer.innerHTML = `<p class="empty-state">No Active Quests in ${activePark} (${activeQMName}).</p>`;
     if (larpieContainer) {
       const activeAdvHtml = activeAdventureQuests.map(uq => renderActiveAdventureQuestCard(uq)).join('');
-      larpieContainer.innerHTML = activeAdvHtml.length > 0 ? activeAdvHtml : `<p class="empty-state">No Active Quests in ${activePark}.</p>`;
+      larpieContainer.innerHTML = activeAdvHtml.length > 0 ? activeAdvHtml : `<p class="empty-state">No Active Quests in ${activePark} (${activeQMName}).</p>`;
     }
     return;
   }
@@ -381,21 +390,24 @@ async function fetchQMQuests() {
   if (!container) return;
 
   const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
+  const activeQMId = currentQMId || currentUser?.id;
+  const activeQMName = typeof getActiveQMUsername === 'function' ? getActiveQMUsername() : 'Default Realm';
 
   const { data: quests } = await supabaseClient
     .from('quests')
     .select('*')
     .order('created_at', { ascending: false });
 
-  // Only non-battle (Adventure) quests belonging to the active park are shown in the Quest Catalog tab
+  // Only non-battle (Adventure) quests belonging to the active park & QM are shown in the Quest Catalog tab
   const nonBattleQuests = (quests || []).filter(q => 
     q.category !== 'Battle' && 
     q.category !== 'Combat' && 
-    (!q.park || q.park === activePark)
+    (!q.park || q.park === activePark) &&
+    (!q.qm_id || !activeQMId || q.qm_id === activeQMId)
   );
 
   if (nonBattleQuests.length === 0) {
-    container.innerHTML = `<p class="empty-state">No non-battle quests in the catalog for ${activePark}.</p>`;
+    container.innerHTML = `<p class="empty-state">No non-battle quests in the catalog for ${activePark} (${activeQMName}).</p>`;
     return;
   }
 
@@ -545,6 +557,8 @@ async function createQuest() {
 
   const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
   const activeKingdom = typeof getActiveKingdom === 'function' ? getActiveKingdom() : "The Freeholds of Amtgard";
+  const activeQMId = currentQMId || currentUser?.id || null;
+  const activeQMUsername = currentQMUsername || currentProfile?.username || 'Questmaster';
 
   const questPayload = {
     title,
@@ -562,14 +576,20 @@ async function createQuest() {
     repeatable,
     park: activePark,
     kingdom: activeKingdom,
+    qm_id: activeQMId,
+    qm_username: activeQMUsername,
     is_active: true
   };
 
   let { error } = await supabaseClient.from('quests').insert(questPayload);
 
   // If newly introduced columns don't exist in Supabase yet, gracefully fallback without them so saving never breaks
-  if (error && (error.message.includes('park') || error.message.includes('kingdom') || error.message.includes('monsters_are_npc') || error.message.includes('allowed_items') || error.message.includes('reward_gold_defeat'))) {
+  if (error && (error.message.includes('qm_id') || error.message.includes('qm_username') || error.message.includes('park') || error.message.includes('kingdom') || error.message.includes('monsters_are_npc') || error.message.includes('allowed_items') || error.message.includes('reward_gold_defeat'))) {
     const fallbackPayload = { ...questPayload };
+    if (error.message.includes('qm_id') || error.message.includes('qm_username')) {
+      delete fallbackPayload.qm_id;
+      delete fallbackPayload.qm_username;
+    }
     if (error.message.includes('park')) delete fallbackPayload.park;
     if (error.message.includes('kingdom')) delete fallbackPayload.kingdom;
     if (error.message.includes('monsters_are_npc')) delete fallbackPayload.monsters_are_npc;
@@ -577,6 +597,8 @@ async function createQuest() {
     if (error.message.includes('reward_gold_defeat')) delete fallbackPayload.reward_gold_defeat;
     let retry = await supabaseClient.from('quests').insert(fallbackPayload);
     if (retry.error) {
+      delete fallbackPayload.qm_id;
+      delete fallbackPayload.qm_username;
       delete fallbackPayload.park;
       delete fallbackPayload.kingdom;
       delete fallbackPayload.monsters_are_npc;

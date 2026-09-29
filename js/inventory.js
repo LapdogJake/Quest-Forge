@@ -11,11 +11,19 @@ function getActiveKingdom() {
   return getKingdomForPark(getActivePark());
 }
 
+function getActiveQMId() {
+  return currentQMId || null;
+}
+
+function getActiveQMUsername() {
+  return currentQMUsername || "Default Realm";
+}
+
 // ==============================================================================
-// 1. Group Selector (Kingdom Filter & Active Park Value)
+// 1. Group Selector (Kingdom Filter -> Park Filter -> QM Reign Selection)
 // ==============================================================================
 
-function initProfileGroupSelector() {
+async function initProfileGroupSelector() {
   const kingdomSelect = document.getElementById('profile-kingdom-select');
   const parkSelect = document.getElementById('profile-park-select');
   if (!kingdomSelect || !parkSelect) return;
@@ -34,24 +42,29 @@ function initProfileGroupSelector() {
   }
 
   // Populate park options strictly for the selected kingdom
-  populateParkOptions(kingdomSelect.value, activePark);
+  await populateParkOptions(kingdomSelect.value, activePark);
   updateGroupBannerDisplays();
 }
 
 function updateGroupBannerDisplays() {
   const activePark = getActivePark();
   const activeKingdom = getActiveKingdom();
+  const activeQM = getActiveQMUsername();
 
   const kDisplay = document.getElementById('display-profile-kingdom');
   const pDisplay = document.getElementById('display-profile-park');
+  const qmDisplay = document.getElementById('display-profile-qm');
   const qmParkDisplay = document.getElementById('display-qm-park');
+  const qmHostDisplay = document.getElementById('display-qm-host');
 
   if (kDisplay) kDisplay.innerText = activeKingdom;
   if (pDisplay) pDisplay.innerText = activePark;
+  if (qmDisplay) qmDisplay.innerText = `👑 ${activeQM}`;
   if (qmParkDisplay) qmParkDisplay.innerText = activePark;
+  if (qmHostDisplay) qmHostDisplay.innerText = `👑 ${activeQM}`;
 }
 
-function populateParkOptions(filterKingdom, parkToSelect = null) {
+async function populateParkOptions(filterKingdom, parkToSelect = null) {
   const parkSelect = document.getElementById('profile-park-select');
   if (!parkSelect) return;
 
@@ -65,33 +78,156 @@ function populateParkOptions(filterKingdom, parkToSelect = null) {
   } else if (parks.length > 0) {
     parkSelect.value = parks[0];
   }
+
+  await populateQMOptions(parkSelect.value, currentQMId);
 }
 
-// Kingdom dropdown is strictly a filter: updates Park options without changing active park
-function handleKingdomFilterChange() {
+async function populateQMOptions(parkName, qmToSelect = null) {
+  const qmSelect = document.getElementById('profile-qm-select');
+  if (!qmSelect) return;
+
+  qmSelect.innerHTML = `<option value="">Loading Questmasters...</option>`;
+
+  try {
+    const { data: qms, error } = await supabaseClient
+      .from('park_questmasters')
+      .select('*')
+      .eq('park', parkName)
+      .order('created_at', { ascending: true });
+
+    parkQMsList = qms || [];
+
+    if (!qms || qms.length === 0) {
+      qmSelect.innerHTML = `
+        <option value="" data-username="Default Realm">👑 Default Realm (No active QM)</option>
+      `;
+      currentQMId = null;
+      currentQMUsername = "Default Realm";
+      return;
+    }
+
+    qmSelect.innerHTML = qms.map(qm => `
+      <option value="${qm.user_id}" data-username="${qm.username}" ${qm.user_id === qmToSelect ? 'selected' : ''}>
+        👑 ${qm.username}
+      </option>
+    `).join('');
+
+    const targetQM = qmToSelect ? qms.find(q => q.user_id === qmToSelect) : qms[0];
+    if (targetQM) {
+      qmSelect.value = targetQM.user_id;
+      currentQMId = targetQM.user_id;
+      currentQMUsername = targetQM.username;
+    } else {
+      qmSelect.value = qms[0].user_id;
+      currentQMId = qms[0].user_id;
+      currentQMUsername = qms[0].username;
+    }
+  } catch (err) {
+    console.warn("Could not load park QMs:", err);
+    qmSelect.innerHTML = `<option value="" data-username="Default Realm">👑 Default Realm</option>`;
+    currentQMId = null;
+    currentQMUsername = "Default Realm";
+  }
+}
+
+// Kingdom dropdown filter change
+async function handleKingdomFilterChange() {
   const kingdomSelect = document.getElementById('profile-kingdom-select');
   if (!kingdomSelect) return;
-  populateParkOptions(kingdomSelect.value);
+  await populateParkOptions(kingdomSelect.value);
 }
 
-// User commits to a park by clicking "Change Park"
-async function handleCommitParkChange() {
+// Park dropdown filter change
+async function handleParkFilterChange() {
   const parkSelect = document.getElementById('profile-park-select');
   if (!parkSelect) return;
+  await populateQMOptions(parkSelect.value);
+}
 
+// Player clicks "Become QM Here"
+async function handleBecomeQM() {
+  const parkSelect = document.getElementById('profile-park-select');
+  const kingdomSelect = document.getElementById('profile-kingdom-select');
+  if (!currentUser) {
+    alert("Please sign in first.");
+    return;
+  }
+
+  const park = parkSelect ? parkSelect.value : getActivePark();
+  const kingdom = kingdomSelect ? kingdomSelect.value : getActiveKingdom();
+  const username = currentProfile?.username || currentUser.email?.split('@')[0] || 'Questmaster';
+
+  const confirmed = confirm(`Do you want to become a registered Questmaster for "${park}" in "${kingdom}"?\n\nThis will allow players to enter your QM realm, and unlocks your QM Panel!`);
+  if (!confirmed) return;
+
+  const btn = document.getElementById('btn-become-qm');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerText = "Registering...";
+  }
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('park_questmasters')
+      .upsert({
+        user_id: currentUser.id,
+        username: username,
+        kingdom: kingdom,
+        park: park
+      }, { onConflict: 'user_id, park' })
+      .select('*')
+      .maybeSingle();
+
+    if (error) {
+      alert("Error registering as Questmaster: " + error.message);
+      return;
+    }
+
+    alert(`👑 Congratulations! You are now a registered Questmaster for ${park}.\n\nYour realm is active and your QM Panel is unlocked!`);
+
+    await populateQMOptions(park, currentUser.id);
+    await saveActivePark(park, kingdom, currentUser.id, username);
+
+    // Auto-collapse accordion
+    const body = document.getElementById('park-selector-accordion-body');
+    const chevron = document.getElementById('park-selector-chevron');
+    if (body) body.classList.add('hidden');
+    if (chevron) chevron.innerText = "▼";
+  } catch (err) {
+    console.error("Error in handleBecomeQM:", err);
+    alert("Could not register as QM: " + err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerText = "👑 Become QM Here";
+    }
+  }
+}
+
+// User commits to Kingdom / Park / QM by clicking "Enter Realm"
+async function handleCommitParkChange() {
+  const kingdomSelect = document.getElementById('profile-kingdom-select');
+  const parkSelect = document.getElementById('profile-park-select');
+  const qmSelect = document.getElementById('profile-qm-select');
+
+  if (!parkSelect) return;
+
+  const selectedKingdom = kingdomSelect ? kingdomSelect.value : getActiveKingdom();
   const selectedPark = parkSelect.value;
-  if (!selectedPark) return;
+  const selectedQMId = qmSelect ? qmSelect.value : null;
+  const selectedQMOption = qmSelect ? qmSelect.options[qmSelect.selectedIndex] : null;
+  const selectedQMUsername = selectedQMOption?.dataset?.username || (selectedQMOption?.text?.replace('👑 ', '') || 'Default Realm');
 
   const btn = document.getElementById('btn-change-park');
   if (btn) {
     btn.disabled = true;
-    btn.innerText = "Switching...";
+    btn.innerText = "Entering...";
   }
 
   try {
-    await saveActivePark(selectedPark);
+    await saveActivePark(selectedPark, selectedKingdom, selectedQMId, selectedQMUsername);
 
-    // Auto-collapse the Park - Selector accordion after changing park
+    // Auto-collapse accordion
     const body = document.getElementById('park-selector-accordion-body');
     const chevron = document.getElementById('park-selector-chevron');
     if (body) body.classList.add('hidden');
@@ -99,28 +235,34 @@ async function handleCommitParkChange() {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerText = "Change Park";
+      btn.innerText = "Enter Realm";
     }
   }
 }
 
-async function saveActivePark(newPark) {
+async function saveActivePark(newPark, kingdom = null, qmId = null, qmUsername = null) {
   if (!newPark) return;
 
-  const derivedKingdom = getKingdomForPark(newPark);
+  const derivedKingdom = kingdom || getKingdomForPark(newPark);
+  const targetQMId = qmId || currentQMId || null;
+  const targetQMUsername = qmUsername || currentQMUsername || 'Default Realm';
 
   // 1. Update reactive local state
   currentPark = newPark;
   currentKingdom = derivedKingdom;
+  currentQMId = targetQMId;
+  currentQMUsername = targetQMUsername;
 
-  // 2. Load or initialize the relational park profile sheet
-  currentParkProfile = await loadUserParkProfile(currentUser?.id, newPark, derivedKingdom);
+  // 2. Load or initialize the relational park/QM profile sheet
+  currentParkProfile = await loadUserParkProfile(currentUser?.id, newPark, derivedKingdom, targetQMId);
 
   if (!currentProfile) currentProfile = {};
   currentProfile.park = newPark;
   currentProfile.kingdom = derivedKingdom;
+  currentProfile.last_active_qm_id = targetQMId;
+  currentProfile.last_active_qm_username = targetQMUsername;
 
-  // 3. Sync isolated gold display for newly active park
+  // 3. Sync isolated gold display for newly active QM reign
   const newParkGold = Number(currentParkProfile?.gold) || 0;
   currentProfile.gold = newParkGold;
   if (typeof syncGoldDisplays === 'function') {
@@ -129,14 +271,15 @@ async function saveActivePark(newPark) {
     goldEl.innerText = newParkGold;
   }
 
-  // 4. Synchronize role UI (badge & Questmaster panel access) for this park
-  const activeRole = currentParkProfile?.role || 'player';
+  // 4. Synchronize role UI (badge & Questmaster panel access)
+  const isHost = Boolean(currentUser && targetQMId && currentUser.id === targetQMId);
+  const activeRole = isHost ? 'questmaster' : (currentParkProfile?.role || 'player');
   syncUserRoleUI(activeRole);
 
   // 5. Update top banner display
   updateGroupBannerDisplays();
 
-  // 6. Persist last active location to Supabase profiles
+  // 6. Persist last active location & QM to Supabase profiles
   if (currentUser) {
     try {
       await supabaseClient
@@ -145,7 +288,9 @@ async function saveActivePark(newPark) {
           park: newPark, 
           kingdom: derivedKingdom,
           last_active_park: newPark,
-          last_active_kingdom: derivedKingdom
+          last_active_kingdom: derivedKingdom,
+          last_active_qm_id: targetQMId,
+          last_active_qm_username: targetQMUsername
         })
         .eq('id', currentUser.id);
     } catch (e) {
@@ -153,7 +298,7 @@ async function saveActivePark(newPark) {
     }
   }
 
-  // 7. Fetch isolated inventory, quests, and battle queues for the newly active park
+  // 7. Fetch isolated inventory, quests, and battle queues for the newly active QM realm
   await fetchUserInventory();
   if (typeof fetchUserSlotState === 'function') await fetchUserSlotState();
   if (typeof fetchQuests === 'function') await fetchQuests();
@@ -179,10 +324,11 @@ async function fetchUserInventory() {
   if (!currentUser) return;
 
   const activePark = getActivePark();
+  const activeQMId = currentQMId;
   updateGroupBannerDisplays();
 
   // Strictly fetch inventory items belonging to the active park from the database
-  const { data: parkInventory, error } = await supabaseClient
+  const { data: allParkItems, error } = await supabaseClient
     .from('user_inventory')
     .select('*')
     .eq('user_id', currentUser.id)
@@ -192,6 +338,8 @@ async function fetchUserInventory() {
     console.error("Error fetching inventory:", error);
     return;
   }
+
+  const parkInventory = (allParkItems || []).filter(item => !item.qm_id || !activeQMId || item.qm_id === activeQMId);
 
   if (!parkInventory || parkInventory.length === 0) {
     if (profileList) {
@@ -369,7 +517,7 @@ async function buyItem(itemName, cost, durationHours) {
 
   const durabilityMax = getCategoryDurabilityMax(category);
 
-  const { error } = await supabaseClient.from('user_inventory').insert({
+  const inventoryPayload = {
     user_id: currentUser.id,
     item_name: itemName,
     base_cost: cost,
@@ -377,13 +525,21 @@ async function buyItem(itemName, cost, durationHours) {
     durability_current: durabilityMax,
     durability_max: durabilityMax,
     park: activePark,
-    kingdom: activeKingdom
-  });
+    kingdom: activeKingdom,
+    qm_id: currentQMId || null
+  };
+
+  let { error } = await supabaseClient.from('user_inventory').insert(inventoryPayload);
+  if (error && error.message.includes('qm_id')) {
+    delete inventoryPayload.qm_id;
+    let retry = await supabaseClient.from('user_inventory').insert(inventoryPayload);
+    error = retry.error;
+  }
 
   if (error) { alert("Error buying item: " + error.message); return; }
 
   // Deduct Gold from isolated park wallet
-  await updateParkGold(cost * -1, true, activePark);
+  await updateParkGold(cost * -1, true, activePark, currentQMId);
 
   alert(`🛒 Purchased ${itemName} for ${cost} Gold!`);
   await fetchUserInventory();

@@ -7,6 +7,8 @@ async function fetchMonsterEncounters() {
   if (!availableMonsterContainer) return;
 
   const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
+  const activeQMId = currentQMId;
+  const activeQMName = typeof getActiveQMUsername === 'function' ? getActiveQMUsername() : 'Default Realm';
 
   const { data: combatQuests } = await supabaseClient
     .from('quests')
@@ -14,10 +16,13 @@ async function fetchMonsterEncounters() {
     .eq('is_active', true)
     .or('category.eq.Battle,category.eq.Combat');
 
-  const parkCombatQuests = (combatQuests || []).filter(q => !q.park || q.park === activePark);
+  const parkCombatQuests = (combatQuests || []).filter(q => 
+    (!q.park || q.park === activePark) &&
+    (!q.qm_id || !activeQMId || q.qm_id === activeQMId)
+  );
 
   if (!parkCombatQuests || parkCombatQuests.length === 0) {
-    availableMonsterContainer.innerHTML = `<p class="empty-state">No Active Battles in ${activePark}.</p>`;
+    availableMonsterContainer.innerHTML = `<p class="empty-state">No Active Battles in ${activePark} (${activeQMName}).</p>`;
     return;
   }
 
@@ -208,8 +213,10 @@ async function fetchQMQueues() {
   if (!container) return;
 
   const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
+  const activeQMId = currentQMId || currentUser?.id;
+  const activeQMName = typeof getActiveQMUsername === 'function' ? getActiveQMUsername() : 'Default Realm';
 
-  // 1. Fetch all combat/battle quests for the active park
+  // 1. Fetch all combat/battle quests for the active park and QM
   const { data: allBattleQuests, error: questError } = await supabaseClient
     .from('quests')
     .select('*')
@@ -221,10 +228,13 @@ async function fetchQMQueues() {
     return;
   }
 
-  const battleQuests = (allBattleQuests || []).filter(q => !q.park || q.park === activePark);
+  const battleQuests = (allBattleQuests || []).filter(q => 
+    (!q.park || q.park === activePark) &&
+    (!q.qm_id || !activeQMId || q.qm_id === activeQMId)
+  );
 
   if (!battleQuests || battleQuests.length === 0) {
-    container.innerHTML = `<p class="empty-state">No battle quests found for ${activePark}. Create one in the Forge Quest tab!</p>`;
+    container.innerHTML = `<p class="empty-state">No battle quests found for ${activePark} (${activeQMName}). Create one in the Forge Quest tab!</p>`;
     return;
   }
 
