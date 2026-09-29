@@ -15,6 +15,7 @@
   --warning: #f97316;
   --monster: #dc2626;
   --adventure: #10b981;
+  --quest: #10b981;
   --heroes: #60a5fa;
   --store: #eab308;
   --profile: #a1a1aa;
@@ -70,8 +71,9 @@ button:focus-visible, select:focus-visible {
   border-top: 4px solid var(--heroes);
 }
 
-.card-adventure {
-  border-top: 4px solid var(--adventure);
+.card-adventure,
+.card-quest {
+  border-top: 4px solid var(--quest);
 }
 
 .card-monsters {
@@ -511,7 +513,8 @@ button:focus-visible, select:focus-visible {
   border: 1px solid #7c2d12;
 }
 
-.badge-adventure {
+.badge-adventure,
+.badge-quest {
   background: #064e3b;
   color: #34d399;
   border: 1px solid #047857;
@@ -892,8 +895,9 @@ button:focus-visible, select:focus-visible {
   color: var(--primary);
 }
 
-.nav-btn.active-adventure {
-  color: var(--adventure);
+.nav-btn.active-adventure,
+.nav-btn.active-quest {
+  color: var(--quest);
 }
 
 .nav-btn.active-monster {

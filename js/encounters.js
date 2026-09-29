@@ -314,7 +314,7 @@ async function fetchQMQueues() {
                 : (rules.allowedTypes.length === 0 
                   ? '<span class="badge badge-threat-loot" title="No magic items lose durability">🚫 No Magic Items</span>' 
                   : `<span class="badge badge-type">✨ ${rules.allowedTypes.join(', ')}</span>`)}
-              ${q.repeatable ? '<span class="badge badge-adventure">🔁 Repeatable</span>' : ''}
+              ${q.repeatable ? '<span class="badge badge-quest">🔁 Repeatable</span>' : ''}
             </div>
           </div>
           <div>${statusBadge}</div>

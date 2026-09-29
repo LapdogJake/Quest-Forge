@@ -211,7 +211,7 @@ function renderActiveAdventureQuestCard(uq) {
         <div class="quest-details-body">
           <div class="quest-details-panel">
             <div class="tag-container">
-              <span class="badge badge-adventure">${q.category || 'Adventure'}</span>
+              <span class="badge badge-quest">Quest</span>
               <span class="badge badge-type">${groupType}</span>
               <span class="badge badge-active">Active</span>
             </div>
@@ -229,14 +229,14 @@ function renderActiveAdventureQuestCard(uq) {
 
 function renderSoloQuestCard(q, isActive, userQuestId) {
   if (!q) return '';
-  const isAdventure = q.category === 'Adventure' || (q.category !== 'Battle' && q.category !== 'Combat');
+  const isBattle = q.category === 'Battle' || q.category === 'Combat';
   const rewardGold = q.reward_gold || 0;
   const groupType = q.participation_type || 'Solo';
 
   return `
-    <div class="quest-card" style="border-left: 4px solid var(--adventure);">
+    <div class="quest-card" style="border-left: 4px solid var(--quest);">
       <div class="tag-container">
-        <span class="badge ${isAdventure ? 'badge-adventure' : 'badge-battle'}">${q.category || 'Adventure'}</span>
+        <span class="badge ${isBattle ? 'badge-battle' : 'badge-quest'}">${isBattle ? 'Battle' : 'Quest'}</span>
         <span class="badge badge-type">${groupType}</span>
         <span class="badge badge-active">Active</span>
       </div>
@@ -331,8 +331,8 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
   if (isAdventure) {
     const groupType = q.participation_type || 'Solo';
     const acceptButton = isSlotLocked
-      ? `<button class="btn-secondary" disabled style="opacity:0.6;">Adventure Slot Full</button>`
-      : `<button class="btn-join" style="background:var(--adventure); color:white;" onclick="acceptQuest('${q.id}')">Accept</button>`;
+      ? `<button class="btn-secondary" disabled style="opacity:0.6;">Quest Slot Full</button>`
+      : `<button class="btn-join" style="background:var(--quest); color:white;" onclick="acceptQuest('${q.id}')">Accept</button>`;
 
     const summaryAction = `<span class="quest-summary-actions">${acceptButton}</span>`;
 
@@ -346,7 +346,7 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
           <div class="quest-details-body">
             <div class="quest-details-panel">
               <div class="tag-container">
-                <span class="badge badge-adventure">${q.category || 'Adventure'}</span>
+                <span class="badge badge-quest">Quest</span>
                 <span class="badge badge-type">${groupType}</span>
               </div>
               <p>${q.description || ''}</p>
@@ -363,7 +363,7 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
   return `
     <div class="quest-card">
       <div class="tag-container">
-        <span class="badge ${isCombat ? 'badge-battle' : 'badge-adventure'}">${q.category || 'General'}</span>
+        <span class="badge ${isCombat ? 'badge-battle' : 'badge-quest'}">${isCombat ? 'Battle' : 'Quest'}</span>
         <span class="badge badge-type">${q.participation_type || 'Solo'}</span>
       </div>
       <h4>${q.title}</h4>
@@ -374,10 +374,10 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
           <span class="reward-gold">🪙 +${q.reward_gold} Gold</span>
         </div>
         ${isSlotLocked
-          ? `<button class="btn-secondary" disabled style="opacity:0.6;">${isCombat ? 'Battle Slot Full' : 'Adventure Slot Full'}</button>`
+          ? `<button class="btn-secondary" disabled style="opacity:0.6;">${isCombat ? 'Battle Slot Full' : 'Quest Slot Full'}</button>`
           : (isCombat
             ? `<button class="btn-accept" style="background:var(--warning);" onclick="joinOrCreateGroupQueue('${q.id}')">Join PC Line</button>`
-            : `<button class="btn-accept" style="background:var(--adventure);" onclick="acceptQuest('${q.id}')">Accept Quest</button>`)
+            : `<button class="btn-accept" style="background:var(--quest);" onclick="acceptQuest('${q.id}')">Accept Quest</button>`)
         }
       </div>
     </div>
@@ -398,7 +398,7 @@ async function fetchQMQuests() {
     .select('*')
     .order('created_at', { ascending: false });
 
-  // Only non-battle (Adventure) quests belonging to the active park & QM are shown in the Quest Catalog tab
+  // Only non-battle (Quest) quests belonging to the active park & QM are shown in the Quest Catalog tab
   const nonBattleQuests = (quests || []).filter(q => 
     q.category !== 'Battle' && 
     q.category !== 'Combat' && 
@@ -421,7 +421,7 @@ async function fetchQMQuests() {
       </div>
 
       <div class="tag-container" style="margin-top:6px;">
-        <span class="badge badge-adventure">${q.category || 'Adventure'}</span>
+        <span class="badge badge-quest">Quest</span>
         <span class="badge badge-type">🪙 ${q.reward_gold} Gold</span>
       </div>
 
@@ -631,7 +631,7 @@ async function createBattle() {
 
 async function createAdventureQuest() {
   const title = (document.getElementById('qm-quest-title') || document.getElementById('qm-title'))?.value.trim();
-  const category = 'Adventure';
+  const category = 'Quest';
   const participation_type = 'Solo';
   const threat_level = 'Safe';
   const verification_method = 'Honor';

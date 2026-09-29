@@ -5,15 +5,19 @@
 // Tab navigation
 function switchTab(tabName) {
   document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
-  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active', 'active-monster', 'active-adventure'));
+  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active', 'active-monster', 'active-adventure', 'active-quest'));
 
-  document.getElementById(`tab-${tabName}`).classList.remove('hidden');
-  const activeBtn = document.getElementById(`nav-${tabName}`);
+  const targetTab = document.getElementById(`tab-${tabName}`) || (tabName === 'quest' ? document.getElementById('tab-adventure') : null);
+  if (targetTab) targetTab.classList.remove('hidden');
+
+  const activeBtn = document.getElementById(`nav-${tabName}`) || (tabName === 'quest' ? document.getElementById('nav-adventure') : null);
+  if (!activeBtn) return;
+
   if (tabName === 'monsters') {
     activeBtn.classList.add('active-monster');
     fetchMonsterEncounters();
-  } else if (tabName === 'adventure') {
-    activeBtn.classList.add('active-adventure');
+  } else if (tabName === 'adventure' || tabName === 'quest' || tabName === 'quests') {
+    activeBtn.classList.add('active-quest');
     fetchQuests();
   } else if (tabName === 'heroes') {
     activeBtn.classList.add('active');
