@@ -400,14 +400,65 @@ async function fetchQMQuests() {
 
       <p style="margin-top:6px;">${q.description || 'No public description.'}</p>
 
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; gap:8px;">
         <button class="${q.is_active ? 'btn-toggle-draft' : 'btn-toggle-active'}" 
           onclick="toggleQuestDeployment('${q.id}', ${q.is_active})">
           ${q.is_active ? '🔴 Close Field Openings' : '🚀 Open Quest on Field'}
         </button>
+        <button class="btn-delete" onclick="qmDeleteQuest('${q.id}', '${(q.title || '').replace(/'/g, "\\'")}')" title="Delete quest from catalog">
+          🗑️ Delete
+        </button>
       </div>
     </div>
   `).join('');
+}
+
+async function qmDeleteQuest(questId, questTitle) {
+  let title = questTitle;
+  if (!title) {
+    const { data } = await supabaseClient.from('quests').select('title').eq('id', questId).maybeSingle();
+    title = data?.title || 'Quest';
+  }
+
+  const confirmed = confirm(`Are you sure you want to delete "${title}"?\n\nThis will permanently remove it from the catalog.`);
+  if (!confirmed) return;
+
+  try {
+    // 1. Delete associated quest queues and members/monsters
+    const { data: queues } = await supabaseClient
+      .from('quest_queues')
+      .select('id')
+      .eq('quest_id', questId);
+
+    if (queues && queues.length > 0) {
+      const queueIds = queues.map(q => q.id);
+      await supabaseClient.from('queue_members').delete().in('queue_id', queueIds);
+      await supabaseClient.from('encounter_monsters').delete().in('queue_id', queueIds);
+      await supabaseClient.from('quest_queues').delete().in('id', queueIds);
+    }
+
+    // 2. Delete user quest assignments/records
+    await supabaseClient.from('user_quests').delete().eq('quest_id', questId);
+
+    // 3. Delete the quest itself
+    const { error } = await supabaseClient.from('quests').delete().eq('id', questId);
+    if (error) {
+      alert("Failed to delete quest: " + error.message);
+      return;
+    }
+
+    // 4. Refresh all states
+    await fetchUserSlotState();
+    await fetchQuests();
+    await fetchMonsterEncounters();
+    await fetchQMQuests();
+    if (typeof fetchQMQueues === 'function') {
+      await fetchQMQueues();
+    }
+  } catch (err) {
+    console.error("Error deleting quest:", err);
+    alert("Error deleting quest: " + (err.message || err));
+  }
 }
 
 async function toggleQuestDeployment(questId, currentActiveState) {
@@ -515,6 +566,7 @@ async function createQuest() {
   if (victoryInput) victoryInput.value = '15';
   if (defeatInput) defeatInput.value = '10';
   if (document.getElementById('qm-monsters-are-npc')) document.getElementById('qm-monsters-are-npc').checked = false;
+  if (document.getElementById('qm-repeatable')) document.getElementById('qm-repeatable').checked = false;
   if (document.getElementById('qm-item-trinket')) document.getElementById('qm-item-trinket').checked = true;
   if (document.getElementById('qm-item-talisman')) document.getElementById('qm-item-talisman').checked = true;
   if (document.getElementById('qm-item-artifact')) document.getElementById('qm-item-artifact').checked = true;

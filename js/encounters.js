@@ -313,9 +313,12 @@ async function fetchQMQueues() {
 
         ${state === 'closed' ? `
           <!-- STATE 1: CLOSED / STANDBY -->
-          <div style="margin-top:12px;">
-            <button class="btn-accept" style="width:100%; font-size:13px; padding:10px;" onclick="qmLaunchBattle('${q.id}')">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; gap:8px;">
+            <button class="btn-accept" style="flex:1; font-size:13px; padding:10px;" onclick="qmLaunchBattle('${q.id}')">
               🚀 Launch Battle to Field (Open Line)
+            </button>
+            <button class="btn-delete" style="padding:10px 12px;" onclick="qmDeleteQuest('${q.id}', '${(q.title || '').replace(/'/g, "\\'")}')" title="Delete battle from catalog">
+              🗑️ Delete
             </button>
           </div>
         ` : `
@@ -351,24 +354,30 @@ async function fetchQMQueues() {
 
           <!-- CONTROLS BASED ON STATE -->
           ${state === 'prepped' ? `
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
               <button class="btn-accept" style="flex:2; min-width:140px; font-size:13px; padding:8px;" onclick="qmStartCombat('${queueId}', '${q.id}')">
                 ⚔️ Start Combat (Go Live)
               </button>
               <button class="btn-complete" style="flex:2; min-width:140px; font-size:13px; padding:8px;" onclick="qmFinishBattle('${queueId}', '${q.id}', ${victoryGold}, ${defeatGold})">
                 🏁 Finish Battle
               </button>
-              <button class="btn-leave" style="flex:1; min-width:90px; font-size:12px; padding:8px;" onclick="qmCloseBattle('${q.id}', '${queueId}')">
+              <button class="btn-leave" style="flex:1; min-width:70px; font-size:12px; padding:8px;" onclick="qmCloseBattle('${q.id}', '${queueId}')">
                 🛑 Close
+              </button>
+              <button class="btn-delete" style="padding:8px 10px;" onclick="qmDeleteQuest('${q.id}', '${(q.title || '').replace(/'/g, "\\'")}')" title="Delete battle from catalog">
+                🗑️ Delete
               </button>
             </div>
           ` : `
-            <div style="display:flex; gap:8px;">
+            <div style="display:flex; gap:8px; align-items:center;">
               <button class="btn-complete" style="flex:3; font-size:14px; padding:10px;" onclick="qmFinishBattle('${queueId}', '${q.id}', ${victoryGold}, ${defeatGold})">
                 🏁 Finish Battle & Distribute Rewards
               </button>
               <button class="btn-leave" style="flex:1; font-size:12px; padding:10px;" onclick="qmCloseBattle('${q.id}', '${queueId}')">
                 🛑 Abort
+              </button>
+              <button class="btn-delete" style="padding:10px 12px;" onclick="qmDeleteQuest('${q.id}', '${(q.title || '').replace(/'/g, "\\'")}')" title="Delete battle from catalog">
+                🗑️ Delete
               </button>
             </div>
           `}
