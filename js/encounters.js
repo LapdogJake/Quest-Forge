@@ -6,18 +6,22 @@ async function fetchMonsterEncounters() {
   const availableMonsterContainer = document.getElementById('available-monster-encounters');
   if (!availableMonsterContainer) return;
 
+  const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
+
   const { data: combatQuests } = await supabaseClient
     .from('quests')
     .select('*')
     .eq('is_active', true)
     .or('category.eq.Battle,category.eq.Combat');
 
-  if (!combatQuests || combatQuests.length === 0) {
-    availableMonsterContainer.innerHTML = `<p class="empty-state">No Active Quests.</p>`;
+  const parkCombatQuests = (combatQuests || []).filter(q => !q.park || q.park === activePark);
+
+  if (!parkCombatQuests || parkCombatQuests.length === 0) {
+    availableMonsterContainer.innerHTML = `<p class="empty-state">No Active Battles in ${activePark}.</p>`;
     return;
   }
 
-  const monsterQuestIds = combatQuests.map(q => q.id);
+  const monsterQuestIds = parkCombatQuests.map(q => q.id);
   let monsterRosterByQuest = new Map();
 
   if (monsterQuestIds.length > 0) {
@@ -41,7 +45,7 @@ async function fetchMonsterEncounters() {
 
   const isBattleLocked = !!activeBattleQuest;
 
-  availableMonsterContainer.innerHTML = combatQuests.map(q => renderMonsterQuestCard(q, activeMonsterClaim, monsterRosterByQuest.get(q.id), isBattleLocked)).join('');
+  availableMonsterContainer.innerHTML = parkCombatQuests.map(q => renderMonsterQuestCard(q, activeMonsterClaim, monsterRosterByQuest.get(q.id), isBattleLocked)).join('');
 }
 
 function renderMonsterQuestCard(q, activeMonsterClaim, monsterRoster = null, isBattleLocked = false) {
@@ -203,8 +207,10 @@ async function fetchQMQueues() {
   const container = document.getElementById('qm-queue-list');
   if (!container) return;
 
-  // 1. Fetch all combat/battle quests
-  const { data: battleQuests, error: questError } = await supabaseClient
+  const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
+
+  // 1. Fetch all combat/battle quests for the active park
+  const { data: allBattleQuests, error: questError } = await supabaseClient
     .from('quests')
     .select('*')
     .or('category.eq.Battle,category.eq.Combat')
@@ -215,8 +221,10 @@ async function fetchQMQueues() {
     return;
   }
 
+  const battleQuests = (allBattleQuests || []).filter(q => !q.park || q.park === activePark);
+
   if (!battleQuests || battleQuests.length === 0) {
-    container.innerHTML = `<p class="empty-state">No battle quests found. Create one in the Forge Quest tab!</p>`;
+    container.innerHTML = `<p class="empty-state">No battle quests found for ${activePark}. Create one in the Forge Quest tab!</p>`;
     return;
   }
 

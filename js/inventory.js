@@ -44,9 +44,11 @@ function updateGroupBannerDisplays() {
 
   const kDisplay = document.getElementById('display-profile-kingdom');
   const pDisplay = document.getElementById('display-profile-park');
+  const qmParkDisplay = document.getElementById('display-qm-park');
 
   if (kDisplay) kDisplay.innerText = activeKingdom;
   if (pDisplay) pDisplay.innerText = activePark;
+  if (qmParkDisplay) qmParkDisplay.innerText = activePark;
 }
 
 function populateParkOptions(filterKingdom, parkToSelect = null) {
@@ -151,8 +153,13 @@ async function saveActivePark(newPark) {
     }
   }
 
-  // 7. Fetch isolated inventory for the newly active park
+  // 7. Fetch isolated inventory, quests, and battle queues for the newly active park
   await fetchUserInventory();
+  if (typeof fetchUserSlotState === 'function') await fetchUserSlotState();
+  if (typeof fetchQuests === 'function') await fetchQuests();
+  if (typeof fetchMonsterEncounters === 'function') await fetchMonsterEncounters();
+  if (typeof fetchQMQuests === 'function') await fetchQMQuests();
+  if (typeof fetchQMQueues === 'function') await fetchQMQueues();
 }
 
 // Backwards-compatible aliases
