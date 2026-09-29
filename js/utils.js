@@ -1,8 +1,8 @@
 // ==============================================================================
-// Quest-Forge: Helper & Utility Functions
+// Quest-Forge: Core Navigation & Utility Functions
 // ==============================================================================
 
-// Tab navigation
+// Main Navigation Tab Switching
 function switchTab(tabName) {
   document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
   document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active', 'active-monster', 'active-adventure', 'active-quest'));
@@ -15,26 +15,26 @@ function switchTab(tabName) {
 
   if (tabName === 'monsters') {
     activeBtn.classList.add('active-monster');
-    fetchMonsterEncounters();
+    if (typeof fetchMonsterEncounters === 'function') fetchMonsterEncounters();
   } else if (tabName === 'adventure' || tabName === 'quest' || tabName === 'quests') {
     activeBtn.classList.add('active-quest');
-    fetchQuests();
+    if (typeof fetchQuests === 'function') fetchQuests();
   } else if (tabName === 'heroes') {
     activeBtn.classList.add('active');
-    fetchQuests();
+    if (typeof fetchQuests === 'function') fetchQuests();
   } else if (tabName === 'profile') {
     activeBtn.classList.add('active');
-    fetchUserSlotState();
-    fetchUserInventory();
+    if (typeof fetchUserSlotState === 'function') fetchUserSlotState();
+    if (typeof fetchUserInventory === 'function') fetchUserInventory();
   } else if (tabName === 'admin') {
     activeBtn.classList.add('active');
-    fetchQMQuests();
-    fetchQMQueues();
+    if (typeof fetchQMQuests === 'function') fetchQMQuests();
+    if (typeof fetchQMQueues === 'function') fetchQMQueues();
   } else if (tabName === 'store') {
     activeBtn.classList.add('active');
     const gold = currentParkProfile?.gold ?? currentProfile?.gold ?? 0;
     syncGoldDisplays(gold);
-    fetchUserInventory();
+    if (typeof fetchUserInventory === 'function') fetchUserInventory();
   } else {
     activeBtn.classList.add('active');
   }
@@ -47,23 +47,6 @@ function syncGoldDisplays(goldAmt) {
   if (profileGold) profileGold.innerText = amt;
   const storeGold = document.getElementById('store-player-gold');
   if (storeGold) storeGold.innerText = amt;
-}
-
-// Merchant Store sub-navigation
-function switchStoreSubTab(subTab) {
-  document.getElementById('store-subtab-buy').classList.add('hidden');
-  document.getElementById('store-subtab-sell').classList.add('hidden');
-  document.getElementById('store-subnav-buy').classList.remove('active');
-  document.getElementById('store-subnav-sell').classList.remove('active');
-
-  if (subTab === 'buy') {
-    document.getElementById('store-subtab-buy').classList.remove('hidden');
-    document.getElementById('store-subnav-buy').classList.add('active');
-  } else {
-    document.getElementById('store-subtab-sell').classList.remove('hidden');
-    document.getElementById('store-subnav-sell').classList.add('active');
-    fetchUserInventory();
-  }
 }
 
 // Questmaster Panel sub-navigation
@@ -83,13 +66,12 @@ function switchQMSubTab(subTabName) {
   if (targetTab) targetTab.classList.remove('hidden');
   if (targetNav) targetNav.classList.add('active');
 
-  if (normalized === 'library') {
+  if (normalized === 'library' && typeof fetchQMQuests === 'function') {
     fetchQMQuests();
-  } else if (normalized === 'queues') {
+  } else if (normalized === 'queues' && typeof fetchQMQueues === 'function') {
     fetchQMQueues();
   }
 }
-
 
 // Profile Park Selector Accordion Toggle
 function toggleParkSelectorAccordion() {
@@ -111,14 +93,15 @@ function toggleParkSelectorAccordion() {
 function toggleProfileInventoryAccordion() {
   const accordionBody = document.getElementById('profile-inventory-accordion-body');
   const chevron = document.getElementById('profile-inventory-chevron');
+  if (!accordionBody) return;
   const isHidden = accordionBody.classList.contains('hidden');
 
   if (isHidden) {
     accordionBody.classList.remove('hidden');
-    chevron.innerText = "▲";
+    if (chevron) chevron.innerText = "▲";
   } else {
     accordionBody.classList.add('hidden');
-    chevron.innerText = "▼";
+    if (chevron) chevron.innerText = "▼";
   }
 }
 
@@ -197,169 +180,4 @@ function getQuestDurabilityRules(q) {
     allowedTypes: allowedTypes,
     defeatGold: defeatGold !== undefined && defeatGold !== null ? Number(defeatGold) : 0
   };
-}
-
-// Lookup Kingdom for a given Park (Kingdom is a sorting filter)
-function getKingdomForPark(parkName) {
-  if (!parkName) return 'The Freeholds of Amtgard';
-  if (typeof AMTGARD_KINGDOMS_AND_PARKS === 'object') {
-    for (const [kingdom, parks] of Object.entries(AMTGARD_KINGDOMS_AND_PARKS)) {
-      if (Array.isArray(parks) && parks.includes(parkName)) {
-        return kingdom;
-      }
-    }
-  }
-  return currentKingdom || 'The Freeholds of Amtgard';
-}
-
-// Load or initialize a player's relational park/QM profile sheet
-async function loadUserParkProfile(userId, park, kingdom = null, qmId = null) {
-  if (!userId || !park) return null;
-  const targetKingdom = kingdom || getKingdomForPark(park);
-  const targetQMId = qmId || currentQMId || null;
-
-  try {
-    let query = supabaseClient
-      .from('user_park_profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('park', park);
-
-    if (targetQMId) {
-      query = query.eq('qm_id', targetQMId);
-    }
-
-    const { data, error } = await query.maybeSingle();
-
-    if (!error && data) {
-      return data;
-    }
-
-    const isHostQM = targetQMId && userId === targetQMId;
-
-    // Insert new park/QM profile sheet if none exists yet
-    const insertPayload = {
-      user_id: userId,
-      park: park,
-      kingdom: targetKingdom,
-      qm_id: targetQMId,
-      role: isHostQM ? 'questmaster' : 'player',
-      gold: 0
-    };
-
-    const { data: newRow, error: insertErr } = await supabaseClient
-      .from('user_park_profiles')
-      .insert(insertPayload)
-      .select('*')
-      .maybeSingle();
-
-    if (!insertErr && newRow) {
-      return newRow;
-    }
-  } catch (err) {
-    console.warn('Could not read/insert user_park_profiles:', err);
-  }
-
-  // Graceful in-memory fallback
-  return {
-    user_id: userId,
-    park: park,
-    kingdom: targetKingdom,
-    qm_id: targetQMId,
-    role: (targetQMId && userId === targetQMId) ? 'questmaster' : 'player',
-    gold: 0
-  };
-}
-
-// UI helper to sync role badge and Questmaster panel visibility with the active park & QM reign
-function syncUserRoleUI(role) {
-  const roleBadgeEl = document.getElementById('role-badge');
-  const navAdminEl = document.getElementById('nav-admin');
-
-  const isCurrentQMHost = Boolean(currentUser && currentQMId && currentUser.id === currentQMId);
-  const isQM = isCurrentQMHost || role === 'questmaster' || role === 'admin' || currentProfile?.role === 'admin';
-
-  if (roleBadgeEl) {
-    roleBadgeEl.innerText = isCurrentQMHost ? '👑 QUESTMASTER' : (role || 'player').toUpperCase();
-    roleBadgeEl.style.display = 'inline-block';
-  }
-
-  if (navAdminEl) {
-    navAdminEl.classList.toggle('hidden', !isQM);
-  }
-
-  if (isQM && typeof fetchQMQueues === 'function') {
-    fetchQMQueues();
-    fetchQMQuests();
-  }
-}
-
-// Isolated Park & QM Currency (Gold) Management
-function getParkGold(profile, park, qmId = null) {
-  const targetPark = park || (typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest"));
-  const targetQMId = qmId || currentQMId;
-  
-  if (currentParkProfile && currentParkProfile.park === targetPark && (!targetQMId || currentParkProfile.qm_id === targetQMId)) {
-    return Number(currentParkProfile.gold) || 0;
-  }
-  return Number(currentParkProfile?.gold) || 0;
-}
-
-async function updateParkGold(amountOrNewTotal, isDelta = false, park = null, qmId = null) {
-  const targetPark = park || (typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest"));
-  const targetKingdom = getKingdomForPark(targetPark);
-  const targetQMId = qmId || currentQMId || null;
-
-  const currentAmt = (currentParkProfile && currentParkProfile.park === targetPark)
-    ? Number(currentParkProfile.gold) || 0
-    : getParkGold(currentProfile, targetPark, targetQMId);
-
-  const nextGold = isDelta ? Math.max(0, currentAmt + amountOrNewTotal) : Math.max(0, amountOrNewTotal);
-
-  if (!currentParkProfile) {
-    currentParkProfile = { 
-      user_id: currentUser?.id, 
-      park: targetPark, 
-      kingdom: targetKingdom, 
-      qm_id: targetQMId,
-      role: (targetQMId && currentUser?.id === targetQMId) ? 'questmaster' : 'player', 
-      gold: nextGold 
-    };
-  } else if (currentParkProfile.park === targetPark) {
-    currentParkProfile.gold = nextGold;
-  }
-
-  if (!currentProfile) currentProfile = {};
-  currentProfile.gold = nextGold;
-
-  const activeParkNow = typeof getActivePark === 'function' ? getActivePark() : currentPark;
-  if (targetPark === activeParkNow) {
-    syncGoldDisplays(nextGold);
-  }
-
-  if (currentUser) {
-    try {
-      if (currentParkProfile?.id) {
-        await supabaseClient
-          .from('user_park_profiles')
-          .update({ gold: nextGold })
-          .eq('id', currentParkProfile.id);
-      } else {
-        let query = supabaseClient
-          .from('user_park_profiles')
-          .update({ gold: nextGold })
-          .eq('user_id', currentUser.id)
-          .eq('park', targetPark);
-
-        if (targetQMId) {
-          query = query.eq('qm_id', targetQMId);
-        }
-        await query;
-      }
-    } catch (e) {
-      console.warn('Could not persist park gold:', e);
-    }
-  }
-
-  return nextGold;
 }
