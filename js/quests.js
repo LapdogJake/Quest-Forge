@@ -512,8 +512,8 @@ async function createQuest() {
   if (document.getElementById('qm-description')) document.getElementById('qm-description').value = '';
   if (document.getElementById('qm-scenario')) document.getElementById('qm-scenario').value = '';
   if (document.getElementById('qm-requirements')) document.getElementById('qm-requirements').value = '';
-  if (victoryInput) victoryInput.value = '25';
-  if (defeatInput) defeatInput.value = '5';
+  if (victoryInput) victoryInput.value = '15';
+  if (defeatInput) defeatInput.value = '10';
   if (document.getElementById('qm-monsters-are-npc')) document.getElementById('qm-monsters-are-npc').checked = false;
   if (document.getElementById('qm-item-trinket')) document.getElementById('qm-item-trinket').checked = true;
   if (document.getElementById('qm-item-talisman')) document.getElementById('qm-item-talisman').checked = true;

@@ -151,7 +151,7 @@
     <!-- 6. QUESTMASTER CONTROL TAB -->
     <section id="tab-admin" class="tab-view hidden">
       <div class="card">
-        <h2>👑 Questmaster Control</h2>
+        <h2>👑 Questmaster Panel</h2>
 
         <div class="qm-subnav">
           <button id="qm-subnav-create" class="qm-subnav-btn active" onclick="switchQMSubTab('create')">➕ Forge
@@ -164,11 +164,9 @@
 
         <!-- SUB-TAB 1: QUEST CREATOR -->
         <div id="qm-subtab-create">
-          <h3 style="font-size: 15px; margin-bottom: 12px; color: var(--primary);">Forge New Quest</h3>
-
           <div class="form-group">
-            <label>Quest Title</label>
-            <input type="text" id="qm-title" class="form-control" placeholder="e.g. Defend the Siege Engine">
+            <label>Title</label>
+            <input type="text" id="qm-title" class="form-control" placeholder="Title">
           </div>
 
           <div class="form-group">
@@ -181,37 +179,34 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label>Victory Gold Reward</label>
-              <input type="number" id="qm-gold-victory" class="form-control" value="25" min="0">
+              <label>Victory Reward</label>
+              <input type="number" id="qm-gold-victory" class="form-control" value="15" min="0">
             </div>
             <div class="form-group">
-              <label>Defeated Gold Reward</label>
-              <input type="number" id="qm-gold-defeat" class="form-control" value="5" min="0">
+              <label>Defeated Reward</label>
+              <input type="number" id="qm-gold-defeat" class="form-control" value="10" min="0">
             </div>
           </div>
 
           <div class="form-group">
-            <label>Public Description</label>
+            <label>Description</label>
             <textarea id="qm-description" class="form-control" style="min-height:70px;"
-              placeholder="Public lore objectives..."></textarea>
+              placeholder="Description"></textarea>
           </div>
 
           <div class="form-group"
             style="background:#1e1e22; padding:10px; border-radius:8px; border:1px dashed var(--primary);">
             <label style="color:#c084fc;">Hidden Scenario Description</label>
             <textarea id="qm-scenario" class="form-control" style="min-height:80px;"
-              placeholder="Battlefield setup, secret objectives, monster role templates..."></textarea>
+              placeholder="Monsters can only see this."></textarea>
           </div>
 
           <!-- Durability & Magic Item Restriction Rules -->
           <div class="form-group"
             style="background:#18181b; padding:12px; border-radius:8px; border:1px solid var(--border);">
-            <label style="font-weight:600; font-size:13px; color:var(--text); display:block; margin-bottom:4px;">
-              ✨ Magic Items Allowed (Consume Durability)
+            <label style="font-weight:600; font-size:13px; color:var(--text); display:block; margin-bottom:8px;">
+              Checked Items will consume Durability
             </label>
-            <p style="font-size:11px; color:var(--text-muted); margin:0 0 10px 0;">
-              Checked items will be used and eat durability. Uncheck restricted types (e.g. Militia / No Class games) so they do not lose durability.
-            </p>
             <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:10px;">
               <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px;">
                 <input type="checkbox" id="qm-item-trinket" checked style="width:16px; height:16px;">
@@ -230,7 +225,7 @@
             <div style="border-top:1px solid #27272a; padding-top:8px; display:flex; align-items:center; gap:8px;">
               <input type="checkbox" id="qm-monsters-are-npc" style="width:18px; height:18px;">
               <label for="qm-monsters-are-npc" style="margin:0; cursor:pointer; font-size:13px;">
-                👹 Monsters are NPC (Monster queue does not lose durability)
+                No Durability loss on Monster
               </label>
             </div>
           </div>
