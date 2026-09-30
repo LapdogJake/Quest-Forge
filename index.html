@@ -161,7 +161,22 @@
       </div>
     </section>
 
-    <!-- 5. QUESTMASTER CONTROL TAB -->
+    <!-- 5. LIBRARY COMPENDIUM TAB -->
+    <section id="tab-library" class="tab-view hidden">
+      <div class="card card-library">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <h2 style="margin:0;">📚 Library</h2>
+          <small id="library-article-count" style="color:var(--text-muted); font-size:12px;">Compendium</small>
+        </div>
+
+        <!-- Compendium Guide List -->
+        <div id="library-content-container">
+          <p class="empty-state">Loading compendium...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. QUESTMASTER CONTROL TAB -->
     <section id="tab-admin" class="tab-view hidden">
       <div class="card">
         <h2>👑 Questmaster Panel</h2>
@@ -300,7 +315,7 @@
 
   </main>
 
-  <!-- Bottom Navigation (5 Mobile-Optimized Tabs) -->
+  <!-- Bottom Navigation -->
   <nav class="bottom-nav">
     <button class="nav-btn active" id="nav-profile" onclick="switchTab('profile')">
       👤 <span>Profile</span>
@@ -314,21 +329,25 @@
     <button class="nav-btn" id="nav-store" onclick="switchTab('store')">
       🛒 <span>Store</span>
     </button>
+    <button class="nav-btn" id="nav-library" onclick="switchTab('library')">
+      📚 <span>Library</span>
+    </button>
     <button class="nav-btn" id="nav-admin" onclick="switchTab('admin')">
       👑 <span>QM Panel</span>
     </button>
   </nav>
 
   <!-- Modular Scripts -->
-  <script src="js/config.js?v=25"></script>
-  <script src="js/state.js?v=25"></script>
-  <script src="js/utils.js?v=25"></script>
-  <script src="js/reigns.js?v=25"></script>
-  <script src="js/inventory.js?v=25"></script>
-  <script src="js/store.js?v=25"></script>
-  <script src="js/encounters.js?v=25"></script>
-  <script src="js/quests.js?v=25"></script>
-  <script src="js/app.js?v=25"></script>
+  <script src="js/config.js?v=27"></script>
+  <script src="js/state.js?v=27"></script>
+  <script src="js/utils.js?v=27"></script>
+  <script src="js/reigns.js?v=27"></script>
+  <script src="js/inventory.js?v=27"></script>
+  <script src="js/store.js?v=27"></script>
+  <script src="js/library.js?v=27"></script>
+  <script src="js/encounters.js?v=27"></script>
+  <script src="js/quests.js?v=27"></script>
+  <script src="js/app.js?v=27"></script>
 </body>
 
 </html>

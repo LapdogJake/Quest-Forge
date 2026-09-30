@@ -42,6 +42,9 @@ function switchTab(tabName) {
     const gold = currentParkProfile?.gold ?? currentProfile?.gold ?? 0;
     syncGoldDisplays(gold);
     if (typeof fetchUserInventory === 'function') fetchUserInventory();
+  } else if (tabName === 'library') {
+    activeBtn.classList.add('active');
+    if (typeof renderLibrary === 'function') renderLibrary();
   } else {
     activeBtn.classList.add('active');
   }

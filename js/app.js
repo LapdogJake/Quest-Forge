@@ -96,6 +96,7 @@ async function initDashboard() {
     if (typeof fetchMonsterEncounters === 'function') fetchMonsterEncounters();
     if (typeof fetchUserInventory === 'function') await fetchUserInventory();
     if (typeof renderStoreCatalog === 'function') renderStoreCatalog();
+    if (typeof renderLibrary === 'function') renderLibrary();
   } catch (err) {
     console.error('Fatal error during initDashboard:', err);
     const userDisplayEl = document.getElementById('user-display');
