@@ -441,6 +441,8 @@ function renderLibrary() {
       </div>
     `;
   }).join('');
+}
+
 // Sub-tab switching between Magic Items and Monsters
 function switchLibrarySubTab(subTab) {
   const isItems = subTab === 'items';

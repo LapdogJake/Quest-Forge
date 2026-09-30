@@ -575,54 +575,293 @@ button:focus-visible, select:focus-visible {
   color: var(--primary);
 }
 
-/* Dual Line Display */
+/* Dual Line Display & Battle Cards */
+.battle-card {
+  background: #18181b;
+  border-radius: 12px;
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  transition: border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
 .dual-queue-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+
+.queue-box {
+  background: rgba(24, 24, 27, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 180px;
+  transition: all 0.2s ease;
+}
+
+.queue-box.hero-box {
+  border-color: rgba(56, 189, 248, 0.4);
+  background: linear-gradient(180deg, rgba(2, 132, 199, 0.08) 0%, rgba(15, 23, 42, 0.6) 100%);
+}
+
+.queue-box.hero-box.joined-active {
+  border-color: #38bdf8;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.25);
+}
+
+.queue-box.monster-box {
+  border-color: rgba(244, 63, 94, 0.4);
+  background: linear-gradient(180deg, rgba(225, 29, 72, 0.08) 0%, rgba(15, 23, 42, 0.6) 100%);
+}
+
+.queue-box.monster-box.joined-active {
+  border-color: #f43f5e;
+  box-shadow: 0 0 16px rgba(244, 63, 94, 0.25);
+}
+
+.queue-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.queue-header-title {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.queue-count-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.queue-roster-list {
+  min-height: 50px;
+  max-height: 110px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.party-member-tag {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(36, 36, 41, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+
+.party-member-tag.is-current-user {
+  border-color: var(--gold);
+  background: rgba(234, 179, 8, 0.15);
+  color: #fef08a;
+  font-weight: 700;
+}
+
+/* Big Fat-Finger Battle Buttons */
+.btn-battle-action {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 8px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: transform 0.1s ease, filter 0.15s ease, box-shadow 0.2s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.btn-battle-action:active {
+  transform: scale(0.97);
+}
+
+.btn-battle-hero {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+}
+
+.btn-battle-hero:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.5);
+}
+
+.btn-battle-monster {
+  background: linear-gradient(135deg, #e11d48 0%, #9f1239 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(225, 29, 72, 0.35);
+}
+
+.btn-battle-monster:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 6px 18px rgba(225, 29, 72, 0.5);
+}
+
+.btn-battle-leave {
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+}
+
+.btn-battle-leave:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 6px 18px rgba(239, 68, 68, 0.5);
+}
+
+.btn-battle-disabled {
+  background: #27272a;
+  color: #71717a;
+  border: 1px solid #3f3f46;
+  opacity: 0.65;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-battle-disabled:active {
+  transform: none;
+}
+
+/* Secret Briefing Box */
+.secret-briefing-card {
+  margin-top: 12px;
+  background: linear-gradient(135deg, rgba(88, 28, 135, 0.25) 0%, rgba(30, 27, 75, 0.4) 100%);
+  border: 1px solid rgba(192, 132, 252, 0.35);
+  border-radius: 10px;
+  padding: 12px 14px;
+  box-shadow: 0 4px 16px rgba(88, 28, 135, 0.2);
+}
+
+.secret-briefing-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.secret-briefing-header h5 {
+  color: #c084fc;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.secret-briefing-content {
+  font-size: 13px;
+  color: #f3e8ff;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.secret-briefing-locked {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: rgba(39, 39, 42, 0.5);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #a1a1aa;
+}
+
+/* QM Streamlined Victor Buttons */
+.qm-victor-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-top: 10px;
+  margin-bottom: 10px;
 }
 
-@media (max-width: 380px) {
-  .dual-queue-grid {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-}
-
-.battle-card {
-  transition: border-color 0.2s ease, transform 0.15s ease;
-}
-
-.queue-box {
-  background: #1e1e22;
-  border: 1px solid var(--border);
+.btn-qm-victor {
+  min-height: 52px;
+  padding: 8px 6px;
   border-radius: 8px;
-  padding: 10px;
+  border: none;
+  cursor: pointer;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 2px;
+  transition: all 0.15s ease;
+  user-select: none;
 }
 
-.queue-box h5 {
-  font-size: 11px;
-  color: #a1a1aa;
-  margin-bottom: 6px;
+.btn-qm-victor-hero {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: white;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+}
+
+.btn-qm-victor-hero:hover {
+  filter: brightness(1.15);
+  box-shadow: 0 4px 16px rgba(2, 132, 199, 0.4);
+}
+
+.btn-qm-victor-monster {
+  background: linear-gradient(135deg, #e11d48 0%, #9f1239 100%);
+  color: white;
+  border: 1px solid rgba(244, 63, 94, 0.4);
+}
+
+.btn-qm-victor-monster:hover {
+  filter: brightness(1.15);
+  box-shadow: 0 4px 16px rgba(225, 29, 72, 0.4);
+}
+
+.btn-qm-victor-title {
+  font-size: 13px;
+  font-weight: 800;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.party-member-tag {
-  display: block;
-  background: #242429;
-  border: 1px solid var(--border);
-  padding: 4px 6px;
-  border-radius: 6px;
-  font-size: 11px;
-  margin-bottom: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-weight: 500;
+.btn-qm-victor-sub {
+  font-size: 10px;
+  opacity: 0.9;
+  font-weight: 600;
 }
 
 /* Sub-Navigation Tabs */
