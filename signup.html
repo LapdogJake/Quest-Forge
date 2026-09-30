@@ -114,12 +114,33 @@
 
       if (error) {
         status.style.color = "#f87171";
-        status.innerText = error.message;
+        if (error.message && error.message.includes("Database error saving new user")) {
+          status.innerHTML = `⚠️ <strong>Database Trigger Error:</strong><br>Please run the script in <code>supabase_fix_user_signup.sql</code> in your Supabase SQL Editor to enable new account creation.`;
+        } else {
+          status.innerText = error.message;
+        }
       } else {
         // Auto-login after registration and go to dashboard
         const { data: loginData } = await supabaseClient.auth.signInWithPassword({ email, password });
         if (loginData?.user) {
-          await supabaseClient.from('profiles').update({ kingdom, park }).eq('id', loginData.user.id);
+          // Upsert profile in case trigger was skipped
+          await supabaseClient.from('profiles').upsert({
+            id: loginData.user.id,
+            username: username,
+            email: email,
+            kingdom: kingdom,
+            park: park,
+            role: 'player',
+            gold: 0
+          });
+
+          await supabaseClient.from('user_park_profiles').upsert({
+            user_id: loginData.user.id,
+            kingdom: kingdom,
+            park: park,
+            role: 'player',
+            gold: 0
+          });
         }
         window.location.href = "index.html";
       }
