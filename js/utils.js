@@ -5,22 +5,29 @@
 // Main Navigation Tab Switching
 function switchTab(tabName) {
   document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
-  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active', 'active-monster', 'active-adventure', 'active-quest'));
+  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active', 'active-monster', 'active-adventure', 'active-quest', 'active-battle'));
 
-  const targetTab = document.getElementById(`tab-${tabName}`) || (tabName === 'quest' ? document.getElementById('tab-adventure') : null);
+  const isBattleTab = tabName === 'battles' || tabName === 'battle' || tabName === 'heroes' || tabName === 'monsters';
+  const isQuestTab = tabName === 'adventure' || tabName === 'quest' || tabName === 'quests';
+
+  const targetTab = isBattleTab 
+    ? (document.getElementById('tab-battles') || document.getElementById('tab-heroes'))
+    : (isQuestTab ? (document.getElementById('tab-adventure') || document.getElementById('tab-quest')) : document.getElementById(`tab-${tabName}`));
+
   if (targetTab) targetTab.classList.remove('hidden');
 
-  const activeBtn = document.getElementById(`nav-${tabName}`) || (tabName === 'quest' ? document.getElementById('nav-adventure') : null);
+  const activeBtn = isBattleTab
+    ? (document.getElementById('nav-battles') || document.getElementById('nav-heroes'))
+    : (isQuestTab ? (document.getElementById('nav-adventure') || document.getElementById('nav-quest')) : document.getElementById(`nav-${tabName}`));
+
   if (!activeBtn) return;
 
-  if (tabName === 'monsters') {
-    activeBtn.classList.add('active-monster');
-    if (typeof fetchMonsterEncounters === 'function') fetchMonsterEncounters();
-  } else if (tabName === 'adventure' || tabName === 'quest' || tabName === 'quests') {
-    activeBtn.classList.add('active-quest');
-    if (typeof fetchQuests === 'function') fetchQuests();
-  } else if (tabName === 'heroes') {
+  if (isBattleTab) {
     activeBtn.classList.add('active');
+    if (typeof fetchQuests === 'function') fetchQuests();
+    if (typeof fetchMonsterEncounters === 'function') fetchMonsterEncounters();
+  } else if (isQuestTab) {
+    activeBtn.classList.add('active-quest');
     if (typeof fetchQuests === 'function') fetchQuests();
   } else if (tabName === 'profile') {
     activeBtn.classList.add('active');

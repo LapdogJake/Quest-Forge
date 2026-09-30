@@ -145,18 +145,24 @@ async function fetchQuests() {
   if (combatQuestIds.length > 0) {
     const { data: queuedBattleLines } = await supabaseClient
       .from('quest_queues')
-      .select('id, quest_id, status, queue_members(*, profiles(username))')
+      .select('id, quest_id, status, queue_members(*, profiles(id, username)), encounter_monsters(*, profiles(id, username))')
       .in('quest_id', combatQuestIds)
       .in('status', ['waiting', 'active']);
 
     (queuedBattleLines || []).forEach(line => {
       if (!line || !line.quest_id) return;
-      const roster = (line.queue_members || []).map(member => member.profiles?.username || 'Hero').filter(Boolean);
+      const heroRoster = (line.queue_members || []).map(member => member.profiles?.username || 'Hero').filter(Boolean);
+      const monsterRoster = (line.encounter_monsters || []).map(member => member.profiles?.username || 'Monster').filter(Boolean);
+      const userHeroMember = (line.queue_members || []).find(m => m.user_id === currentUser.id || m.profiles?.id === currentUser.id);
+      const userMonsterMember = (line.encounter_monsters || []).find(m => m.user_id === currentUser.id || m.profiles?.id === currentUser.id);
+
       queueRosterByQuest.set(line.quest_id, {
         queueId: line.id,
         queueStatus: line.status,
-        players: roster,
-        count: roster.length
+        heroPlayers: heroRoster,
+        monsterPlayers: monsterRoster,
+        joinedHeroQueueId: userHeroMember ? line.id : null,
+        joinedMonsterClaimId: userMonsterMember ? userMonsterMember.id : null
       });
     });
   }
@@ -284,47 +290,119 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
   const isCombat = type === 'combat';
   const isAdventure = type === 'larpie';
   const isSlotLocked = isCombat ? (!!activeBattleQuest || !!activeMonsterClaim) : !!activeLarpieQuest;
-  const isJoined = Boolean(joinedQueueId);
 
   if (isCombat) {
-    const groupType = q.participation_type || 'Group';
-    const joinButton = isJoined
-      ? `<button class="btn-leave" onclick="leaveQueue('${joinedQueueId}')">Leave</button>`
-      : (isSlotLocked
-        ? `<button class="btn-secondary" disabled style="opacity:0.6;">Battle Slot Full</button>`
-        : `<button class="btn-join" onclick="joinOrCreateGroupQueue('${q.id}')">Join</button>`);
+    const rules = typeof getQuestDurabilityRules === 'function' ? getQuestDurabilityRules(q) : { allowedTypes: ['Trinket', 'Talisman', 'Artifact'], monstersAreNpc: false, defeatGold: 0 };
+    const victoryGold = Number(q.reward_gold) || 0;
+    const defeatGold = Number(q.reward_gold_defeat) || Number(rules.defeatGold) || 0;
 
-    const summaryAction = `<span class="quest-summary-actions">${joinButton}</span>`;
-    const rosterPlayers = queueRoster?.players || [];
-    const rosterHtml = rosterPlayers.length > 0
-      ? rosterPlayers.map(name => `<span class="party-member-tag">👤 ${name}</span>`).join('')
-      : `<span class="party-member-tag">No one has joined this line yet.</span>`;
+    const heroPlayers = queueRoster?.heroPlayers || [];
+    const monsterPlayers = queueRoster?.monsterPlayers || [];
+    const joinedHeroQueueId = queueRoster?.joinedHeroQueueId || joinedQueueId;
+    const joinedMonsterClaimId = queueRoster?.joinedMonsterClaimId || (activeMonsterClaim && activeMonsterClaim.quest_queues?.quest_id === q.id ? activeMonsterClaim.id : null);
+    
+    const isJoinedHero = Boolean(joinedHeroQueueId);
+    const isJoinedMonster = Boolean(joinedMonsterClaimId);
+    const isLive = queueRoster?.queueStatus === 'active';
+    const isQMUser = Boolean(currentUser && (currentQMId === currentUser.id || currentProfile?.role === 'questmaster' || currentProfile?.role === 'admin'));
+
+    const scenarioClean = (q.scenario_card || '').replace(/<!--\s*RULES:.*?-->/gs, '').trim();
 
     return `
-      <details class="quest-accordion ${isJoined ? 'quest-joined' : ''}" ${isJoined ? 'open' : ''}>
-        <summary>
-          <span class="quest-summary-title">${q.title}</span>
-          ${summaryAction}
-        </summary>
-        <div class="quest-accordion-content">
-          <div class="quest-details-body">
-            <div class="quest-details-panel">
-              <div class="tag-container">
-                <span class="badge badge-battle">${q.category || 'Battle'}</span>
-                <span class="badge badge-type">${groupType}</span>
-              </div>
-              <p>${q.description || ''}</p>
-              <div class="quest-rewards">
-                <span class="reward-gold">🪙 +${q.reward_gold} Gold</span>
-              </div>
-              <div class="queue-roster-strip">
-                <h5>Queued Heroes (${rosterPlayers.length})</h5>
-                <div>${rosterHtml}</div>
-              </div>
+      <div class="quest-card battle-card" style="border: 2px solid ${isLive ? '#dc2626' : (isJoinedHero || isJoinedMonster ? 'var(--primary)' : 'var(--border)')}; margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:8px;">
+          <div>
+            <h4 style="margin:0 0 4px 0; font-size:16px;">${q.title}</h4>
+            <div class="tag-container" style="margin-bottom:0;">
+              <span class="badge badge-battle">⚔️ Battle</span>
+              <span class="badge badge-type" style="color:var(--gold); border-color:var(--gold);">🏆 +${victoryGold}g Win</span>
+              <span class="badge badge-type" style="color:#94a3b8; border-color:#64748b;">💀 +${defeatGold}g Loss</span>
+              ${rules.monstersAreNpc 
+                ? '<span class="badge badge-monster" title="Monster queue does not lose durability">👹 Monster: NPC</span>' 
+                : '<span class="badge badge-type" title="Monster queue loses durability">👹 Monster: Player</span>'}
+              ${rules.allowedTypes.length === 3 
+                ? '<span class="badge badge-active">✨ All Items Active</span>' 
+                : (rules.allowedTypes.length === 0 
+                  ? '<span class="badge badge-threat-loot">🚫 No Magic Items</span>' 
+                  : `<span class="badge badge-type">✨ ${rules.allowedTypes.join(', ')}</span>`)}
+              ${q.repeatable ? '<span class="badge badge-quest">🔁 Repeatable</span>' : ''}
             </div>
           </div>
+          <div>
+            ${isLive 
+              ? '<span class="badge badge-active" style="background:#dc2626; color:white; border-color:#ef4444;">⚔️ LIVE</span>'
+              : (isJoinedHero || isJoinedMonster 
+                ? '<span class="badge badge-active">⏳ IN QUEUE</span>' 
+                : '<span class="badge badge-draft">⏳ OPEN</span>')}
+          </div>
         </div>
-      </details>
+
+        ${q.description ? `<p style="font-size:13px; color:var(--text-muted); margin:6px 0 10px 0; line-height:1.4;">${q.description}</p>` : ''}
+
+        <!-- Dual Queue Roster Grid (Mobile-friendly) -->
+        <div class="dual-queue-grid" style="margin-top:10px; margin-bottom:10px;">
+          <!-- HEROES QUEUE -->
+          <div class="queue-box" style="border-color:${isJoinedHero ? 'var(--primary)' : 'var(--border)'};">
+            <h5 style="color:var(--primary); margin:0 0 6px 0; font-size:11px;">⚔️ Heroes (${heroPlayers.length})</h5>
+            <div style="min-height:36px; max-height:90px; overflow-y:auto; margin-bottom:8px;">
+              ${heroPlayers.length > 0 
+                ? heroPlayers.map(name => `<span class="party-member-tag">👤 ${name}</span>`).join('')
+                : '<p style="font-size:11px; color:var(--text-muted); margin:4px 0;">No heroes yet.</p>'}
+            </div>
+            ${isJoinedHero ? `
+              <button class="btn-leave" style="width:100%; padding:7px 4px; font-size:11px;" onclick="leaveQueue('${joinedHeroQueueId}')">
+                Leave Line
+              </button>
+            ` : (isSlotLocked ? `
+              <button class="btn-secondary" disabled style="width:100%; padding:7px 4px; font-size:11px; opacity:0.5; cursor:not-allowed;">
+                ${isJoinedMonster ? 'In Monsters' : 'Slot Full'}
+              </button>
+            ` : `
+              <button class="btn-join" style="width:100%; padding:7px 4px; font-size:11px;" onclick="joinOrCreateGroupQueue('${q.id}')">
+                ⚔️ Join Heroes
+              </button>
+            `)}
+          </div>
+
+          <!-- MONSTER QUEUE -->
+          <div class="queue-box" style="border-color:${isJoinedMonster ? 'var(--monster)' : 'var(--border)'};">
+            <h5 style="color:var(--monster); margin:0 0 6px 0; font-size:11px;">👹 Monsters (${monsterPlayers.length})</h5>
+            <div style="min-height:36px; max-height:90px; overflow-y:auto; margin-bottom:8px;">
+              ${monsterPlayers.length > 0 
+                ? monsterPlayers.map(name => `<span class="party-member-tag" style="border-color:var(--monster);">👹 ${name}</span>`).join('')
+                : '<p style="font-size:11px; color:var(--text-muted); margin:4px 0;">No monsters yet.</p>'}
+            </div>
+            ${isJoinedMonster ? `
+              <button class="btn-leave" style="width:100%; padding:7px 4px; font-size:11px;" onclick="abandonMonsterRole('${joinedMonsterClaimId}')">
+                Leave Line
+              </button>
+            ` : (isSlotLocked ? `
+              <button class="btn-secondary" disabled style="width:100%; padding:7px 4px; font-size:11px; opacity:0.5; cursor:not-allowed;">
+                ${isJoinedHero ? 'In Heroes' : 'Slot Full'}
+              </button>
+            ` : `
+              <button class="btn-join btn-monster" style="width:100%; padding:7px 4px; font-size:11px; background:var(--monster); color:white;" onclick="claimMonsterRole('${q.id}', 'Standard Monster')">
+                👹 Join Monsters
+              </button>
+            `)}
+          </div>
+        </div>
+
+        <!-- SECRET SCENARIO CARD (Revealed only to players in Monster Line or QM) -->
+        ${(isJoinedMonster || isQMUser) && scenarioClean ? `
+          <div class="scenario-card-box" style="margin-top:10px; border:1px dashed #c084fc; background:rgba(88,28,135,0.25); border-radius:8px; padding:10px 12px;">
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+              <span style="font-size:13px;">🔒</span>
+              <h5 style="color:#c084fc; font-size:11px; font-weight:bold; text-transform:uppercase; margin:0;">Secret Monster Scenario Briefing</h5>
+            </div>
+            <p style="font-size:12px; color:#f3e8ff; margin:0; line-height:1.45;">${scenarioClean}</p>
+          </div>
+        ` : (!isJoinedMonster && !isQMUser && scenarioClean ? `
+          <div style="font-size:11px; color:var(--text-muted); margin-top:8px; display:flex; align-items:center; gap:5px;">
+            <span>🔒</span> <em>Secret monster scenario briefing is locked to the Monster Line.</em>
+          </div>
+        ` : '')}
+      </div>
     `;
   }
 

@@ -5,9 +5,9 @@
 async function initDashboard() {
   try {
     const { data: { session } } = await supabaseClient.auth.getSession();
-    if (!session) { 
-      window.location.href = "login.html"; 
-      return; 
+    if (!session) {
+      window.location.href = "login.html";
+      return;
     }
 
     currentUser = session.user;

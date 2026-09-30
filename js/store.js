@@ -44,7 +44,7 @@ function renderStoreCatalog() {
             <div class="item-info">
               <h4>${item.item_name}</h4>
             </div>
-            <button class="btn-buy" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="buyItem('${item.item_name}', ${item.base_cost}, ${item.duration_hours})">
+            <button class="btn-buy" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="buyItem('${item.item_name}', ${item.base_cost})">
               ${isCombatLocked ? '🔒 In Battle' : `Buy (${item.base_cost}g)`}
             </button>
           </div>
@@ -55,7 +55,7 @@ function renderStoreCatalog() {
 }
 
 // Buy an item from the merchant store
-async function buyItem(itemName, cost, durationHours) {
+async function buyItem(itemName, cost) {
   if (activeBattleQuest || activeMonsterClaim) {
     alert("⚠️ Action Failed: Inventory is locked during active combat encounters!");
     return;

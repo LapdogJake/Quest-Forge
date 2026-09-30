@@ -67,7 +67,8 @@ button:focus-visible, select:focus-visible {
   border-top: 4px solid var(--profile);
 }
 
-.card-heroes {
+.card-heroes,
+.card-battles {
   border-top: 4px solid var(--heroes);
 }
 
@@ -582,11 +583,25 @@ button:focus-visible, select:focus-visible {
   margin-top: 10px;
 }
 
+@media (max-width: 380px) {
+  .dual-queue-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+.battle-card {
+  transition: border-color 0.2s ease, transform 0.15s ease;
+}
+
 .queue-box {
   background: #1e1e22;
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .queue-box h5 {
@@ -600,13 +615,14 @@ button:focus-visible, select:focus-visible {
   display: block;
   background: #242429;
   border: 1px solid var(--border);
-  padding: 3px 6px;
+  padding: 4px 6px;
   border-radius: 6px;
   font-size: 11px;
   margin-bottom: 4px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: 500;
 }
 
 /* Sub-Navigation Tabs */
