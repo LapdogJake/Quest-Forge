@@ -1,145 +1,411 @@
 // ==============================================================================
 // Quest-Forge: Library Compendium & Static Rulebook
-// Shared reference for Contact, ToS, Economy, Amtgard RoP, Monster RoP, & Items
 // ==============================================================================
 
 const LIBRARY_DATA = [
   {
-    id: 'contact',
-    icon: '📧',
-    title: 'Contact & Support',
-    subtitle: 'Email, bug reports & park inquiries',
-    content: `
-      <div class="library-section-body">
-        <p>For questions, bug reports, feature suggestions, or adding your local park/kingdom to Quest-Forge, reach out to:</p>
-        <div class="library-highlight-box">
-          <p style="margin:0; font-weight:bold; color:var(--primary); font-size:14px;">✉️ support@questforge.org</p>
-          <small style="color:var(--text-muted);">Please include your kingdom, park name, and username in your message.</small>
-        </div>
-      </div>
-    `
-  },
-  {
-    id: 'tos',
-    icon: '📜',
-    title: 'Terms of Service (ToS)',
-    subtitle: 'Fair play, account safety & community standards',
-    content: `
-      <div class="library-section-body">
-        <h4 style="color:var(--text); margin:8px 0 4px 0;">1. Fair Play & Live Combat Honesty</h4>
-        <p>Quest-Forge is designed to support live-action boffer combat and roleplay. Players and Questmasters agree to report battle outcomes honestly, respect hit calibration, and honor item durability consumption.</p>
-        
-        <h4 style="color:var(--text); margin:12px 0 4px 0;">2. Account & Gold Balance</h4>
-        <p>Gold, pouches, and quest progress are scoped to your active Reign (Kingdom &rarr; Park &rarr; Questmaster). Tampering with client state or exploiting synchronization is prohibited.</p>
-
-        <h4 style="color:var(--text); margin:12px 0 4px 0;">3. Safety & Amtgard Rules Precedence</h4>
-        <p>In-person physical safety rules and local Amtgard park safety marshals always supersede digital quest objectives or combat encounters.</p>
-      </div>
-    `
-  },
-  {
-    id: 'economy',
-    icon: '🪙',
-    title: 'In-Game Economy Guide',
-    subtitle: 'Gold rewards, durability & resale formula',
-    content: `
-      <div class="library-section-body">
-        <h4 style="color:var(--gold); margin:8px 0 4px 0;">🪙 Earning Gold</h4>
-        <p>Players earn gold through:</p>
-        <ul style="margin: 4px 0 10px 18px; font-size: 13px; line-height: 1.5;">
-          <li><strong>Combat Encounters (Battles):</strong> Winning or participating in ditch battles, bridge battles, and monster line encounters.</li>
-          <li><strong>Non-Combat Quests:</strong> Completing roleplay challenges, fetch quests, crafting tasks, or park assistance.</li>
-        </ul>
-
-        <h4 style="color:var(--gold); margin:12px 0 4px 0;">🎒 Pouch Carry Limits</h4>
-        <p>To preserve combat balance, each player's pouch is strictly limited to:</p>
-        <ul style="margin: 4px 0 10px 18px; font-size: 13px; line-height: 1.5;">
-          <li><strong>Trinkets:</strong> Max 3 (1-point durability)</li>
-          <li><strong>Talismans:</strong> Max 2 (5-point durability)</li>
-          <li><strong>Artifacts:</strong> Max 1 (20-point durability)</li>
-        </ul>
-
-        <h4 style="color:var(--gold); margin:12px 0 4px 0;">🛡️ Durability & Item Resale</h4>
-        <p>Items lose 1 point of durability per combat encounter where that category is active. Items with remaining durability can be sold back to the store at a 1:1 proportional rate:</p>
-        <div class="library-highlight-box" style="text-align:center;">
-          <code style="color:var(--gold); font-size:13px;">Resale Value = Floor( Base Cost &times; [ Current Durability / Max Durability ] )</code>
-        </div>
-      </div>
-    `
-  },
-  {
-    id: 'amtgard-rop',
-    icon: '📖',
-    title: 'Amtgard Rules of Play (RoP)',
-    subtitle: 'Core combat, combat classes & magic incants',
-    content: `
-      <div class="library-section-body">
-        <p>Quest-Forge operates under the standard <strong>Amtgard Rules of Play (Version 8)</strong>:</p>
-        
-        <h4 style="color:var(--primary); margin:10px 0 4px 0;">⚔️ Hit Locations & Damage</h4>
-        <ul style="margin: 4px 0 10px 18px; font-size: 13px; line-height: 1.5;">
-          <li><strong>Torso:</strong> Lethal hit resulting in death.</li>
-          <li><strong>Limbs:</strong> Wounding hit disabling the limb. Two wounded limbs or one wounded limb + wound to torso is fatal.</li>
-          <li><strong>Head, Neck, Groin:</strong> Illegal target areas. No damage is taken.</li>
-        </ul>
-
-        <h4 style="color:var(--primary); margin:10px 0 4px 0;">🛡️ Armor & Shield Ratings</h4>
-        <p>Armor absorbs strikes based on its material rating (Cloth/Padded, Leather, Chain, Plate). Shields block physical and magic projectile strikes unless specified by weapon properties (e.g. Michael's Hammer, Shield Crushing).</p>
-
-        <h4 style="color:var(--primary); margin:10px 0 4px 0;">✨ Verbal Incantations</h4>
-        <p>Spells and abilities require clear, audible verbal incantations spoken at standard conversational volume without skipping syllables.</p>
-      </div>
-    `
-  },
-  {
-    id: 'monster-manual',
-    icon: '🐉',
-    title: 'Monster Manual',
-    subtitle: 'Bestiary, monster tiers & encounter abilities',
-    content: `
-      <div class="library-section-body">
-        <p>The Monster Manual governs all monster encounters fought across ditch lines and scenarios:</p>
-
-        <h4 style="color:#ef4444; margin:10px 0 4px 0;">👹 Standard Monster Tiers</h4>
-        <ul style="margin: 4px 0 10px 18px; font-size: 13px; line-height: 1.5;">
-          <li><strong>Tier 1 - Minions & Thralls:</strong> Goblins, skeletons, and kobolds. 1-hit kill, short respawn timers (15s&ndash;30s).</li>
-          <li><strong>Tier 2 - Brutes & Specialists:</strong> Orcs, bugbears, and shadow-stalkers. Possess natural armor (1&ndash;2 pts) and weapon immunities.</li>
-          <li><strong>Tier 3 - Apex & Bosses:</strong> Dragons, Liches, and Lycanthropes. Multiple natural armor points, spell immunity, and area-of-effect abilities.</li>
-        </ul>
-
-        <h4 style="color:#ef4444; margin:10px 0 4px 0;">⚡ Monster Traits & Immunities</h4>
-        <p>Monsters may have special innate keywords such as <em>Immunity to Magic</em>, <em>Insubstantial</em>, <em>Flame Ward</em>, or <em>Shield Crush</em> specified in the encounter scenario card.</p>
-      </div>
-    `
-  },
-  {
-    id: 'monster-rop',
-    icon: '👹',
-    title: 'Monster Rules of Play (Monster RoP)',
-    subtitle: 'Monster player mechanics & durability rules',
-    content: `
-      <div class="library-section-body">
-        <h4 style="color:#f59e0b; margin:8px 0 4px 0;">🎭 Player Monsters vs NPC Monsters</h4>
-        <p>When participating in Monster Line encounters:</p>
-        <ul style="margin: 4px 0 10px 18px; font-size: 13px; line-height: 1.5;">
-          <li><strong>Player Monsters (Standard):</strong> Players playing as the monster team use their personal inventories and will lose durability on equipped allowed items just like Heroes.</li>
-          <li><strong>NPC Monsters (QM Controlled):</strong> When a QM flags a battle with "Monsters are NPC", monster fighters do not risk durability loss.</li>
-        </ul>
-
-        <h4 style="color:#f59e0b; margin:10px 0 4px 0;">🛡️ Monster Line Respawn Formats</h4>
-        <p>Monster line battles often use rolling waves or fixed respawn pools. When slain, monster players return to the designated monster boundary before re-entering combat.</p>
-      </div>
-    `
-  },
-  {
-    id: 'item-list',
+    id: 'magic-item-rules',
     icon: '✨',
-    title: 'Magic Item List',
-    subtitle: 'Catalog of Trinkets, Talismans & Artifacts',
+    title: 'Magic Item Rules',
+    subtitle: 'Official 13-Point Magic Item Rules',
     content: `
       <div class="library-section-body">
-        <div id="library-catalog-rendered-items">
-          <!-- Dynamically populated from STORE_CATALOG -->
+        <ol style="margin: 4px 0 8px 20px; padding: 0; font-size: 13px; line-height: 1.6; color: var(--text);">
+          <li style="margin-bottom: 8px;">Magical Items each have a category corresponding with their level of power from Trinket to Talisman to Artifact.</li>
+          <li style="margin-bottom: 8px;">Magical Items are awarded at the discretion of the group officers.</li>
+          <li style="margin-bottom: 8px;">The officers of the group are responsible for tracking what Magic Items are owned by whom.</li>
+          <li style="margin-bottom: 8px;">Some Magic Items are one-use only. Magic Items which are used up are no longer available to the player and must be reported to the officers of the group.</li>
+          <li style="margin-bottom: 8px;">Ownership of Magical Items resets at the beginning of each reign.</li>
+          <li style="margin-bottom: 8px;">Magical Items may only be used by the person to whom they are given initially. Magical Items may not be transferred or traded to another player without the permission of the monarch who awarded them and the reeve of the battlegame.</li>
+          <li style="margin-bottom: 8px;">All magical items require the player to carry a copy of the write-up in order to function.</li>
+          <li style="margin-bottom: 8px;">Enchantments conferred by Magical Items function exactly as normal (m) Enchantments; they count towards your Enchantment limit, may be removed by Dispel Magic, require a strip, etc.</li>
+          <li style="margin-bottom: 8px;">Some Magic Items have a material component requirement. These components must be present in order for the Magic Item to be used and must be verified by the reeve prior to the start of the battlegame. Identical material component requirements may all be served by the same physical object. You do not need a unique bottle for each potion.</li>
+          <li style="margin-bottom: 8px;">Magical Items only function at the group level they were awarded and are unique to that group. For instance a player who receives a Magical Item at the park level may only use it at that park, but a player who receives a Magical Item at the kingdom level may use it at any park in that kingdom.</li>
+          <li style="margin-bottom: 8px;">Magical Items may not be used at interkingdom events unless allowed by the host kingdom.</li>
+          <li style="margin-bottom: 8px;">Magic items that may be destroyed cease to function in all ways while destroyed.</li>
+          <li style="margin-bottom: 8px;">Uses of abilities granted by a Magic Item are tracked separately from a player's own abilities, and are recharged separately.</li>
+        </ol>
+      </div>
+    `
+  },
+  {
+    id: 'battlegaming-magic-items',
+    icon: '⚔️',
+    title: 'Battlegaming With Magic Items',
+    subtitle: 'Reeve authority, game sizes & player item limits',
+    content: `
+      <div class="library-section-body">
+        <p style="margin: 0 0 10px 0; color: var(--text-muted); font-size: 13px; line-height: 1.5;">
+          Here are some basic guidelines for how to use Magic Items in battlegames. These guidelines may be changed or adapted by the battlegame reeve. Reeves are always encouraged to consider game balance when determining what Magic Items are allowed in the game.
+        </p>
+        <ol style="margin: 4px 0 8px 20px; padding: 0; font-size: 13px; line-height: 1.6; color: var(--text);">
+          <li style="margin-bottom: 8px;">Magic Items are typically only used in full-class battlegames.</li>
+          <li style="margin-bottom: 8px;">The reeve always has final say over the use or behavior of Magic Items in a battlegame.</li>
+          <li style="margin-bottom: 8px;">The reeve for the game has the final say in what Magical Items (if any) are allowed in a battlegame in all situations.</li>
+          <li style="margin-bottom: 8px;">Typically games with less than 14 people are limited to Trinkets, 15 to 30 people may use up to Talismans, and games with more than 30 people may use Artifacts.</li>
+          <li style="margin-bottom: 8px;">A player may use up to one Artifact in a battlegame.</li>
+          <li style="margin-bottom: 8px;">A player may use up to two Talismans in a battlegame.</li>
+          <li style="margin-bottom: 8px;">A player may use up to three Trinkets in a battlegame.</li>
+        </ol>
+      </div>
+    `
+  },
+  {
+    id: 'trinkets-rop',
+    icon: '🧪',
+    title: 'Trinkets (Amtgard RoP 8.7)',
+    subtitle: 'Potions, scrolls & one-use magical items',
+    content: `
+      <div class="library-section-body">
+        <div style="display:flex; flex-direction:column; gap:10px;">
+
+          <!-- Potion of Barkskin -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Potion of Barkskin</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> One Use &nbsp;|&nbsp; <strong>R:</strong> Self</div>
+              <div><strong>I:</strong> &ldquo;I drink a potion of barkskin&rdquo;</div>
+              <div><strong>M:</strong> A bottle measuring at least two cubic inches</div>
+              <div><strong>E:</strong> Player casts Barkskin (m).</div>
+            </div>
+          </div>
+
+          <!-- Potion of Refreshment -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Potion of Refreshment</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> One Use &nbsp;|&nbsp; <strong>R:</strong> Self</div>
+              <div><strong>I:</strong> &ldquo;I drink a potion of refreshment&rdquo;</div>
+              <div><strong>M:</strong> A bottle measuring at least two cubic inches</div>
+              <div><strong>E:</strong> Player casts Confidence (m).</div>
+            </div>
+          </div>
+
+          <!-- Potion of Healing -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Potion of Healing</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> One Use &nbsp;|&nbsp; <strong>R:</strong> Self</div>
+              <div><strong>I:</strong> &ldquo;I drink a potion of healing&rdquo;</div>
+              <div><strong>M:</strong> A bottle measuring at least two cubic inches</div>
+              <div><strong>E:</strong> Player casts Heal (self).</div>
+            </div>
+          </div>
+
+          <!-- Potion of True Death -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Potion of True Death</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> One Use &nbsp;|&nbsp; <strong>R:</strong> Self</div>
+              <div><strong>I:</strong> &ldquo;I drink a potion of true death&rdquo;</div>
+              <div><strong>M:</strong> A bottle measuring at least two cubic inches</div>
+              <div><strong>E:</strong> Player may not be the target of Raise Dead, Steal Life Essence, Undead Minion, or Vampirism for the duration of the game.</div>
+              <div><strong>N:</strong> This effect is not removed by Release, Greater Release, or Respawn.</div>
+            </div>
+          </div>
+
+          <!-- Scroll of Adaptive Blessing -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Scroll of Adaptive Blessing</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> One Use &nbsp;|&nbsp; <strong>R:</strong> Self</div>
+              <div><strong>I:</strong> &ldquo;I read from a scroll of adaptive blessing&rdquo;</div>
+              <div><strong>M:</strong> A scroll measuring at least fifteen square inches</div>
+              <div><strong>E:</strong> Player casts Adaptive Blessing (m).</div>
+            </div>
+          </div>
+
+          <!-- Scroll of Ambulant -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Scroll of Ambulant</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> One Use &nbsp;|&nbsp; <strong>R:</strong> Self</div>
+              <div><strong>I:</strong> &ldquo;I read from a scroll of ambulant&rdquo;</div>
+              <div><strong>M:</strong> A scroll measuring at least fifteen square inches</div>
+              <div><strong>E:</strong> Player's next magic is affected as per Ambulant.</div>
+              <div><strong>L:</strong> May only be used by Magic Users.</div>
+            </div>
+          </div>
+
+          <!-- Scroll of Blessing Against Wounds -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Scroll of Blessing Against Wounds</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> One Use &nbsp;|&nbsp; <strong>R:</strong> Self</div>
+              <div><strong>I:</strong> &ldquo;I read from a scroll of blessing against wounds&rdquo;</div>
+              <div><strong>M:</strong> A scroll measuring at least fifteen square inches</div>
+              <div><strong>E:</strong> Player casts Blessing Against Wounds (m).</div>
+            </div>
+          </div>
+
+          <!-- Scroll of Extension -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Scroll of Extension</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> One Use &nbsp;|&nbsp; <strong>R:</strong> Self</div>
+              <div><strong>I:</strong> &ldquo;I read from a scroll of extension&rdquo;</div>
+              <div><strong>M:</strong> A scroll measuring at least fifteen square inches</div>
+              <div><strong>E:</strong> Player's next magic is affected as per Extension.</div>
+              <div><strong>L:</strong> May only be used by Magic Users.</div>
+            </div>
+          </div>
+
+          <!-- Scroll of Harden -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Scroll of Harden</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> One Use &nbsp;|&nbsp; <strong>R:</strong> Self</div>
+              <div><strong>I:</strong> &ldquo;I read from a scroll of harden&rdquo;</div>
+              <div><strong>M:</strong> A scroll measuring at least fifteen square inches</div>
+              <div><strong>E:</strong> Player casts Harden (m).</div>
+            </div>
+          </div>
+
+          <!-- Scroll of Mend -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Scroll of Mend</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> One Use &nbsp;|&nbsp; <strong>R:</strong> Self</div>
+              <div><strong>I:</strong> &ldquo;I read from a scroll of mend&rdquo;</div>
+              <div><strong>M:</strong> A scroll measuring at least fifteen square inches</div>
+              <div><strong>E:</strong> Player casts Mend (m).</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    `
+  },
+  {
+    id: 'talismans-rop',
+    icon: '🛡️',
+    title: 'Talismans (Amtgard RoP 8.7)',
+    subtitle: 'Amulets, bracelets & multi-charge wands',
+    content: `
+      <div class="library-section-body">
+        <p style="margin: 0 0 10px 0; color: var(--text-muted); font-size: 13px; line-height: 1.5;">
+          Talismans are Magical Items of meaningful power that may require consideration before being allowed in some battlegames.
+        </p>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+
+          <!-- Amulet of Force -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Amulet of Force</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> 1/Game &nbsp;|&nbsp; <strong>R:</strong> Self</div>
+              <div><strong>I:</strong> &ldquo;By my amulet&rdquo; + Force Barrier Incant</div>
+              <div><strong>M:</strong> Pendant or amulet measuring at least one square inch which must be worn around the neck.</div>
+              <div><strong>E:</strong> Player casts Force Barrier (m).</div>
+            </div>
+          </div>
+
+          <!-- Amulet of Teleport -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Amulet of Teleport</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> 1/Game &nbsp;|&nbsp; <strong>R:</strong> Self</div>
+              <div><strong>I:</strong> &ldquo;By my amulet&rdquo; + Teleport Incant</div>
+              <div><strong>M:</strong> Pendant or amulet measuring at least one square inch which must be worn around the neck.</div>
+              <div><strong>E:</strong> Player casts Teleport (m).</div>
+            </div>
+          </div>
+
+          <!-- Amulet of Tracking -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Amulet of Tracking</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> 1/Game &nbsp;|&nbsp; <strong>R:</strong> 20&prime;</div>
+              <div><strong>I:</strong> &ldquo;By my amulet&rdquo; + Tracking Incant</div>
+              <div><strong>M:</strong> Pendant or amulet measuring at least one square inch which must be worn around the neck.</div>
+              <div><strong>E:</strong> Player casts Tracking (ex).</div>
+            </div>
+          </div>
+
+          <!-- Amulet of Shadows -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Amulet of Shadows</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> 1/Game &nbsp;|&nbsp; <strong>R:</strong> Self</div>
+              <div><strong>I:</strong> &ldquo;By my amulet&rdquo; + Shadow Step Incant</div>
+              <div><strong>M:</strong> Pendant or amulet measuring at least one square inch which must be worn around the neck.</div>
+              <div><strong>E:</strong> Player casts Shadow Step (ex).</div>
+            </div>
+          </div>
+
+          <!-- Bracelet of Anti-Magic -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Bracelet of Anti-Magic</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> 1/Game &nbsp;|&nbsp; <strong>R:</strong> Self</div>
+              <div><strong>I:</strong> &ldquo;I draw upon the power of my bracelet of anti-magic&rdquo;</div>
+              <div><strong>M:</strong> Bracelet measuring at least 1&rdquo; wide worn around the wrist. Must be made of leather or metal and may not be red, yellow, or white.</div>
+              <div><strong>E:</strong> Player casts Protection From Magic (m).</div>
+            </div>
+          </div>
+
+          <!-- Bracelet of Solidity -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Bracelet of Solidity</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> Always on while worn</div>
+              <div><strong>M:</strong> Bracelet measuring at least 1&rdquo; wide worn around the wrist. Must be made of leather or metal and may not be red, yellow, or white.</div>
+              <div><strong>E:</strong> Further Effects which make the player Insubstantial, including effects initiated by the player or beneficial effects, fail as per Planar Grounding. Bearer must announce &ldquo;Immune to insubstantial&rdquo; when this effect is triggered.</div>
+            </div>
+          </div>
+
+          <!-- Bracelet of Stoneskin -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Bracelet of Stoneskin</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> 1/Game &nbsp;|&nbsp; <strong>R:</strong> Self</div>
+              <div><strong>I:</strong> &ldquo;I draw upon the power of my bracer of stoneskin&rdquo;</div>
+              <div><strong>M:</strong> Bracelet measuring at least 1&rdquo; wide worn around the wrist. Must be made of leather or metal and may not be red, yellow, or white.</div>
+              <div><strong>E:</strong> Player casts Stoneskin (m).</div>
+            </div>
+          </div>
+
+          <!-- Wand of Healing -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Wand of Healing</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> 2/Game &nbsp;|&nbsp; <strong>R:</strong> Self</div>
+              <div><strong>I:</strong> &ldquo;My wand heals thee&rdquo;</div>
+              <div><strong>M:</strong> Rigid wand measuring at least 6&rdquo; long and at least 0.5&rdquo; in diameter.</div>
+              <div><strong>E:</strong> Player casts Greater Heal (m).</div>
+            </div>
+          </div>
+
+          <!-- Wand of Mending -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Wand of Mending</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> 2/Game &nbsp;|&nbsp; <strong>R:</strong> Self</div>
+              <div><strong>I:</strong> &ldquo;My wand makes this item whole&rdquo;</div>
+              <div><strong>M:</strong> Rigid wand measuring at least 6&rdquo; long and at least 0.5&rdquo; in diameter.</div>
+              <div><strong>E:</strong> Player casts Greater Mend (m).</div>
+            </div>
+          </div>
+
+          <!-- Wand of Release -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Wand of Release</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> 2/Game &nbsp;|&nbsp; <strong>R:</strong> Self</div>
+              <div><strong>I:</strong> &ldquo;My wand releases thee&rdquo;</div>
+              <div><strong>M:</strong> Rigid wand measuring at least 6&rdquo; long and at least 0.5&rdquo; in diameter.</div>
+              <div><strong>E:</strong> Player casts Greater Release (m).</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    `
+  },
+  {
+    id: 'artifacts-rop',
+    icon: '⚔️',
+    title: 'Artifacts (Amtgard RoP 8.7)',
+    subtitle: 'Unique kingdom-tier legendary relics & weapons',
+    content: `
+      <div class="library-section-body">
+        <p style="margin: 0 0 10px 0; color: var(--text-muted); font-size: 13px; line-height: 1.5;">
+          Artifacts are powerful Magical Items which require careful consideration before being allowed into any battlegame. Artifacts are unique; there may only be one of each Artifact awarded per kingdom at a time.
+        </p>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+
+          <!-- Ankh of Ran -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--gold); font-size:14px; margin-bottom:4px;">Ankh of Ran</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> Always on while worn</div>
+              <div><strong>M:</strong> A white ankh measuring at least twenty-five square inches prominently displayed on garb/equipment, or worn as an amulet.</div>
+              <div><strong>E:</strong> Bearer gains Terror (20&prime;) Unlimited (ex). Terror may only be cast on players bearing Undead Minion, Vampirism, or Void Touched and will affect those players regardless of immunities.</div>
+            </div>
+          </div>
+
+          <!-- Andalsa's Lament -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--gold); font-size:14px; margin-bottom:4px;">Andalsa's Lament</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> Always on while worn</div>
+              <div><strong>M:</strong> A helmet worn upon the head which qualifies for the helm armor modifier. Must have a white Enchantment strip tied to it.</div>
+              <div><strong>E:</strong> Bearer is affected as per Imbue Armor. Does not count as an Enchantment.</div>
+            </div>
+          </div>
+
+          <!-- Cloak of Enigmas -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--gold); font-size:14px; margin-bottom:4px;">Cloak of Enigmas</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> Always on while worn</div>
+              <div><strong>M:</strong> A black cloak that covers from the shoulders to the back of the knees.</div>
+              <div><strong>E:</strong> Doubles the bearer's normal use of Shadow Step, Teleport, and Blink. Does not count as an Enchantment.</div>
+              <div><strong>L:</strong> May only be used by Assassin or Scout.</div>
+            </div>
+          </div>
+
+          <!-- Homestone -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--gold); font-size:14px; margin-bottom:4px;">Homestone</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> Always on while carried</div>
+              <div><strong>I:</strong> As per Greater Mend</div>
+              <div><strong>M:</strong> A highly polished stone sphere at least 1&rdquo; in diameter.</div>
+              <div><strong>E:</strong> Bearer gains Greater Mend 1/Life Charge x3. Does not count as an Enchantment.</div>
+            </div>
+          </div>
+
+          <!-- Michael's Hammer -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--gold); font-size:14px; margin-bottom:4px;">Michael's Hammer</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> Always on while carried</div>
+              <div><strong>M:</strong> A Short weapon with a yellow cover or lightning decorations. Must have a red Enchantment strip tied to it. Must have at least 6&rdquo; of Heavy Padding and be shaped like a hammer.</div>
+              <div><strong>E:</strong> This weapon is Armor Destroying and Shield Destroying. Does not count as an Enchantment.</div>
+            </div>
+          </div>
+
+          <!-- Nuntius Staff -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--gold); font-size:14px; margin-bottom:4px;">Nuntius Staff</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> Always on</div>
+              <div><strong>M:</strong> A double ended great weapon no longer than 6&prime; or a Magic Staff.</div>
+              <div><strong>E:</strong> May be used by any Magic User at no cost to magic points. Grants an additional two magic points at the user's highest level. Magic points gained are not removed regardless of what happens to the staff. Does not count as an Enchantment.</div>
+              <div><strong>L:</strong> May only be used by Magic Users.</div>
+            </div>
+          </div>
+
+          <!-- Phase Blade -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--gold); font-size:14px; margin-bottom:4px;">Phase Blade</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> Always on while carried</div>
+              <div><strong>M:</strong> A Short weapon with a gray cover or force themed decorations. Must have a red and a yellow Enchantment strip tied to it.</div>
+              <div><strong>E:</strong> This weapon is Phasing. Does not count as an Enchantment.</div>
+            </div>
+          </div>
+
+          <!-- Shield of the Chosen -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--gold); font-size:14px; margin-bottom:4px;">Shield of the Chosen</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> Always on</div>
+              <div><strong>M:</strong> A medium shield with a black cover featuring a white device. Must have a white Enchantment strip tied to it.</div>
+              <div><strong>E:</strong> Shield is completely indestructible, including against other Magical Items. Engulfing effects striking the shield are nullified and ignored while it is wielded. Does not count as an Enchantment.</div>
+            </div>
+          </div>
+
+          <!-- Sword of Flame -->
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--gold); font-size:14px; margin-bottom:4px;">Sword of Flame</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div><strong>Use:</strong> Always on while carried</div>
+              <div><strong>M:</strong> A Short weapon with an orange cover or flame decorations. Must have a red and a white Enchantment strip tied to it.</div>
+              <div><strong>E:</strong> The bearer and this weapon are Immune to Flame. This weapon is Armor Breaking and Shield Crushing. Does not count as an Enchantment.</div>
+            </div>
+          </div>
+
         </div>
       </div>
     `
@@ -153,11 +419,10 @@ function renderLibrary() {
 
   const countEl = document.getElementById('library-article-count');
   if (countEl) {
-    countEl.innerText = `${LIBRARY_DATA.length} Guides`;
+    countEl.innerText = `${LIBRARY_DATA.length} Section`;
   }
 
-  container.innerHTML = LIBRARY_DATA.map((section, index) => {
-    const isFirst = index === 0;
+  container.innerHTML = LIBRARY_DATA.map((section) => {
     return `
       <div class="library-card" id="library-section-${section.id}" style="margin-bottom:12px; background:var(--card-bg, #18181b); border:1px solid var(--border, #27272a); border-radius:8px; overflow:hidden;">
         <div class="accordion-header" onclick="toggleLibraryAccordion('${section.id}')" style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; cursor:pointer; background:rgba(255,255,255,0.02); user-select:none;">
@@ -168,17 +433,14 @@ function renderLibrary() {
               <small style="color:var(--text-muted, #a1a1aa); font-size:11px;">${section.subtitle}</small>
             </div>
           </div>
-          <span id="library-chevron-${section.id}" style="font-size:12px; color:var(--text-muted);">${isFirst ? '▲' : '▼'}</span>
+          <span id="library-chevron-${section.id}" style="font-size:12px; color:var(--text-muted);">▲</span>
         </div>
-        <div id="library-body-${section.id}" class="accordion-content ${isFirst ? '' : 'hidden'}" style="padding:14px; border-top:1px solid var(--border, #27272a); font-size:13px; line-height:1.5;">
+        <div id="library-body-${section.id}" class="accordion-content" style="padding:14px; border-top:1px solid var(--border, #27272a); font-size:13px; line-height:1.5;">
           ${section.content}
         </div>
       </div>
     `;
   }).join('');
-
-  // Render the Magic Items dynamically from STORE_CATALOG
-  renderLibraryItemList();
 }
 
 // Toggle individual accordion sections
@@ -195,50 +457,4 @@ function toggleLibraryAccordion(sectionId) {
     body.classList.add('hidden');
     if (chevron) chevron.innerText = '▼';
   }
-}
-
-// Helper to build the item catalog list
-function renderLibraryItemList() {
-  const target = document.getElementById('library-catalog-rendered-items');
-  if (!target) return;
-
-  if (typeof STORE_CATALOG === 'undefined' || !STORE_CATALOG.length) {
-    target.innerHTML = `<p class="empty-state">Item catalog loading...</p>`;
-    return;
-  }
-
-  const categories = ['Trinket', 'Talismans', 'Artifact'];
-
-  target.innerHTML = categories.map(cat => {
-    const items = STORE_CATALOG.filter(i => {
-      if (cat === 'Trinket') return i.category === 'Trinket' || i.category === 'Trinkets';
-      if (cat === 'Talismans') return i.category === 'Talismans' || i.category === 'Talisman';
-      return i.category === 'Artifact' || i.category === 'Artifacts' || i.category === 'Legendary';
-    });
-
-    const maxDurability = cat === 'Trinket' ? 1 : (cat === 'Talismans' ? 5 : 20);
-    const badgeColor = cat === 'Trinket' ? '#3b82f6' : (cat === 'Talismans' ? '#10b981' : '#f59e0b');
-
-    return `
-      <div style="margin-bottom: 14px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px solid var(--border); padding-bottom:4px;">
-          <h4 style="margin:0; color:${badgeColor}; font-size:13px;">${cat}s (${maxDurability} Durability)</h4>
-          <span style="font-size:11px; color:var(--text-muted);">${items.length} items</span>
-        </div>
-        <div style="display:grid; grid-template-columns:1fr; gap:6px;">
-          ${items.map(item => `
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; background:#121214; padding:8px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.05); font-size:12px;">
-              <div>
-                <strong style="color:var(--text);">${item.item_name}</strong>
-                <div style="color:var(--text-muted); font-size:11px; margin-top:2px;">${item.description}</div>
-              </div>
-              <div style="color:var(--gold); font-weight:bold; white-space:nowrap; margin-left:8px; font-size:12px;">
-                🪙 ${item.base_cost}g
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `;
-  }).join('');
 }
