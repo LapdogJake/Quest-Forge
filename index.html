@@ -164,15 +164,30 @@
     <!-- 5. LIBRARY COMPENDIUM TAB -->
     <section id="tab-library" class="tab-view hidden">
       <div class="card card-library">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-          <h2 style="margin:0;">📚 Library</h2>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h2 style="margin:0;">Library</h2>
           <small id="library-article-count" style="color:var(--text-muted); font-size:12px;">Compendium</small>
         </div>
 
-        <!-- Compendium Guide List -->
-        <div id="library-content-container">
-          <p class="empty-state">Loading compendium...</p>
+        <div class="qm-subnav" style="margin-bottom:14px;">
+          <button id="library-subnav-items" class="qm-subnav-btn active" onclick="switchLibrarySubTab('items')">Magic Items</button>
+          <button id="library-subnav-monsters" class="qm-subnav-btn" onclick="switchLibrarySubTab('monsters')">Monsters</button>
         </div>
+
+        <!-- SUB-TAB 1: MAGIC ITEMS -->
+        <div id="library-subtab-items">
+          <div id="library-content-container">
+            <p class="empty-state">Loading Magic Items...</p>
+          </div>
+        </div>
+
+        <!-- SUB-TAB 2: MONSTERS -->
+        <div id="library-subtab-monsters" class="hidden">
+          <div id="library-monsters-container">
+            <p class="empty-state">Select a monster section or guide.</p>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -344,7 +359,7 @@
   <script src="js/reigns.js?v=27"></script>
   <script src="js/inventory.js?v=27"></script>
   <script src="js/store.js?v=27"></script>
-  <script src="js/library.js?v=33"></script>
+  <script src="js/library.js?v=34"></script>
   <script src="js/encounters.js?v=27"></script>
   <script src="js/quests.js?v=27"></script>
   <script src="js/app.js?v=27"></script>

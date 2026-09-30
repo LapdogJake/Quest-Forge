@@ -441,6 +441,59 @@ function renderLibrary() {
       </div>
     `;
   }).join('');
+// Sub-tab switching between Magic Items and Monsters
+function switchLibrarySubTab(subTab) {
+  const isItems = subTab === 'items';
+  const itemsContainer = document.getElementById('library-subtab-items');
+  const monstersContainer = document.getElementById('library-subtab-monsters');
+  const btnItems = document.getElementById('library-subnav-items');
+  const btnMonsters = document.getElementById('library-subnav-monsters');
+
+  if (itemsContainer) itemsContainer.classList.toggle('hidden', !isItems);
+  if (monstersContainer) monstersContainer.classList.toggle('hidden', isItems);
+
+  if (btnItems) btnItems.classList.toggle('active', isItems);
+  if (btnMonsters) btnMonsters.classList.toggle('active', !isItems);
+
+  const countEl = document.getElementById('library-article-count');
+  if (countEl) {
+    countEl.innerText = isItems ? `${LIBRARY_DATA.length} Sections` : 'Compendium';
+  }
+
+  if (isItems) {
+    renderLibrary();
+  } else {
+    renderMonstersLibrary();
+  }
+}
+
+const MONSTERS_DATA = [];
+
+function renderMonstersLibrary() {
+  const container = document.getElementById('library-monsters-container');
+  if (!container) return;
+
+  if (!MONSTERS_DATA || MONSTERS_DATA.length === 0) {
+    container.innerHTML = `<p class="empty-state">No monster entries loaded yet.</p>`;
+    return;
+  }
+
+  container.innerHTML = MONSTERS_DATA.map((section) => {
+    return `
+      <div class="library-card" id="library-section-${section.id}" style="margin-bottom:12px; background:var(--card-bg, #18181b); border:1px solid var(--border, #27272a); border-radius:8px; overflow:hidden;">
+        <div class="accordion-header" onclick="toggleLibraryAccordion('${section.id}')" style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; cursor:pointer; background:rgba(255,255,255,0.02); user-select:none;">
+          <div>
+            <div style="font-weight:bold; font-size:14px; color:var(--text, #f4f4f5);">${section.title}</div>
+            <small style="color:var(--text-muted, #a1a1aa); font-size:11px;">${section.subtitle || ''}</small>
+          </div>
+          <span id="library-chevron-${section.id}" style="font-size:12px; color:var(--text-muted);">▲</span>
+        </div>
+        <div id="library-body-${section.id}" class="accordion-content" style="padding:14px; border-top:1px solid var(--border, #27272a); font-size:13px; line-height:1.5;">
+          ${section.content}
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 // Toggle individual accordion sections
@@ -458,3 +511,4 @@ function toggleLibraryAccordion(sectionId) {
     if (chevron) chevron.innerText = '▼';
   }
 }
+
