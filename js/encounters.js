@@ -307,8 +307,8 @@ async function fetchQMQueues() {
               <span class="badge badge-type" style="color:var(--gold); border-color:var(--gold);">🏆 Victory: +${victoryGold}g</span>
               <span class="badge badge-type" style="color:#94a3b8; border-color:#64748b;">💀 Defeat: +${defeatGold}g</span>
               ${rules.monstersAreNpc 
-                ? '<span class="badge badge-monster" title="Monster queue does not lose durability">👹 Monster: NPC</span>' 
-                : '<span class="badge badge-type" title="Monster queue loses durability">👹 Monster: Player</span>'}
+                ? '<span class="badge badge-monster" title="Monster queue does not lose durability">👹 Monster: NPC (No Wear)</span>' 
+                : '<span class="badge badge-type" title="Monster queue loses durability on active items">👹 Monster: Takes Wear</span>'}
               ${rules.allowedTypes.length === 3 
                 ? '<span class="badge badge-active" title="All item categories lose durability">✨ All Items Active</span>' 
                 : (rules.allowedTypes.length === 0 

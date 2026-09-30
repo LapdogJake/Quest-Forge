@@ -318,8 +318,8 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
               <span class="badge badge-type" style="color:var(--gold); border-color:var(--gold);">🏆 +${victoryGold}g Win</span>
               <span class="badge badge-type" style="color:#94a3b8; border-color:#64748b;">💀 +${defeatGold}g Loss</span>
               ${rules.monstersAreNpc 
-                ? '<span class="badge badge-monster" title="Monster queue does not lose durability">👹 Monster: NPC</span>' 
-                : '<span class="badge badge-type" title="Monster queue loses durability">👹 Monster: Player</span>'}
+                ? '<span class="badge badge-monster" title="Monster queue does not lose durability">👹 Monster: NPC (No Wear)</span>' 
+                : '<span class="badge badge-type" title="Monster queue loses durability on active items">👹 Monster: Takes Wear</span>'}
               ${rules.allowedTypes.length === 3 
                 ? '<span class="badge badge-active">✨ All Items Active</span>' 
                 : (rules.allowedTypes.length === 0 
@@ -607,7 +607,10 @@ async function createBattle() {
   const description = (document.getElementById('qm-battle-description') || document.getElementById('qm-description'))?.value.trim() || '';
   const scenario_card = (document.getElementById('qm-battle-scenario') || document.getElementById('qm-scenario'))?.value.trim() || '';
   const repeatable = Boolean((document.getElementById('qm-battle-repeatable') || document.getElementById('qm-repeatable'))?.checked);
-  const monsters_are_npc = Boolean((document.getElementById('qm-battle-monsters-are-npc') || document.getElementById('qm-monsters-are-npc'))?.checked);
+  
+  const monsterDurabilityInput = document.getElementById('qm-battle-monster-durability') || document.getElementById('qm-battle-monsters-are-npc');
+  const monster_takes_wear = monsterDurabilityInput ? Boolean(monsterDurabilityInput.checked) : true;
+  const monsters_are_npc = !monster_takes_wear;
 
   const allowTrinket = document.getElementById('qm-item-trinket') ? document.getElementById('qm-item-trinket').checked : true;
   const allowTalisman = document.getElementById('qm-item-talisman') ? document.getElementById('qm-item-talisman').checked : true;
@@ -693,8 +696,9 @@ async function createBattle() {
   if (document.getElementById('qm-scenario')) document.getElementById('qm-scenario').value = '';
   if (victoryInput) victoryInput.value = '15';
   if (defeatInput) defeatInput.value = '10';
-  if (document.getElementById('qm-battle-monsters-are-npc')) document.getElementById('qm-battle-monsters-are-npc').checked = false;
-  if (document.getElementById('qm-monsters-are-npc')) document.getElementById('qm-monsters-are-npc').checked = false;
+  if (document.getElementById('qm-battle-monster-durability')) document.getElementById('qm-battle-monster-durability').checked = true;
+  if (document.getElementById('qm-battle-monsters-are-npc')) document.getElementById('qm-battle-monsters-are-npc').checked = true;
+  if (document.getElementById('qm-monsters-are-npc')) document.getElementById('qm-monsters-are-npc').checked = true;
   if (document.getElementById('qm-battle-repeatable')) document.getElementById('qm-battle-repeatable').checked = false;
   if (document.getElementById('qm-repeatable')) document.getElementById('qm-repeatable').checked = false;
   if (document.getElementById('qm-item-trinket')) document.getElementById('qm-item-trinket').checked = true;
