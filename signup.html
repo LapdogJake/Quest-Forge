@@ -115,7 +115,7 @@
       if (error) {
         status.style.color = "#f87171";
         if (error.message && error.message.includes("Database error saving new user")) {
-          status.innerHTML = `⚠️ <strong>Database Trigger Error:</strong><br>Please run the script in <code>supabase_fix_user_signup.sql</code> in your Supabase SQL Editor to enable new account creation.`;
+          status.innerHTML = `⚠️ <strong>Database Trigger Error:</strong><br>Please run the script in <code>supabase_setup.sql</code> in your Supabase SQL Editor to enable new account creation.`;
         } else {
           status.innerText = error.message;
         }

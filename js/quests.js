@@ -621,7 +621,7 @@ async function qmDeleteQuest(questId, questTitle) {
     }
 
     if (!deletedRows || deletedRows.length === 0) {
-      alert("⚠️ Database blocked deleting this quest.\n\nThis happens when Supabase Row-Level Security (RLS) is missing DELETE policies.\n\nPlease run the SQL in 'supabase_quest_management_setup.sql' in your Supabase SQL Editor!");
+      alert("⚠️ Database blocked deleting this quest.\n\nThis happens when Supabase Row-Level Security (RLS) is missing DELETE policies.\n\nPlease run the SQL in 'supabase_setup.sql' in your Supabase SQL Editor!");
       return;
     }
 
