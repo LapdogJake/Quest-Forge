@@ -292,9 +292,21 @@ async function fetchQMQueues() {
               <span class="badge badge-battle">Battle</span>
               <span class="badge badge-type" style="color:var(--gold); border-color:var(--gold); font-weight:bold;">🏆 Win: +${victoryGold}g</span>
               <span class="badge badge-type" style="color:#94a3b8; border-color:#64748b;">💀 Loss: +${defeatGold}g</span>
+              ${rules.durabilityWear === 0 
+                ? '<span class="badge badge-active">🛡️ No Gear Wear</span>' 
+                : (rules.durabilityWear === 2 
+                  ? '<span class="badge badge-threat-loot">🔥 2x Gear Wear</span>' 
+                  : (rules.durabilityWear >= 3 
+                    ? `<span class="badge badge-threat-loot">💥 ${rules.durabilityWear}x Gear Wear</span>` 
+                    : ''))}
+              ${rules.defeatPenalty === 'items_lost' 
+                ? '<span class="badge badge-monster" style="background:#b91c1c; color:white; font-weight:bold;">💀 Items Lost</span>' 
+                : (rules.defeatPenalty === 'total_ruin' 
+                  ? '<span class="badge badge-monster" style="background:#7f1d1d; border:1px solid #ef4444; color:white; font-weight:bold;">☠️ Total Ruin</span>' 
+                  : '')}
               ${rules.monstersAreNpc 
-                ? '<span class="badge badge-monster" title="Monster queue does not lose durability">👹 NPC Monsters</span>' 
-                : '<span class="badge badge-type" title="Monster queue loses durability on active items">👹 Monster Wear</span>'}
+                ? '<span class="badge badge-monster" title="Monster queue does not lose durability">👹 Monsters are NPCs</span>' 
+                : ''}
               ${rules.allowedTypes.length === 3 
                 ? '<span class="badge badge-active">✨ All Items Active</span>' 
                 : (rules.allowedTypes.length === 0 
@@ -521,7 +533,7 @@ async function qmFinishBattle(queueId, questId, victoryGold, defeatGold, explici
 
   const rules = typeof getQuestDurabilityRules === 'function' 
     ? getQuestDurabilityRules(questData) 
-    : { monstersAreNpc: false, allowedTypes: ['Trinket', 'Talisman', 'Artifact'], defeatGold: 0 };
+    : { monstersAreNpc: false, allowedTypes: ['Trinket', 'Talisman', 'Artifact'], defeatGold: 0, durabilityWear: 1, defeatPenalty: 'none' };
 
   const effectiveVictoryGold = Number(victoryGold) || Number(questData?.reward_gold) || 0;
   const effectiveDefeatGold = Number(defeatGold) || Number(questData?.reward_gold_defeat) || Number(rules.defeatGold) || 0;
@@ -530,13 +542,25 @@ async function qmFinishBattle(queueId, questId, victoryGold, defeatGold, explici
   const monsterGold = victor === 'monsters' ? effectiveVictoryGold : effectiveDefeatGold;
   const victorName = victor === 'heroes' ? '⚔️ HEROES' : '👹 MONSTERS';
 
+  const wearAmount = Number.isFinite(rules.durabilityWear) ? Number(rules.durabilityWear) : 1;
+  const defeatPenalty = rules.defeatPenalty || 'none';
+
+  let stakesWarning = '';
+  if (defeatPenalty === 'items_lost') {
+    stakesWarning = `\n\n⚠️ HIGH STAKES (Items Lost): Losing team will LOSE ALL active pouch items!`;
+  } else if (defeatPenalty === 'total_ruin') {
+    stakesWarning = `\n\n☠️ TOTAL RUIN ACTIVE: Losing team will LOSE ALL active pouch items AND have Gold reset to 0!`;
+  }
+
   const confirmMsg = `Declare ${victorName} the Victor?\n\n` +
     `• Heroes Line (${pcUserIds.length} players): ${heroGold}g each (${victor === 'heroes' ? 'VICTORY' : 'DEFEAT'})\n` +
     `• Monster Line (${monsterUserIds.length} players): ${monsterGold}g each (${victor === 'monsters' ? 'VICTORY' : 'DEFEAT'})\n\n` +
     `Item Wear Rules:\n` +
     `• Magic Items Active: ${rules.allowedTypes.length > 0 ? rules.allowedTypes.join(', ') : 'None (Restricted)'}\n` +
-    `• Monster Queue Wear: ${rules.monstersAreNpc ? 'NPC (NO wear)' : 'Active (Takes wear)'}\n\n` +
-    `Distribute gold & durability wear?`;
+    `• Gear Wear Amount: ${wearAmount} durability per battle\n` +
+    `• Monster Team: ${rules.monstersAreNpc ? 'Monsters are NPCs (NO wear)' : 'Monsters take item wear'}` +
+    stakesWarning + `\n\n` +
+    `Distribute rewards and execute combat resolution?`;
 
   if (!confirm(confirmMsg)) return;
 
@@ -546,17 +570,24 @@ async function qmFinishBattle(queueId, questId, victoryGold, defeatGold, explici
   // 2. Award Gold to Monsters
   const monsterPayouts = monsterUserIds.map(uid => awardFighterGold(uid, monsterGold));
 
-  // 3. Durability wear on Heroes (always applies to active items)
-  const heroDurabilityWear = pcUserIds.map(uid => applyCombatDurabilityDamage(uid, rules.allowedTypes));
+  // 3. Durability wear on Heroes
+  const heroDurabilityWear = pcUserIds.map(uid => applyCombatDurabilityDamage(uid, rules.allowedTypes, wearAmount));
 
-  // 4. Durability wear on Monsters:
-  // If monsters are NPC, NO wear is applied to monsters!
-  // If monsters are NOT NPC (default for normal battles), monsters take wear on allowed items!
+  // 4. Durability wear on Monsters (skip if monsters are NPCs)
   const monsterDurabilityWear = rules.monstersAreNpc
     ? []
-    : monsterUserIds.map(uid => applyCombatDurabilityDamage(uid, rules.allowedTypes));
+    : monsterUserIds.map(uid => applyCombatDurabilityDamage(uid, rules.allowedTypes, wearAmount));
 
-  // 5. Mark queues completed and close battle quest
+  // 5. Execute Defeat Penalty (Items Lost or Total Ruin) on the defeated team
+  const losingUserIds = victor === 'heroes' 
+    ? (rules.monstersAreNpc ? [] : monsterUserIds) 
+    : pcUserIds;
+
+  const defeatPenaltyPromises = (defeatPenalty !== 'none')
+    ? losingUserIds.map(uid => executeDefeatPenalty(uid, defeatPenalty))
+    : [];
+
+  // 6. Mark queues completed and close battle quest
   const queueUpdates = [];
   if (queueId) {
     queueUpdates.push(supabaseClient.from('quest_queues').update({ status: 'completed' }).eq('id', queueId));
@@ -566,10 +597,52 @@ async function qmFinishBattle(queueId, questId, victoryGold, defeatGold, explici
     queueUpdates.push(supabaseClient.from('quests').update({ is_active: false }).eq('id', questId));
   }
 
-  await Promise.allSettled([...heroPayouts, ...monsterPayouts, ...heroDurabilityWear, ...monsterDurabilityWear, ...queueUpdates]);
+  await Promise.allSettled([...heroPayouts, ...monsterPayouts, ...heroDurabilityWear, ...monsterDurabilityWear, ...defeatPenaltyPromises, ...queueUpdates]);
 
-  alert(`🎉 Battle finished! ${victorName} victorious!\nRewards distributed and equipment durability updated.`);
+  alert(`🎉 Battle finished! ${victorName} victorious!\nRewards distributed and combat results processed.`);
   initDashboard();
+}
+
+async function executeDefeatPenalty(userId, penalty) {
+  if (!userId || !penalty || penalty === 'none') return;
+  const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
+  const activeQMId = currentQMId || null;
+
+  try {
+    // 1. Wipe active inventory items for this park & QM
+    let invQuery = supabaseClient
+      .from('user_inventory')
+      .delete()
+      .eq('user_id', userId)
+      .eq('park', activePark);
+
+    if (activeQMId) {
+      invQuery = invQuery.eq('qm_id', activeQMId);
+    }
+    await invQuery;
+
+    // 2. If Total Ruin, reset gold to 0
+    if (penalty === 'total_ruin') {
+      let profQuery = supabaseClient
+        .from('user_park_profiles')
+        .update({ gold: 0 })
+        .eq('user_id', userId)
+        .eq('park', activePark);
+
+      if (activeQMId) {
+        profQuery = profQuery.eq('qm_id', activeQMId);
+      }
+      await profQuery;
+
+      if (currentUser && currentUser.id === userId) {
+        if (currentParkProfile) currentParkProfile.gold = 0;
+        if (currentProfile) currentProfile.gold = 0;
+        if (typeof syncGoldDisplays === 'function') syncGoldDisplays(0);
+      }
+    }
+  } catch (err) {
+    console.error('Error executing defeat penalty:', err);
+  }
 }
 
 async function awardFighterGold(userId, goldAmt) {

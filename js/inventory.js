@@ -115,12 +115,13 @@ async function fetchUserInventory() {
 }
 
 // Durability Combat Damage Engine: Applies wear to active equipment following battle rules
-async function applyCombatDurabilityDamage(userId, allowedCategories = null) {
+async function applyCombatDurabilityDamage(userId, allowedCategories = null, wearAmount = 1) {
   if (!userId) return;
   const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
+  const wear = Number.isFinite(wearAmount) ? Number(wearAmount) : 1;
 
-  // If allowedCategories is explicitly an empty list, no items consume durability
-  if (Array.isArray(allowedCategories) && allowedCategories.length === 0) {
+  // If wear is 0 or allowedCategories is explicitly empty, no gear wear occurs
+  if (wear <= 0 || (Array.isArray(allowedCategories) && allowedCategories.length === 0)) {
     return;
   }
 
@@ -135,9 +136,9 @@ async function applyCombatDurabilityDamage(userId, allowedCategories = null) {
     );
   }
 
-  // 1. Attempt server-side atomic RPC ONLY if ALL magic items are allowed (no restrictions)
+  // 1. Attempt server-side atomic RPC ONLY if wear is 1 and ALL magic items are allowed (no restrictions)
   const isUnrestricted = !allowedSet || (allowedSet.has('trinket') && allowedSet.has('talisman') && allowedSet.has('artifact'));
-  if (isUnrestricted) {
+  if (wear === 1 && isUnrestricted) {
     try {
       const { error: rpcError } = await supabaseClient.rpc('apply_combat_durability_damage', {
         target_user_id: userId,
@@ -191,10 +192,11 @@ async function applyCombatDurabilityDamage(userId, allowedCategories = null) {
     const durabilityMax = Number(row.durability_max ?? defaultMax ?? 1);
     const durabilityCurrent = Number(row.durability_current ?? durabilityMax);
 
-    if (durabilityCurrent <= 1) {
+    const nextDurability = durabilityCurrent - wear;
+
+    if (nextDurability <= 0) {
       rowsToDelete.push(row.id);
     } else {
-      const nextDurability = durabilityCurrent - 1;
       rowsToUpdate.push({
         id: row.id,
         row: row,

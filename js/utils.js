@@ -151,6 +151,9 @@ function getQuestDurabilityRules(q) {
   let allowedItems = q?.allowed_items;
   let defeatGold = Number(q?.reward_gold_defeat) || 0;
 
+  let durabilityWear = q?.durability_wear !== undefined ? Number(q.durability_wear) : 1;
+  let defeatPenalty = q?.defeat_penalty || 'none';
+
   // Check fallback metadata embedded in scenario_card or description
   const textToCheck = `${q?.scenario_card || ''} ${q?.description || ''}`;
   const match = textToCheck.match(/<!--\s*RULES:\s*(\{.*?\})\s*-->/);
@@ -165,6 +168,12 @@ function getQuestDurabilityRules(q) {
       }
       if (!defeatGold && (parsed.reward_gold_defeat !== undefined || parsed.defeat_gold !== undefined)) {
         defeatGold = Number(parsed.reward_gold_defeat !== undefined ? parsed.reward_gold_defeat : parsed.defeat_gold) || 0;
+      }
+      if (parsed.durability_wear !== undefined) {
+        durabilityWear = Number(parsed.durability_wear);
+      }
+      if (parsed.defeat_penalty !== undefined) {
+        defeatPenalty = String(parsed.defeat_penalty);
       }
     } catch (e) {
       console.warn("Failed to parse embedded quest rules", e);
@@ -188,6 +197,8 @@ function getQuestDurabilityRules(q) {
   return {
     monstersAreNpc: isMonsterNpc,
     allowedTypes: allowedTypes,
-    defeatGold: defeatGold !== undefined && defeatGold !== null ? Number(defeatGold) : 0
+    defeatGold: defeatGold !== undefined && defeatGold !== null ? Number(defeatGold) : 0,
+    durabilityWear: Number.isFinite(durabilityWear) ? durabilityWear : 1,
+    defeatPenalty: defeatPenalty || 'none'
   };
 }

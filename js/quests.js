@@ -308,8 +308,12 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
 
     const scenarioClean = (q.scenario_card || '').replace(/<!--\s*RULES:.*?-->/gs, '').trim();
 
+    const isHighStakes = rules.defeatPenalty === 'items_lost' || rules.defeatPenalty === 'total_ruin';
+    const highStakesBorder = rules.defeatPenalty === 'total_ruin' ? '#ef4444' : '#b91c1c';
+    const cardBorder = isLive ? '#dc2626' : (isJoinedHero || isJoinedMonster ? 'var(--gold)' : (isHighStakes ? highStakesBorder : 'rgba(255,255,255,0.12)'));
+
     return `
-      <div class="quest-card battle-card" style="border: 2px solid ${isLive ? '#dc2626' : (isJoinedHero || isJoinedMonster ? 'var(--gold)' : 'rgba(255,255,255,0.12)')}; margin-bottom:16px;">
+      <div class="quest-card battle-card" style="border: 2px solid ${cardBorder}; margin-bottom:16px;">
         <!-- Header & Status Badges -->
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:8px;">
           <div>
@@ -318,9 +322,21 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
               <span class="badge badge-battle" style="background:#dc2626; color:white;">⚔️ Battle</span>
               <span class="badge badge-type" style="color:var(--gold); border-color:var(--gold); font-weight:bold;">🏆 +${victoryGold}g Win</span>
               <span class="badge badge-type" style="color:#94a3b8; border-color:#64748b;">💀 +${defeatGold}g Loss</span>
+              ${rules.durabilityWear === 0 
+                ? '<span class="badge badge-active">🛡️ No Gear Wear</span>' 
+                : (rules.durabilityWear === 2 
+                  ? '<span class="badge badge-threat-loot">🔥 2x Gear Wear</span>' 
+                  : (rules.durabilityWear >= 3 
+                    ? `<span class="badge badge-threat-loot">💥 ${rules.durabilityWear}x Gear Wear</span>` 
+                    : ''))}
+              ${rules.defeatPenalty === 'items_lost' 
+                ? '<span class="badge badge-monster" style="background:#b91c1c; color:white; font-weight:bold;">💀 Items Lost</span>' 
+                : (rules.defeatPenalty === 'total_ruin' 
+                  ? '<span class="badge badge-monster" style="background:#7f1d1d; border:1px solid #ef4444; color:white; font-weight:bold;">☠️ Total Ruin</span>' 
+                  : '')}
               ${rules.monstersAreNpc 
-                ? '<span class="badge badge-monster" title="Monster queue does not lose durability">👹 NPC Monsters</span>' 
-                : '<span class="badge badge-type" title="Monster queue loses durability on active items">👹 Monster Wear</span>'}
+                ? '<span class="badge badge-monster" title="Monster queue does not lose durability">👹 Monsters are NPCs</span>' 
+                : ''}
               ${rules.allowedTypes.length === 3 
                 ? '<span class="badge badge-active">✨ All Items Active</span>' 
                 : (rules.allowedTypes.length === 0 
@@ -675,9 +691,15 @@ async function createBattle() {
   const scenario_card = (document.getElementById('qm-battle-scenario') || document.getElementById('qm-scenario'))?.value.trim() || '';
   const repeatable = Boolean((document.getElementById('qm-battle-repeatable') || document.getElementById('qm-repeatable'))?.checked);
   
-  const monsterDurabilityInput = document.getElementById('qm-battle-monster-durability') || document.getElementById('qm-battle-monsters-are-npc');
-  const monster_takes_wear = monsterDurabilityInput ? Boolean(monsterDurabilityInput.checked) : true;
-  const monsters_are_npc = !monster_takes_wear;
+  const npcInput = document.getElementById('qm-battle-monsters-are-npc') || document.getElementById('qm-battle-monsters-npc') || document.getElementById('qm-monsters-are-npc');
+  const legacyDurabilityInput = document.getElementById('qm-battle-monster-durability');
+  const monsters_are_npc = npcInput ? Boolean(npcInput.checked) : (legacyDurabilityInput ? !legacyDurabilityInput.checked : false);
+
+  const durabilityWearInput = document.getElementById('qm-battle-durability-wear');
+  const durability_wear = durabilityWearInput ? Number(durabilityWearInput.value) : 1;
+
+  const defeatPenaltyInput = document.getElementById('qm-battle-defeat-penalty');
+  const defeat_penalty = defeatPenaltyInput ? defeatPenaltyInput.value : 'none';
 
   const allowTrinket = document.getElementById('qm-item-trinket') ? document.getElementById('qm-item-trinket').checked : true;
   const allowTalisman = document.getElementById('qm-item-talisman') ? document.getElementById('qm-item-talisman').checked : true;
@@ -691,7 +713,7 @@ async function createBattle() {
 
   if (!title) { alert("Please enter a Battle Title."); return; }
 
-  const rulesMeta = `<!-- RULES: ${JSON.stringify({ monsters_are_npc, allowed_items: allowedList, reward_gold_defeat, defeat_gold: reward_gold_defeat })} -->`;
+  const rulesMeta = `<!-- RULES: ${JSON.stringify({ monsters_are_npc, allowed_items: allowedList, reward_gold_defeat, defeat_gold: reward_gold_defeat, durability_wear, defeat_penalty })} -->`;
   const scenarioWithMeta = scenario_card ? `${scenario_card}\n${rulesMeta}` : rulesMeta;
 
   const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
@@ -763,11 +785,14 @@ async function createBattle() {
   if (document.getElementById('qm-scenario')) document.getElementById('qm-scenario').value = '';
   if (victoryInput) victoryInput.value = '15';
   if (defeatInput) defeatInput.value = '10';
+  if (document.getElementById('qm-battle-monsters-are-npc')) document.getElementById('qm-battle-monsters-are-npc').checked = false;
+  if (document.getElementById('qm-battle-monsters-npc')) document.getElementById('qm-battle-monsters-npc').checked = false;
+  if (document.getElementById('qm-monsters-are-npc')) document.getElementById('qm-monsters-are-npc').checked = false;
   if (document.getElementById('qm-battle-monster-durability')) document.getElementById('qm-battle-monster-durability').checked = true;
-  if (document.getElementById('qm-battle-monsters-are-npc')) document.getElementById('qm-battle-monsters-are-npc').checked = true;
-  if (document.getElementById('qm-monsters-are-npc')) document.getElementById('qm-monsters-are-npc').checked = true;
   if (document.getElementById('qm-battle-repeatable')) document.getElementById('qm-battle-repeatable').checked = false;
   if (document.getElementById('qm-repeatable')) document.getElementById('qm-repeatable').checked = false;
+  if (document.getElementById('qm-battle-durability-wear')) document.getElementById('qm-battle-durability-wear').value = '1';
+  if (document.getElementById('qm-battle-defeat-penalty')) document.getElementById('qm-battle-defeat-penalty').value = 'none';
   if (document.getElementById('qm-item-trinket')) document.getElementById('qm-item-trinket').checked = true;
   if (document.getElementById('qm-item-talisman')) document.getElementById('qm-item-talisman').checked = true;
   if (document.getElementById('qm-item-artifact')) document.getElementById('qm-item-artifact').checked = true;

@@ -267,13 +267,34 @@
             <div
               style="border-top:1px solid #27272a; padding-top:10px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
               <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; margin:0;">
-                <input type="checkbox" id="qm-battle-monster-durability" checked style="width:16px; height:16px;">
-                <span>Monster Team will lose durability</span>
+                <input type="checkbox" id="qm-battle-monsters-are-npc" style="width:16px; height:16px;">
+                <span>Monsters are NPCs</span>
               </label>
               <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; margin:0;">
                 <input type="checkbox" id="qm-battle-repeatable" style="width:16px; height:16px;">
                 <span>Repeatable Battle</span>
               </label>
+            </div>
+
+            <!-- High-Stakes & Combat Wear Modifiers -->
+            <div style="border-top:1px solid #27272a; padding-top:10px; margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+              <div>
+                <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Gear Durability Wear</label>
+                <select id="qm-battle-durability-wear" class="form-control" style="padding:6px 8px; font-size:13px;">
+                  <option value="1" selected>1 Wear (Standard)</option>
+                  <option value="2">2 Wear (Heavy)</option>
+                  <option value="3">3 Wear (Brutal)</option>
+                  <option value="0">0 Wear (No Gear Wear)</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Defeat Penalty</label>
+                <select id="qm-battle-defeat-penalty" class="form-control" style="padding:6px 8px; font-size:13px;">
+                  <option value="none" selected>None (Standard)</option>
+                  <option value="items_lost">💀 Items Lost</option>
+                  <option value="total_ruin">☠️ Total Ruin</option>
+                </select>
+              </div>
             </div>
           </div>
 
