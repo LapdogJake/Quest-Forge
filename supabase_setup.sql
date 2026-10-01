@@ -134,7 +134,7 @@ CREATE TABLE IF NOT EXISTS public.quests (
   qm_username TEXT,
   reward_gold_defeat INTEGER DEFAULT 0,
   monsters_are_npc BOOLEAN DEFAULT FALSE,
-  allowed_items TEXT DEFAULT 'Trinket,Talisman,Artifact',
+  repeatable BOOLEAN DEFAULT FALSE,
   is_repeatable BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT now()
 );
@@ -148,6 +148,7 @@ ALTER TABLE public.quests
   ADD COLUMN IF NOT EXISTS reward_gold_defeat INTEGER DEFAULT 0,
   ADD COLUMN IF NOT EXISTS monsters_are_npc BOOLEAN DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS allowed_items TEXT DEFAULT 'Trinket,Talisman,Artifact',
+  ADD COLUMN IF NOT EXISTS repeatable BOOLEAN DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS is_repeatable BOOLEAN DEFAULT FALSE;
 
 CREATE INDEX IF NOT EXISTS idx_quests_qm_park ON public.quests (park, qm_id);
