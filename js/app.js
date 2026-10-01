@@ -71,6 +71,8 @@ async function initDashboard() {
 
     if (userDisplayEl) userDisplayEl.innerText = displayName;
 
+    renderEmailVerificationStatus();
+
     const activeGold = Number(currentParkProfile?.gold) || 0;
     currentProfile.gold = activeGold;
     if (typeof syncGoldDisplays === 'function') {
@@ -91,6 +93,10 @@ async function initDashboard() {
       await initProfileGroupSelector();
     }
 
+    if (typeof initQuestAbilitiesUI === 'function') {
+      initQuestAbilitiesUI();
+    }
+
     if (typeof fetchUserSlotState === 'function') await fetchUserSlotState();
     if (typeof fetchQuests === 'function') fetchQuests();
     if (typeof fetchMonsterEncounters === 'function') fetchMonsterEncounters();
@@ -102,6 +108,62 @@ async function initDashboard() {
     const userDisplayEl = document.getElementById('user-display');
     if (userDisplayEl && currentUser) {
       userDisplayEl.innerText = currentUser.email || 'Player';
+    }
+  }
+}
+
+function renderEmailVerificationStatus() {
+  const container = document.getElementById('profile-email-status');
+  if (!container || !currentUser) return;
+
+  const isConfirmed = Boolean(currentUser.email_confirmed_at || currentUser.confirmed_at);
+
+  if (isConfirmed) {
+    container.innerHTML = `
+      <div style="margin-bottom:8px;">
+        <span class="badge badge-verified">🛡️ Email Confirmed</span>
+      </div>
+    `;
+  } else {
+    container.innerHTML = `
+      <div class="email-verify-box" style="margin-bottom:8px;">
+        <div>
+          <span style="font-weight:bold; color:#fca5a5; font-size:12px;">⚠️ Email Not Confirmed</span>
+          <small style="display:block; color:var(--text-muted); font-size:11px;">Verification is required to become a Questmaster</small>
+        </div>
+        <button id="btn-resend-verify" class="btn-secondary" style="padding:5px 10px; font-size:11px; margin:0;" onclick="handleResendVerificationEmail()">
+          Resend Link
+        </button>
+      </div>
+    `;
+  }
+}
+
+async function handleResendVerificationEmail() {
+  if (!currentUser || !currentUser.email) return;
+  const btn = document.getElementById('btn-resend-verify');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerText = "Sending...";
+  }
+
+  try {
+    const { error } = await supabaseClient.auth.resend({
+      type: 'signup',
+      email: currentUser.email
+    });
+
+    if (error) {
+      alert("⚠️ Could not resend verification email: " + error.message);
+    } else {
+      alert(`📧 Verification email sent to ${currentUser.email}!\n\nPlease check your inbox and spam folders.`);
+    }
+  } catch (err) {
+    alert("Error: " + err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerText = "Resend Link";
     }
   }
 }

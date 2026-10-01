@@ -37,7 +37,7 @@ function switchTab(tabName) {
     activeBtn.classList.add('active');
     if (typeof fetchQMQuests === 'function') fetchQMQuests();
     if (typeof fetchQMQueues === 'function') fetchQMQueues();
-  } else if (tabName === 'store') {
+  } else if (tabName === 'items' || tabName === 'store') {
     activeBtn.classList.add('active');
     const gold = currentParkProfile?.gold ?? currentProfile?.gold ?? 0;
     syncGoldDisplays(gold);
@@ -50,13 +50,15 @@ function switchTab(tabName) {
   }
 }
 
-// Synchronize all on-screen gold counter displays (Profile & Store)
+// Synchronize all on-screen gold counter displays (Profile, Store, Items)
 function syncGoldDisplays(goldAmt) {
   const amt = Number(goldAmt) || 0;
   const profileGold = document.getElementById('profile-gold');
   if (profileGold) profileGold.innerText = amt;
   const storeGold = document.getElementById('store-player-gold');
   if (storeGold) storeGold.innerText = amt;
+  const itemsGold = document.getElementById('items-player-gold');
+  if (itemsGold) itemsGold.innerText = amt;
 }
 
 // Questmaster Panel sub-navigation
@@ -140,6 +142,17 @@ function getCategoryForItemName(itemName) {
   return match?.category || null;
 }
 
+function getItemDurabilityMax(itemName) {
+  if (!itemName) return 1;
+  const normalized = itemName.replace(/’/g, "'").trim().toLowerCase();
+  const match = STORE_CATALOG.find(item => item.item_name.replace(/’/g, "'").trim().toLowerCase() === normalized);
+  if (match && Number.isFinite(match.durability_max)) {
+    return match.durability_max;
+  }
+  const cat = match?.category || getCategoryForItemName(itemName);
+  return getCategoryDurabilityMax(cat);
+}
+
 function getCategoryDurabilityMax(category) {
   if (!category) return 1;
   return DURABILITY_LIMITS[category] || 1;
@@ -153,6 +166,11 @@ function getQuestDurabilityRules(q) {
 
   let durabilityWear = q?.durability_wear !== undefined ? Number(q.durability_wear) : 1;
   let defeatPenalty = q?.defeat_penalty || 'none';
+  let maxActive = q?.max_active !== undefined ? Number(q.max_active) : 0;
+  let maxCompletions = q?.max_completions !== undefined ? Number(q.max_completions) : 0;
+  let verificationMethod = q?.verification_method || 'Quest Master';
+  let allowMidJoin = q?.allow_mid_join;
+  let rngLootDrops = q?.rng_loot_drops;
 
   // Check fallback metadata embedded in scenario_card or description
   const textToCheck = `${q?.scenario_card || ''} ${q?.description || ''}`;
@@ -174,6 +192,21 @@ function getQuestDurabilityRules(q) {
       }
       if (parsed.defeat_penalty !== undefined) {
         defeatPenalty = String(parsed.defeat_penalty);
+      }
+      if (parsed.max_active !== undefined) {
+        maxActive = Number(parsed.max_active);
+      }
+      if (parsed.max_completions !== undefined) {
+        maxCompletions = Number(parsed.max_completions);
+      }
+      if (parsed.verification_method !== undefined || parsed.verification !== undefined) {
+        verificationMethod = parsed.verification_method || parsed.verification;
+      }
+      if (allowMidJoin === undefined && parsed.allow_mid_join !== undefined) {
+        allowMidJoin = Boolean(parsed.allow_mid_join);
+      }
+      if (rngLootDrops === undefined && (parsed.rng_loot_drops !== undefined || parsed.rng_loot !== undefined)) {
+        rngLootDrops = Boolean(parsed.rng_loot_drops ?? parsed.rng_loot);
       }
     } catch (e) {
       console.warn("Failed to parse embedded quest rules", e);
@@ -199,6 +232,11 @@ function getQuestDurabilityRules(q) {
     allowedTypes: allowedTypes,
     defeatGold: defeatGold !== undefined && defeatGold !== null ? Number(defeatGold) : 0,
     durabilityWear: Number.isFinite(durabilityWear) ? durabilityWear : 1,
-    defeatPenalty: defeatPenalty || 'none'
+    defeatPenalty: defeatPenalty || 'none',
+    maxActive: Number.isFinite(maxActive) ? maxActive : 0,
+    maxCompletions: Number.isFinite(maxCompletions) ? maxCompletions : 0,
+    verificationMethod: verificationMethod || 'Quest Master',
+    allowMidJoin: Boolean(allowMidJoin),
+    rngLootDrops: Boolean(rngLootDrops)
   };
 }

@@ -168,6 +168,60 @@ async function updateParkGold(amountOrNewTotal, isDelta = false, park = null, qm
   return nextGold;
 }
 
+// Award gold to a specific user (used when QM verifies a player's quest completion)
+async function awardGoldToUser(userId, amount, park = null, qmId = null) {
+  if (!userId || !amount) return;
+  const targetPark = park || (typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest"));
+  const targetKingdom = getKingdomForPark(targetPark);
+  const targetQMId = qmId || currentQMId || null;
+
+  try {
+    let query = supabaseClient
+      .from('user_park_profiles')
+      .select('id, gold')
+      .eq('user_id', userId)
+      .eq('park', targetPark);
+
+    if (targetQMId) {
+      query = query.eq('qm_id', targetQMId);
+    }
+
+    const { data: existingRow } = await query.maybeSingle();
+
+    if (existingRow) {
+      const newGold = Math.max(0, (Number(existingRow.gold) || 0) + Number(amount));
+      await supabaseClient
+        .from('user_park_profiles')
+        .update({ gold: newGold })
+        .eq('id', existingRow.id);
+    } else {
+      await supabaseClient
+        .from('user_park_profiles')
+        .insert({
+          user_id: userId,
+          park: targetPark,
+          kingdom: targetKingdom,
+          qm_id: targetQMId,
+          role: 'player',
+          gold: Number(amount)
+        });
+    }
+
+    // If current logged-in user matches, sync local state and displays immediately
+    if (currentUser && currentUser.id === userId) {
+      const curAmt = (currentParkProfile && currentParkProfile.park === targetPark)
+        ? Number(currentParkProfile.gold) || 0
+        : Number(currentProfile?.gold) || 0;
+      const nextGold = curAmt + Number(amount);
+      if (currentParkProfile) currentParkProfile.gold = nextGold;
+      if (currentProfile) currentProfile.gold = nextGold;
+      syncGoldDisplays(nextGold);
+    }
+  } catch (err) {
+    console.warn("Could not award gold to user:", err);
+  }
+}
+
 // ------------------------------------------------------------------------------
 // Kingdom, Park & QM Hierarchy Dropdown Selectors
 // ------------------------------------------------------------------------------
@@ -275,9 +329,33 @@ async function handleBecomeQM() {
     return;
   }
 
+  const isEmailConfirmed = Boolean(currentUser.email_confirmed_at || currentUser.confirmed_at);
+  if (!isEmailConfirmed) {
+    alert("⚠️ Email Verification Required:\n\nOnly confirmed email accounts can become Questmasters!\n\nPlease check your email for the confirmation link, or click 'Resend Link' under your Profile tab.");
+    return;
+  }
+
   const park = parkSelect ? parkSelect.value : getActivePark();
   const kingdom = kingdomSelect ? kingdomSelect.value : getActiveKingdom();
   const username = currentProfile?.username || currentUser.email?.split('@')[0] || 'Questmaster';
+
+  // Enforce 1-Park QM Limit: check if user already holds a QM reign at another park
+  const { data: existingQMs, error: qmCheckErr } = await supabaseClient
+    .from('park_questmasters')
+    .select('*')
+    .eq('user_id', currentUser.id);
+
+  if (existingQMs && existingQMs.length > 0) {
+    const existingOther = existingQMs.find(qm => qm.park !== park);
+    if (existingOther) {
+      alert(
+        `⚠️ Questmaster Limit Reached:\n\n` +
+        `You are already an active Questmaster at "${existingOther.park}" (${existingOther.kingdom})!\n\n` +
+        `Players may only hold 1 active Questmaster reign at a time. To start a new campaign here, switch to "${existingOther.park}" and click "End Campaign" at the bottom of your QM Panel.`
+      );
+      return;
+    }
+  }
 
   const confirmed = confirm(`Do you want to become a registered Questmaster for "${park}" in "${kingdom}"?\n\nThis will allow players to enter your QM realm, and unlocks your QM Panel!`);
   if (!confirmed) return;
@@ -322,6 +400,105 @@ async function handleBecomeQM() {
     if (btn) {
       btn.disabled = false;
       btn.innerText = "👑 Become QM Here";
+    }
+  }
+}
+
+// Permanently delete QM status and all forged encounters/progress for this park
+async function handleEndCampaign() {
+  if (!currentUser) return;
+
+  const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
+  const activeQMId = currentQMId || currentUser.id;
+
+  // Verify the user is actually the Questmaster of this realm
+  if (activeQMId !== currentUser.id) {
+    alert("⚠️ You can only end a campaign for your own active Questmaster realm.");
+    return;
+  }
+
+  const promptInput = prompt(
+    `⚠️ DANGER: END CAMPAIGN?\n\n` +
+    `This will permanently close your Questmaster reign at "${activePark}", delete all forged battles & quests, and wipe group progress in this realm.\n\n` +
+    `Type "END" to confirm:`
+  );
+
+  if (!promptInput || promptInput.trim().toUpperCase() !== 'END') {
+    if (promptInput !== null) {
+      alert("❌ Confirmation text did not match 'END'. Campaign was not ended.");
+    }
+    return;
+  }
+
+  const btn = document.getElementById('btn-end-campaign');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerText = "Ending Campaign...";
+  }
+
+  try {
+    // 1. Fetch all quest IDs forged by this QM in this park
+    const { data: qmQuests } = await supabaseClient
+      .from('quests')
+      .select('id')
+      .eq('qm_id', currentUser.id);
+
+    const questIds = (qmQuests || []).map(q => q.id);
+
+    // 2. Delete all related queues and memberships
+    if (questIds.length > 0) {
+      const { data: qmQueues } = await supabaseClient
+        .from('quest_queues')
+        .select('id')
+        .in('quest_id', questIds);
+
+      const queueIds = (qmQueues || []).map(q => q.id);
+
+      if (queueIds.length > 0) {
+        await supabaseClient.from('queue_members').delete().in('queue_id', queueIds);
+        await supabaseClient.from('encounter_monsters').delete().in('queue_id', queueIds);
+        await supabaseClient.from('quest_queues').delete().in('id', queueIds);
+      }
+
+      await supabaseClient.from('user_quests').delete().in('quest_id', questIds);
+      await supabaseClient.from('quests').delete().in('id', questIds);
+    }
+
+    // 3. Delete QM registration from park_questmasters
+    await supabaseClient
+      .from('park_questmasters')
+      .delete()
+      .eq('user_id', currentUser.id)
+      .eq('park', activePark);
+
+    // 4. Update profile roles back to 'player'
+    await supabaseClient
+      .from('user_park_profiles')
+      .update({ role: 'player' })
+      .eq('user_id', currentUser.id)
+      .eq('park', activePark);
+
+    await supabaseClient
+      .from('profiles')
+      .update({ role: 'player', last_active_qm_id: null, last_active_qm_username: 'Default Realm' })
+      .eq('id', currentUser.id);
+
+    currentQMId = null;
+    currentQMUsername = 'Default Realm';
+    if (currentParkProfile) currentParkProfile.role = 'player';
+    if (currentProfile) currentProfile.role = 'player';
+
+    alert(`🏰 Campaign ended!\n\nYour Questmaster realm at ${activePark} has been deleted. You are now free to start a new campaign at any park.`);
+
+    switchTab('profile');
+    initDashboard();
+  } catch (err) {
+    console.error("Error ending campaign:", err);
+    alert("❌ Error ending campaign: " + (err.message || err));
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerText = "End Campaign";
     }
   }
 }
@@ -454,4 +631,88 @@ function getActiveQMId() {
 
 function getActiveQMUsername() {
   return currentQMUsername || "Default Realm";
+}
+
+// ------------------------------------------------------------------------------
+// Quest Abilities (Amtgard ROP) Management
+// ------------------------------------------------------------------------------
+
+let selectedQuestAbilities = [];
+
+function toggleQuestAbilitiesAccordion() {
+  const accordionBody = document.getElementById('abilities-accordion-body');
+  const chevron = document.getElementById('abilities-chevron');
+  if (!accordionBody) return;
+  const isHidden = accordionBody.classList.contains('hidden');
+
+  if (isHidden) {
+    accordionBody.classList.remove('hidden');
+    if (chevron) chevron.innerText = "▲";
+  } else {
+    accordionBody.classList.add('hidden');
+    if (chevron) chevron.innerText = "▼";
+  }
+}
+
+function initQuestAbilitiesUI() {
+  const container = document.getElementById('abilities-chip-container');
+  const countEl = document.getElementById('profile-abilities-count');
+  if (!container) return;
+
+  // Resolve user's stored abilities
+  const rawAbs = currentParkProfile?.quest_abilities || currentProfile?.quest_abilities || [];
+  if (typeof rawAbs === 'string') {
+    try { selectedQuestAbilities = JSON.parse(rawAbs); } 
+    catch { selectedQuestAbilities = rawAbs.split(',').map(s => s.trim()).filter(Boolean); }
+  } else if (Array.isArray(rawAbs)) {
+    selectedQuestAbilities = [...rawAbs];
+  } else {
+    selectedQuestAbilities = [];
+  }
+
+  if (countEl) countEl.innerText = `(${selectedQuestAbilities.length} active)`;
+
+  const list = (typeof AMTGARD_ROP_QUEST_ABILITIES !== 'undefined') ? AMTGARD_ROP_QUEST_ABILITIES : [];
+  const details = (typeof AMTGARD_ROP_QUEST_ABILITY_DETAILS !== 'undefined') ? AMTGARD_ROP_QUEST_ABILITY_DETAILS : {};
+  container.innerHTML = list.map(ab => {
+    const isSel = selectedQuestAbilities.includes(ab);
+    const desc = (details[ab] || ab).replace(/"/g, '&quot;');
+    return `<div class="ability-chip ${isSel ? 'selected' : ''}" title="${desc}" onclick="toggleAbilityChip('${ab.replace(/'/g, "\\'")}')">${ab}</div>`;
+  }).join('');
+}
+
+function toggleAbilityChip(abilityName) {
+  if (selectedQuestAbilities.includes(abilityName)) {
+    selectedQuestAbilities = selectedQuestAbilities.filter(a => a !== abilityName);
+  } else {
+    selectedQuestAbilities.push(abilityName);
+  }
+  initQuestAbilitiesUI();
+}
+
+async function saveQuestAbilities() {
+  if (!currentUser) return;
+
+  if (currentParkProfile) currentParkProfile.quest_abilities = selectedQuestAbilities;
+  if (currentProfile) currentProfile.quest_abilities = selectedQuestAbilities;
+
+  try {
+    if (currentParkProfile?.id) {
+      await supabaseClient
+        .from('user_park_profiles')
+        .update({ quest_abilities: selectedQuestAbilities })
+        .eq('id', currentParkProfile.id);
+    }
+    await supabaseClient
+      .from('profiles')
+      .update({ quest_abilities: selectedQuestAbilities })
+      .eq('id', currentUser.id);
+
+    alert("⚡ Quest abilities saved!");
+    if (typeof fetchQuests === 'function') fetchQuests();
+    if (typeof fetchMonsterEncounters === 'function') fetchMonsterEncounters();
+  } catch (err) {
+    console.warn("Could not save quest abilities to DB:", err);
+    alert("Saved locally for this session!");
+  }
 }

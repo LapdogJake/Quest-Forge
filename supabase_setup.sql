@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   last_active_park TEXT DEFAULT 'Delver''s Rest',
   last_active_qm_id UUID,
   last_active_qm_username TEXT,
+  quest_abilities TEXT[] DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -35,6 +36,7 @@ ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS last_active_park TEXT DEFAULT 'Delver''s Rest',
   ADD COLUMN IF NOT EXISTS last_active_qm_id UUID,
   ADD COLUMN IF NOT EXISTS last_active_qm_username TEXT,
+  ADD COLUMN IF NOT EXISTS quest_abilities TEXT[] DEFAULT '{}',
   ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now(),
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 
@@ -66,6 +68,7 @@ CREATE TABLE IF NOT EXISTS public.user_park_profiles (
   qm_username TEXT,
   role TEXT NOT NULL DEFAULT 'player',
   gold INTEGER NOT NULL DEFAULT 0 CHECK (gold >= 0),
+  quest_abilities TEXT[] DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -79,7 +82,8 @@ ALTER TABLE public.user_park_profiles
   ADD COLUMN IF NOT EXISTS qm_id UUID,
   ADD COLUMN IF NOT EXISTS qm_username TEXT,
   ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'player',
-  ADD COLUMN IF NOT EXISTS gold INTEGER DEFAULT 0;
+  ADD COLUMN IF NOT EXISTS gold INTEGER DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS quest_abilities TEXT[] DEFAULT '{}';
 
 CREATE INDEX IF NOT EXISTS idx_user_park_profiles_user_park_qm 
   ON public.user_park_profiles (user_id, park, qm_id);
@@ -95,6 +99,7 @@ CREATE TABLE IF NOT EXISTS public.user_inventory (
   quantity INTEGER NOT NULL DEFAULT 1,
   durability_current INTEGER DEFAULT 1,
   durability_max INTEGER DEFAULT 1,
+  storage_location TEXT DEFAULT 'pouch',
   kingdom TEXT NOT NULL DEFAULT 'The Freeholds of Amtgard',
   park TEXT NOT NULL DEFAULT 'Delver''s Rest',
   qm_id UUID,
@@ -106,7 +111,8 @@ ALTER TABLE public.user_inventory
   ADD COLUMN IF NOT EXISTS kingdom TEXT DEFAULT 'The Freeholds of Amtgard',
   ADD COLUMN IF NOT EXISTS qm_id UUID,
   ADD COLUMN IF NOT EXISTS durability_current INTEGER DEFAULT 1,
-  ADD COLUMN IF NOT EXISTS durability_max INTEGER DEFAULT 1;
+  ADD COLUMN IF NOT EXISTS durability_max INTEGER DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS storage_location TEXT DEFAULT 'pouch';
 
 -- Drop legacy inventory limit triggers (caps are enforced per-park in the application)
 DROP TRIGGER IF EXISTS trigger_enforce_inventory_cap ON public.user_inventory;
@@ -136,6 +142,11 @@ CREATE TABLE IF NOT EXISTS public.quests (
   monsters_are_npc BOOLEAN DEFAULT FALSE,
   repeatable BOOLEAN DEFAULT FALSE,
   is_repeatable BOOLEAN DEFAULT FALSE,
+  max_active INTEGER DEFAULT 0,
+  max_completions INTEGER DEFAULT 0,
+  verification_method TEXT DEFAULT 'Quest Master',
+  allow_mid_join BOOLEAN DEFAULT FALSE,
+  rng_loot_drops BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -149,7 +160,12 @@ ALTER TABLE public.quests
   ADD COLUMN IF NOT EXISTS monsters_are_npc BOOLEAN DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS allowed_items TEXT DEFAULT 'Trinket,Talisman,Artifact',
   ADD COLUMN IF NOT EXISTS repeatable BOOLEAN DEFAULT FALSE,
-  ADD COLUMN IF NOT EXISTS is_repeatable BOOLEAN DEFAULT FALSE;
+  ADD COLUMN IF NOT EXISTS is_repeatable BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS max_active INTEGER DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS max_completions INTEGER DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS verification_method TEXT DEFAULT 'Quest Master',
+  ADD COLUMN IF NOT EXISTS allow_mid_join BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS rng_loot_drops BOOLEAN DEFAULT FALSE;
 
 CREATE INDEX IF NOT EXISTS idx_quests_qm_park ON public.quests (park, qm_id);
 CREATE INDEX IF NOT EXISTS idx_quests_category_active ON public.quests (category, is_active);
@@ -337,12 +353,14 @@ BEGIN
   DELETE FROM public.user_inventory
   WHERE user_id = target_user_id
     AND (park = active_park OR active_park IS NULL OR park IS NULL)
+    AND (storage_location IS NULL OR storage_location = 'pouch')
     AND COALESCE(durability_current, durability_max, 1) <= 1;
 
   UPDATE public.user_inventory
   SET durability_current = COALESCE(durability_current, durability_max, 1) - 1
   WHERE user_id = target_user_id
     AND (park = active_park OR active_park IS NULL OR park IS NULL)
+    AND (storage_location IS NULL OR storage_location = 'pouch')
     AND COALESCE(durability_current, durability_max, 1) > 1;
 END;
 $$;

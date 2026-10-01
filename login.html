@@ -6,19 +6,24 @@
   <title>Quest-Forge | Log In</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    :root { --bg: #121212; --card-bg: #1e1e1e; --primary: #8b5cf6; --text: #ffffff; --text-muted: #a1a1aa; --border: #27272a; }
+    :root { --bg: #141416; --card-bg: #1e1e22; --primary: #8b5cf6; --primary-hover: #7c3aed; --text: #ffffff; --text-muted: #a1a1aa; --border: #27272a; --gold: #eab308; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background-color: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
     header { padding: 16px; background: var(--card-bg); border-bottom: 1px solid var(--border); text-align: center; }
-    .container { padding: 16px; max-width: 480px; margin: 0 auto; }
-    .card { background: var(--card-bg); padding: 24px 20px; border-radius: 12px; border: 1px solid var(--border); margin-top: 20px; }
-    .field-group { margin-bottom: 12px; }
-    label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 4px; }
-    input, button { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #3f3f46; background: #27272a; color: white; font-size: 16px; }
-    button { background: var(--primary); border: none; font-weight: bold; cursor: pointer; margin-top: 8px; }
-    .link-text { margin-top: 16px; text-align: center; font-size: 14px; color: var(--text-muted); }
-    .link-text a { color: var(--primary); font-weight: bold; text-decoration: underline; }
-    .status-msg { margin-top: 12px; font-size: 14px; text-align: center; color: #f87171; }
+    header h1 { font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #c084fc 0%, #a855f7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .container { padding: 16px; max-width: 440px; margin: 20px auto; width: 100%; flex: 1; }
+    .card { background: var(--card-bg); padding: 24px 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+    .field-group { margin-bottom: 14px; }
+    label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; letter-spacing: 0.5px; }
+    input, button { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #3f3f46; background: #27272a; color: white; font-size: 15px; font-family: inherit; }
+    input:focus { border-color: var(--primary); outline: none; }
+    button { background: var(--primary); border: none; font-weight: bold; cursor: pointer; margin-top: 8px; transition: background 0.15s ease; }
+    button:hover { background: var(--primary-hover); }
+    .link-text { margin-top: 16px; text-align: center; font-size: 13px; color: var(--text-muted); }
+    .link-text a { color: #c084fc; font-weight: bold; text-decoration: none; }
+    .link-text a:hover { text-decoration: underline; }
+    .status-msg { margin-top: 12px; font-size: 13px; text-align: center; line-height: 1.4; }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -27,41 +32,91 @@
 
   <main class="container">
     <div class="card">
-      <h2 style="margin-bottom: 16px;">Log In</h2>
       
-      <div class="field-group">
-        <label>Email Address</label>
-        <input type="email" id="email" placeholder="hero@example.com">
-      </div>
-      <div class="field-group">
-        <label>Password</label>
-        <input type="password" id="password" placeholder="••••••••">
-      </div>
-      
-      <button onclick="handleSignIn()">Log In</button>
-      <div id="status" class="status-msg"></div>
+      <!-- 1. LOGIN FORM -->
+      <div id="login-section">
+        <h2 style="margin-bottom: 16px; font-size: 20px;">Log In</h2>
+        
+        <div class="field-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" placeholder="hero@example.com" autocomplete="email">
+        </div>
+        <div class="field-group">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <label for="password" style="margin-bottom:0;">Password</label>
+            <a href="javascript:void(0)" onclick="toggleForgotPassword(true)" style="font-size:12px; color:#c084fc; text-decoration:none;">Forgot Password?</a>
+          </div>
+          <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        
+        <button id="btn-login" onclick="handleSignIn()">Log In</button>
+        <div id="status" class="status-msg"></div>
 
-      <div class="link-text">
-        Don't have an account? <a href="signup.html">Create Account</a>
+        <div class="link-text">
+          Don't have an account? <a href="signup.html">Create Character</a>
+        </div>
       </div>
+
+      <!-- 2. FORGOT PASSWORD FORM -->
+      <div id="forgot-section" class="hidden">
+        <h2 style="margin-bottom: 8px; font-size: 20px;">Reset Password</h2>
+        <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px; line-height:1.4;">
+          Enter your account email and we'll send you a password recovery link.
+        </p>
+
+        <div class="field-group">
+          <label for="forgot-email">Account Email</label>
+          <input type="email" id="forgot-email" placeholder="hero@example.com" autocomplete="email">
+        </div>
+
+        <button id="btn-forgot" onclick="handleForgotPassword()">Send Reset Link</button>
+        <div id="forgot-status" class="status-msg"></div>
+
+        <div class="link-text">
+          Remembered your password? <a href="javascript:void(0)" onclick="toggleForgotPassword(false)">Back to Log In</a>
+        </div>
+      </div>
+
     </div>
   </main>
 
+  <script src="js/config.js?v=28"></script>
   <script>
-    const SUPABASE_URL = "https://evsknkezkbramsnzisvn.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_3f9t-xXsEqWntgPm9fz-ow_m7fMVt5b";
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    function toggleForgotPassword(showForgot) {
+      const loginSec = document.getElementById('login-section');
+      const forgotSec = document.getElementById('forgot-section');
+      const status = document.getElementById('status');
+      const forgotStatus = document.getElementById('forgot-status');
+
+      if (status) status.innerText = '';
+      if (forgotStatus) forgotStatus.innerText = '';
+
+      if (showForgot) {
+        loginSec.classList.add('hidden');
+        forgotSec.classList.remove('hidden');
+        const loginEmail = document.getElementById('email')?.value.trim();
+        if (loginEmail && document.getElementById('forgot-email')) {
+          document.getElementById('forgot-email').value = loginEmail;
+        }
+      } else {
+        forgotSec.classList.add('hidden');
+        loginSec.classList.remove('hidden');
+      }
+    }
 
     async function handleSignIn() {
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
       const status = document.getElementById('status');
+      const btn = document.getElementById('btn-login');
 
       if (!email || !password) {
+        status.style.color = "#f87171";
         status.innerText = "Please enter both email and password.";
         return;
       }
 
+      if (btn) btn.disabled = true;
       status.style.color = "white";
       status.innerText = "Logging in...";
 
@@ -70,13 +125,48 @@
       if (error) {
         status.style.color = "#f87171";
         status.innerText = error.message;
+        if (btn) btn.disabled = false;
       } else {
-        // Redirect to dashboard upon successful login
         window.location.href = "index.html";
       }
     }
 
-    // Auto-redirect if already logged in
+    async function handleForgotPassword() {
+      const email = document.getElementById('forgot-email').value.trim();
+      const status = document.getElementById('forgot-status');
+      const btn = document.getElementById('btn-forgot');
+
+      if (!email) {
+        status.style.color = "#f87171";
+        status.innerText = "Please enter your account email address.";
+        return;
+      }
+
+      if (btn) btn.disabled = true;
+      status.style.color = "white";
+      status.innerText = "Sending recovery email...";
+
+      const redirectUrl = window.location.origin + window.location.pathname.replace('login.html', 'reset-password.html');
+
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl
+      });
+
+      if (error) {
+        status.style.color = "#f87171";
+        status.innerText = error.message;
+        if (btn) btn.disabled = false;
+      } else {
+        status.style.color = "#86efac";
+        status.innerText = `✉️ Password reset link sent to ${email}!\n\nPlease check your inbox and spam folder.`;
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = "Resend Link";
+        }
+      }
+    }
+
+    // Auto-redirect if already authenticated
     supabaseClient.auth.getSession().then(({ data: { session } }) => {
       if (session) window.location.href = "index.html";
     });

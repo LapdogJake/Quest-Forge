@@ -32,14 +32,20 @@ async function fetchMonsterEncounters() {
   if (monsterQuestIds.length > 0) {
     const { data: monsterLines } = await supabaseClient
       .from('quest_queues')
-      .select('id, quest_id, status, queue_members(*, profiles(id, username)), encounter_monsters(*, profiles(id, username))')
+      .select('id, quest_id, status, queue_members(*, profiles(id, username, quest_abilities)), encounter_monsters(*, profiles(id, username, quest_abilities))')
       .in('quest_id', monsterQuestIds)
       .in('status', ['waiting', 'active']);
 
     (monsterLines || []).forEach(line => {
       if (!line || !line.quest_id) return;
-      const heroRoster = (line.queue_members || []).map(member => member.profiles?.username || 'Hero').filter(Boolean);
-      const monsterRoster = (line.encounter_monsters || []).map(member => member.profiles?.username || 'Monster').filter(Boolean);
+      const heroRoster = (line.queue_members || []).map(member => ({
+        username: member.profiles?.username || 'Hero',
+        abilities: member.profiles?.quest_abilities || []
+      })).filter(Boolean);
+      const monsterRoster = (line.encounter_monsters || []).map(member => ({
+        username: member.profiles?.username || 'Monster',
+        abilities: member.profiles?.quest_abilities || []
+      })).filter(Boolean);
       const userHeroMember = (line.queue_members || []).find(m => m.user_id === currentUser?.id || m.profiles?.id === currentUser?.id);
       const userMonsterMember = (line.encounter_monsters || []).find(m => m.user_id === currentUser?.id || m.profiles?.id === currentUser?.id);
 
@@ -74,6 +80,9 @@ async function claimMonsterRole(questId, roleName) {
     return;
   }
 
+  const { data: questRow } = await supabaseClient.from('quests').select('*').eq('id', questId).maybeSingle();
+  const rules = typeof getQuestDurabilityRules === 'function' ? getQuestDurabilityRules(questRow) : { allowMidJoin: false };
+
   const { data: existingQueues } = await supabaseClient
     .from('quest_queues')
     .select('*')
@@ -82,14 +91,14 @@ async function claimMonsterRole(questId, roleName) {
     .order('created_at', { ascending: false })
     .limit(1);
 
-  if (existingQueues && existingQueues.length > 0 && existingQueues[0].status === 'active') {
+  if (existingQueues && existingQueues.length > 0 && existingQueues[0].status === 'active' && !rules.allowMidJoin) {
     alert("⚠️ This battle is currently active in combat! You cannot join or switch sides while the battle is live.");
     return;
   }
 
   let queueId = null;
 
-  if (existingQueues && existingQueues.length > 0 && existingQueues[0].status === 'waiting') {
+  if (existingQueues && existingQueues.length > 0 && (existingQueues[0].status === 'waiting' || existingQueues[0].status === 'active')) {
     queueId = existingQueues[0].id;
   } else {
     const { data: newQueue, error: queueError } = await supabaseClient
@@ -136,6 +145,9 @@ async function joinOrCreateGroupQueue(questId) {
     return;
   }
 
+  const { data: questRow } = await supabaseClient.from('quests').select('*').eq('id', questId).maybeSingle();
+  const rules = typeof getQuestDurabilityRules === 'function' ? getQuestDurabilityRules(questRow) : { allowMidJoin: false };
+
   const { data: existingQueues } = await supabaseClient
     .from('quest_queues')
     .select('*')
@@ -144,14 +156,14 @@ async function joinOrCreateGroupQueue(questId) {
     .order('created_at', { ascending: false })
     .limit(1);
 
-  if (existingQueues && existingQueues.length > 0 && existingQueues[0].status === 'active') {
+  if (existingQueues && existingQueues.length > 0 && existingQueues[0].status === 'active' && !rules.allowMidJoin) {
     alert("⚠️ This battle is currently active in combat! You cannot join or switch sides while the battle is live.");
     return;
   }
 
   let queueId = null;
 
-  if (existingQueues && existingQueues.length > 0 && existingQueues[0].status === 'waiting') {
+  if (existingQueues && existingQueues.length > 0 && (existingQueues[0].status === 'waiting' || existingQueues[0].status === 'active')) {
     queueId = existingQueues[0].id;
   } else {
     const { data: newQueue, error } = await supabaseClient
@@ -230,8 +242,8 @@ async function fetchQMQueues() {
     .from('quest_queues')
     .select(`
       *,
-      queue_members(*, profiles(id, username)),
-      encounter_monsters(*, profiles(id, username))
+      queue_members(*, profiles(id, username, quest_abilities)),
+      encounter_monsters(*, profiles(id, username, quest_abilities))
     `)
     .in('quest_id', questIds)
     .in('status', ['waiting', 'active'])
@@ -277,8 +289,8 @@ async function fetchQMQueues() {
       statusBadge = `<span class="badge badge-threat-loot" style="background:#ca8a04; color:#0f172a; border-color:#eab308; font-size:11px; font-weight:bold;">⏳ OPEN LINE (GATHERING)</span>`;
     }
 
-    const pcs = activeQueue?.queue_members ? activeQueue.queue_members.map(m => m.profiles).filter(Boolean) : [];
-    const monsters = activeQueue?.encounter_monsters ? activeQueue.encounter_monsters.map(m => m.profiles).filter(Boolean) : [];
+    const heroMembers = activeQueue?.queue_members || [];
+    const monsterMembers = activeQueue?.encounter_monsters || [];
     const queueId = activeQueue?.id || '';
 
     const scenarioClean = (q.scenario_card || '').replace(/<!--\s*RULES:.*?-->/gs, '').trim();
@@ -306,6 +318,9 @@ async function fetchQMQueues() {
                   : '')}
               ${rules.monstersAreNpc 
                 ? '<span class="badge badge-monster" title="Monster queue does not lose durability">👹 Monsters are NPCs</span>' 
+                : ''}
+              ${rules.allowMidJoin 
+                ? '<span class="badge badge-active" style="background:#0284c7; color:white; border-color:#38bdf8;">🔄 Mid-Battle Joining</span>' 
                 : ''}
               ${rules.allowedTypes.length === 3 
                 ? '<span class="badge badge-active">✨ All Items Active</span>' 
@@ -347,11 +362,30 @@ async function fetchQMQueues() {
               <div>
                 <div class="queue-header-row">
                   <h5 class="queue-header-title" style="color:#38bdf8;">⚔️ Heroes Line</h5>
-                  <span class="queue-count-pill" style="color:#38bdf8; border:1px solid rgba(56,189,248,0.3);">${pcs.length}</span>
+                  <span class="queue-count-pill" style="color:#38bdf8; border:1px solid rgba(56,189,248,0.3);">${heroMembers.length}</span>
                 </div>
                 <div class="queue-roster-list">
-                  ${pcs.length > 0
-                    ? pcs.map(p => `<span class="party-member-tag">👤 ${p?.username || 'Warrior'}</span>`).join('')
+                  ${heroMembers.length > 0
+                    ? heroMembers.map(m => {
+                        const p = m.profiles;
+                        const uName = p?.username || 'Warrior';
+                        const abs = Array.isArray(p?.quest_abilities) ? p.quest_abilities : [];
+                        const absBadge = (rules.monstersAreNpc && abs.length > 0)
+                          ? abs.map(a => `<span class="ability-pill">${a}</span>`).join('')
+                          : '';
+                        return `
+                          <span class="party-member-tag" style="justify-content:space-between; gap:4px;">
+                            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:flex; align-items:center; gap:4px;">
+                              👤 ${uName}${absBadge}
+                            </span>
+                            <button onclick="qmKickHeroFromQueue('${m.id}', '${(uName).replace(/'/g, "\\'")}')" 
+                              title="Kick ${uName} from Heroes Line" 
+                              style="background:none; border:none; color:#f87171; cursor:pointer; font-size:12px; padding:0 2px; line-height:1;">
+                              ✖
+                            </button>
+                          </span>
+                        `;
+                      }).join('')
                     : '<p style="font-size:11px; color:#64748b; margin:6px 0; font-style:italic; text-align:center;">No heroes yet.</p>'
                   }
                 </div>
@@ -362,11 +396,30 @@ async function fetchQMQueues() {
               <div>
                 <div class="queue-header-row">
                   <h5 class="queue-header-title" style="color:#f43f5e;">👹 Monster Line</h5>
-                  <span class="queue-count-pill" style="color:#f43f5e; border:1px solid rgba(244,63,94,0.3);">${monsters.length}</span>
+                  <span class="queue-count-pill" style="color:#f43f5e; border:1px solid rgba(244,63,94,0.3);">${monsterMembers.length}</span>
                 </div>
                 <div class="queue-roster-list">
-                  ${monsters.length > 0
-                    ? monsters.map(m => `<span class="party-member-tag" style="border-color:rgba(244,63,94,0.3);">👹 ${m?.username || 'Monster'}</span>`).join('')
+                  ${monsterMembers.length > 0
+                    ? monsterMembers.map(m => {
+                        const p = m.profiles;
+                        const uName = p?.username || 'Monster';
+                        const abs = Array.isArray(p?.quest_abilities) ? p.quest_abilities : [];
+                        const absBadge = (rules.monstersAreNpc && abs.length > 0)
+                          ? abs.map(a => `<span class="ability-pill" style="border-color:rgba(244,63,94,0.4); color:#fda4af; background:rgba(244,63,94,0.15);">${a}</span>`).join('')
+                          : '';
+                        return `
+                          <span class="party-member-tag" style="border-color:rgba(244,63,94,0.3); justify-content:space-between; gap:4px;">
+                            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:flex; align-items:center; gap:4px;">
+                              👹 ${uName}${absBadge}
+                            </span>
+                            <button onclick="qmKickMonsterFromQueue('${m.id}', '${(uName).replace(/'/g, "\\'")}')" 
+                              title="Kick ${uName} from Monster Line" 
+                              style="background:none; border:none; color:#f87171; cursor:pointer; font-size:12px; padding:0 2px; line-height:1;">
+                              ✖
+                            </button>
+                          </span>
+                        `;
+                      }).join('')
                     : '<p style="font-size:11px; color:#64748b; margin:6px 0; font-style:italic; text-align:center;">No monsters yet.</p>'
                   }
                 </div>
@@ -377,7 +430,7 @@ async function fetchQMQueues() {
           <!-- STREAMLINED ONE-TAP VICTOR RESOLUTION GRID -->
           <div style="margin-top:10px; margin-bottom:12px;">
             <p style="font-size:11px; font-weight:bold; color:var(--gold); text-transform:uppercase; margin:0 0 6px 0; text-align:center;">
-              ⚡ Declare Winner & Instant Payout (${pcs.length + monsters.length} fighters)
+              ⚡ Declare Winner & Instant Payout (${heroMembers.length + monsterMembers.length} fighters)
             </p>
             <div class="qm-victor-grid">
               <button class="btn-qm-victor btn-qm-victor-hero" onclick="qmFinishBattle('${queueId}', '${q.id}', ${victoryGold}, ${defeatGold}, 'heroes')">
@@ -587,7 +640,16 @@ async function qmFinishBattle(queueId, questId, victoryGold, defeatGold, explici
     ? losingUserIds.map(uid => executeDefeatPenalty(uid, defeatPenalty))
     : [];
 
-  // 6. Mark queues completed and close battle quest
+  // 6. RNG Loot Drops for winners (if enabled)
+  const winningUserIds = victor === 'heroes' 
+    ? pcUserIds 
+    : (rules.monstersAreNpc ? [] : monsterUserIds);
+
+  const lootDropPromise = (rules.rngLootDrops && winningUserIds.length > 0)
+    ? rollItemLootDrops(winningUserIds, true)
+    : Promise.resolve();
+
+  // 7. Mark queues completed and close battle quest
   const queueUpdates = [];
   if (queueId) {
     queueUpdates.push(supabaseClient.from('quest_queues').update({ status: 'completed' }).eq('id', queueId));
@@ -597,10 +659,134 @@ async function qmFinishBattle(queueId, questId, victoryGold, defeatGold, explici
     queueUpdates.push(supabaseClient.from('quests').update({ is_active: false }).eq('id', questId));
   }
 
-  await Promise.allSettled([...heroPayouts, ...monsterPayouts, ...heroDurabilityWear, ...monsterDurabilityWear, ...defeatPenaltyPromises, ...queueUpdates]);
+  await Promise.allSettled([...heroPayouts, ...monsterPayouts, ...heroDurabilityWear, ...monsterDurabilityWear, ...defeatPenaltyPromises, lootDropPromise, ...queueUpdates]);
 
   alert(`🎉 Battle finished! ${victorName} victorious!\nRewards distributed and combat results processed.`);
   initDashboard();
+}
+
+// Roll Mystery Item Loot Drops for winning adventurers
+async function rollItemLootDrops(winnerUserIds, isBattle = true) {
+  if (!Array.isArray(winnerUserIds) || winnerUserIds.length === 0) return;
+  const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
+  const activeKingdom = typeof getActiveKingdom === 'function' ? getActiveKingdom() : (typeof getActiveKingdom === 'function' ? getActiveKingdom() : "The Freeholds of Amtgard");
+  const activeQMId = currentQMId || null;
+
+  const trinketItems = STORE_CATALOG.filter(i => i.category === 'Trinket' || i.category === 'Trinkets');
+  const talismanItems = STORE_CATALOG.filter(i => i.category === 'Talisman' || i.category === 'Talismans');
+  const artifactItems = STORE_CATALOG.filter(i => i.category === 'Artifact' || i.category === 'Artifacts' || i.category === 'Legendary');
+
+  const trinketConfig = (typeof RNG_LOOT_DROP_RATES !== 'undefined' && RNG_LOOT_DROP_RATES.trinket) || { rolls: 3, chance: 0.25 };
+  const talismanConfig = (typeof RNG_LOOT_DROP_RATES !== 'undefined' && RNG_LOOT_DROP_RATES.talisman) || { rolls: 2, chance: 0.05 };
+  const artifactConfig = (typeof RNG_LOOT_DROP_RATES !== 'undefined' && RNG_LOOT_DROP_RATES.artifact) || { rolls: 1, chance: 1 / 250 };
+
+  for (const uid of winnerUserIds) {
+    const wonItems = [];
+
+    // Trinket rolls (3 rolls @ 25% chance each)
+    for (let i = 0; i < (trinketConfig.rolls || 3); i++) {
+      if (Math.random() < trinketConfig.chance && trinketItems.length > 0) {
+        const picked = trinketItems[Math.floor(Math.random() * trinketItems.length)];
+        wonItems.push(picked);
+      }
+    }
+
+    // Talisman rolls (2 rolls @ 5% chance each)
+    for (let i = 0; i < (talismanConfig.rolls || 2); i++) {
+      if (Math.random() < talismanConfig.chance && talismanItems.length > 0) {
+        const picked = talismanItems[Math.floor(Math.random() * talismanItems.length)];
+        wonItems.push(picked);
+      }
+    }
+
+    // Artifact rolls (1 roll @ 1/250 chance = 0.4%)
+    for (let i = 0; i < (artifactConfig.rolls || 1); i++) {
+      if (Math.random() < artifactConfig.chance && artifactItems.length > 0) {
+        const picked = artifactItems[Math.floor(Math.random() * artifactItems.length)];
+        wonItems.push(picked);
+      }
+    }
+
+    if (wonItems.length === 0) continue;
+
+    // Fetch user inventory to check capacity
+    const { data: userItems } = await supabaseClient
+      .from('user_inventory')
+      .select('*')
+      .eq('user_id', uid)
+      .eq('park', activePark);
+
+    const parkItems = (userItems || []).filter(item => !item.qm_id || !activeQMId || item.qm_id === activeQMId);
+    let runningPouch = parkItems.filter(item => !item.storage_location || item.storage_location === 'pouch');
+    let runningBank = parkItems.filter(item => item.storage_location === 'bank');
+
+    const awardedNames = [];
+
+    for (const item of wonItems) {
+      const cat = getCategoryForItemName(item.item_name);
+      let normCat = cat;
+      if (normCat === 'Talisman') normCat = 'Talismans';
+      if (normCat === 'Artifact' || normCat === 'Legendary') normCat = 'Artifacts';
+      if (normCat === 'Trinkets') normCat = 'Trinket';
+
+      const pouchLimit = (STORAGE_LIMITS.pouch && STORAGE_LIMITS.pouch[normCat]) || 1;
+      const bankLimit = (STORAGE_LIMITS.bank && STORAGE_LIMITS.bank[normCat]) || 1;
+
+      const pouchCount = runningPouch.filter(i => {
+        let c = getCategoryForItemName(i.item_name);
+        if (c === 'Talisman') c = 'Talismans';
+        if (c === 'Artifact' || c === 'Legendary') c = 'Artifacts';
+        if (c === 'Trinkets') c = 'Trinket';
+        return c === normCat;
+      }).length;
+
+      const bankCount = runningBank.filter(i => {
+        let c = getCategoryForItemName(i.item_name);
+        if (c === 'Talisman') c = 'Talismans';
+        if (c === 'Artifact' || c === 'Legendary') c = 'Artifacts';
+        if (c === 'Trinkets') c = 'Trinket';
+        return c === normCat;
+      }).length;
+
+      let destLocation = null;
+      if (pouchCount < pouchLimit) {
+        destLocation = 'pouch';
+      } else if (bankCount < bankLimit) {
+        destLocation = 'bank';
+      }
+
+      if (!destLocation) {
+        // Drop cannot be stored because both pouch and bank are full
+        continue;
+      }
+
+      const durMax = item.durability_max || (typeof getItemDurabilityMax === 'function' ? getItemDurabilityMax(item.item_name) : 1);
+
+      const payload = {
+        user_id: uid,
+        item_name: item.item_name,
+        base_cost: item.base_cost || 1,
+        quantity: 1,
+        durability_current: durMax,
+        durability_max: durMax,
+        storage_location: destLocation,
+        park: activePark,
+        kingdom: activeKingdom,
+        qm_id: activeQMId
+      };
+
+      const { error: insErr } = await supabaseClient.from('user_inventory').insert(payload);
+      if (!insErr) {
+        awardedNames.push(`${item.item_name} (${destLocation === 'pouch' ? '🎒 Pouch' : '🏦 Bank'})`);
+        if (destLocation === 'pouch') runningPouch.push(payload);
+        else runningBank.push(payload);
+      }
+    }
+
+    if (currentUser && currentUser.id === uid && awardedNames.length > 0) {
+      alert(`🎲 MYSTERY LOOT DROP!\n\nYou discovered:\n• ${awardedNames.join('\n• ')}`);
+    }
+  }
 }
 
 async function executeDefeatPenalty(userId, penalty) {
@@ -609,20 +795,33 @@ async function executeDefeatPenalty(userId, penalty) {
   const activeQMId = currentQMId || null;
 
   try {
-    // 1. Wipe active inventory items for this park & QM
-    let invQuery = supabaseClient
-      .from('user_inventory')
-      .delete()
-      .eq('user_id', userId)
-      .eq('park', activePark);
+    if (penalty === 'items_lost') {
+      // 1. Wipe ONLY active POUCH items for this park & QM (Bank vault items are safe!)
+      let invQuery = supabaseClient
+        .from('user_inventory')
+        .delete()
+        .eq('user_id', userId)
+        .eq('park', activePark)
+        .neq('storage_location', 'bank');
 
-    if (activeQMId) {
-      invQuery = invQuery.eq('qm_id', activeQMId);
-    }
-    await invQuery;
+      if (activeQMId) {
+        invQuery = invQuery.eq('qm_id', activeQMId);
+      }
+      await invQuery;
+    } else if (penalty === 'total_ruin') {
+      // 1. Wipe ALL inventory items (Pouch + Bank) for this park & QM
+      let invQuery = supabaseClient
+        .from('user_inventory')
+        .delete()
+        .eq('user_id', userId)
+        .eq('park', activePark);
 
-    // 2. If Total Ruin, reset gold to 0
-    if (penalty === 'total_ruin') {
+      if (activeQMId) {
+        invQuery = invQuery.eq('qm_id', activeQMId);
+      }
+      await invQuery;
+
+      // 2. Reset gold to 0
       let profQuery = supabaseClient
         .from('user_park_profiles')
         .update({ gold: 0 })
@@ -740,3 +939,59 @@ async function qmSetQueueStatus(queueId, status) {
 async function qmCompleteAndPayEncounter(queueId, rewardGold, pcUserIds, monsterUserIds) {
   return qmFinishBattle(queueId, null, rewardGold, 0);
 }
+
+// QM Kick Player Handlers for Battle Queues
+async function qmKickHeroFromQueue(memberId, username) {
+  const confirmed = confirm(`Remove "${username}" from the Heroes Line?\n\nThis will remove them from the battle and free up their slot.`);
+  if (!confirmed) return;
+
+  try {
+    const { error } = await supabaseClient
+      .from('queue_members')
+      .delete()
+      .eq('id', memberId);
+
+    if (error) {
+      alert("Error removing hero: " + error.message);
+      return;
+    }
+
+    alert(`🚫 ${username} removed from Heroes Line.`);
+    await fetchQMQueues();
+    await fetchUserSlotState();
+    await fetchQuests();
+    await fetchMonsterEncounters();
+  } catch (err) {
+    console.error("Error kicking hero from queue:", err);
+    alert("Error: " + (err.message || err));
+  }
+}
+
+async function qmKickMonsterFromQueue(claimId, username) {
+  const confirmed = confirm(`Remove "${username}" from the Monster Line?\n\nThis will remove them from the battle and free up their slot.`);
+  if (!confirmed) return;
+
+  try {
+    const { error } = await supabaseClient
+      .from('encounter_monsters')
+      .delete()
+      .eq('id', claimId);
+
+    if (error) {
+      alert("Error removing monster: " + error.message);
+      return;
+    }
+
+    alert(`🚫 ${username} removed from Monster Line.`);
+    await fetchQMQueues();
+    await fetchUserSlotState();
+    await fetchQuests();
+    await fetchMonsterEncounters();
+  } catch (err) {
+    console.error("Error kicking monster from queue:", err);
+    alert("Error: " + (err.message || err));
+  }
+}
+
+window.qmKickHeroFromQueue = qmKickHeroFromQueue;
+window.qmKickMonsterFromQueue = qmKickMonsterFromQueue;
