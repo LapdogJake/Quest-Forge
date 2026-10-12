@@ -6,23 +6,130 @@
   <title>Quest-Forge | Log In</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    :root { --bg: #141416; --card-bg: #1e1e22; --primary: #8b5cf6; --primary-hover: #7c3aed; --text: #ffffff; --text-muted: #a1a1aa; --border: #27272a; --gold: #eab308; }
+    :root {
+      --bg: #141416;
+      --card-bg: #1e1e22;
+      --primary: #8b5cf6;
+      --primary-hover: #7c3aed;
+      --text: #ffffff;
+      --text-muted: #a1a1aa;
+      --border: #27272a;
+      --gold: #eab308;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background-color: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
-    header { padding: 16px; background: var(--card-bg); border-bottom: 1px solid var(--border); text-align: center; }
-    header h1 { font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #c084fc 0%, #a855f7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .container { padding: 16px; max-width: 440px; margin: 20px auto; width: 100%; flex: 1; }
-    .card { background: var(--card-bg); padding: 24px 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 16px;
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+    }
+    header h1 {
+      font-size: 22px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #c084fc 0%, #a855f7 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .container {
+      padding: 16px;
+      max-width: 440px;
+      margin: 20px auto;
+      width: 100%;
+      flex: 1;
+    }
+    .card {
+      background: var(--card-bg);
+      padding: 24px 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
     .field-group { margin-bottom: 14px; }
-    label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; letter-spacing: 0.5px; }
-    input, button { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #3f3f46; background: #27272a; color: white; font-size: 15px; font-family: inherit; }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      letter-spacing: 0.5px;
+    }
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    input, button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #3f3f46;
+      background: #27272a;
+      color: white;
+      font-size: 15px;
+      font-family: inherit;
+    }
     input:focus { border-color: var(--primary); outline: none; }
-    button { background: var(--primary); border: none; font-weight: bold; cursor: pointer; margin-top: 8px; transition: background 0.15s ease; }
-    button:hover { background: var(--primary-hover); }
-    .link-text { margin-top: 16px; text-align: center; font-size: 13px; color: var(--text-muted); }
-    .link-text a { color: #c084fc; font-weight: bold; text-decoration: none; }
+    .toggle-pw-btn {
+      position: absolute;
+      right: 10px;
+      background: none !important;
+      border: none !important;
+      color: var(--text-muted);
+      cursor: pointer;
+      width: auto !important;
+      padding: 4px !important;
+      margin: 0 !important;
+      font-size: 14px;
+      line-height: 1;
+    }
+    .toggle-pw-btn:hover { color: white; }
+    button[type="submit"], .btn-primary {
+      background: var(--primary);
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.15s ease;
+      text-align: center;
+      display: block;
+      text-decoration: none;
+    }
+    button[type="submit"]:hover, .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .link-text {
+      margin-top: 16px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .link-text a {
+      color: #c084fc;
+      font-weight: bold;
+      text-decoration: none;
+    }
     .link-text a:hover { text-decoration: underline; }
-    .status-msg { margin-top: 12px; font-size: 13px; text-align: center; line-height: 1.4; }
+    .status-msg {
+      margin-top: 12px;
+      font-size: 13px;
+      text-align: center;
+      line-height: 1.4;
+      word-break: break-word;
+    }
     .hidden { display: none !important; }
   </style>
 </head>
@@ -37,24 +144,29 @@
       <div id="login-section">
         <h2 style="margin-bottom: 16px; font-size: 20px;">Log In</h2>
         
-        <div class="field-group">
-          <label for="email">Email Address</label>
-          <input type="email" id="email" placeholder="hero@example.com" autocomplete="email">
-        </div>
-        <div class="field-group">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <label for="password" style="margin-bottom:0;">Password</label>
-            <a href="javascript:void(0)" onclick="toggleForgotPassword(true)" style="font-size:12px; color:#c084fc; text-decoration:none;">Forgot Password?</a>
+        <form id="login-form" onsubmit="handleSignInSubmit(event)">
+          <div class="field-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" placeholder="hero@example.com" autocomplete="email" required>
           </div>
-          <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
-        </div>
-        
-        <button id="btn-login" onclick="handleSignIn()">Log In</button>
-        <div id="status" class="status-msg"></div>
+          <div class="field-group">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label for="password" style="margin-bottom:0;">Password</label>
+              <a href="javascript:void(0)" onclick="toggleForgotPassword(true)" style="font-size:12px; color:#c084fc; text-decoration:none;">Forgot Password?</a>
+            </div>
+            <div class="input-wrapper">
+              <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" style="padding-right: 42px;" required>
+              <button type="button" class="toggle-pw-btn" onclick="togglePasswordVisibility('password', this)" title="Show/hide password">👁️</button>
+            </div>
+          </div>
+          
+          <button type="submit" id="btn-login">Log In</button>
+          <div id="status" class="status-msg"></div>
 
-        <div class="link-text">
-          Don't have an account? <a href="signup.html">Create Character</a>
-        </div>
+          <div class="link-text">
+            Don't have an account? <a href="signup.html">Create Character</a>
+          </div>
+        </form>
       </div>
 
       <!-- 2. FORGOT PASSWORD FORM -->
@@ -64,24 +176,38 @@
           Enter your account email and we'll send you a password recovery link.
         </p>
 
-        <div class="field-group">
-          <label for="forgot-email">Account Email</label>
-          <input type="email" id="forgot-email" placeholder="hero@example.com" autocomplete="email">
-        </div>
+        <form id="forgot-form" onsubmit="handleForgotPasswordSubmit(event)">
+          <div class="field-group">
+            <label for="forgot-email">Account Email</label>
+            <input type="email" id="forgot-email" placeholder="hero@example.com" autocomplete="email" required>
+          </div>
 
-        <button id="btn-forgot" onclick="handleForgotPassword()">Send Reset Link</button>
-        <div id="forgot-status" class="status-msg"></div>
+          <button type="submit" id="btn-forgot">Send Reset Link</button>
+          <div id="forgot-status" class="status-msg"></div>
 
-        <div class="link-text">
-          Remembered your password? <a href="javascript:void(0)" onclick="toggleForgotPassword(false)">Back to Log In</a>
-        </div>
+          <div class="link-text">
+            Remembered your password? <a href="javascript:void(0)" onclick="toggleForgotPassword(false)">Back to Log In</a>
+          </div>
+        </form>
       </div>
 
     </div>
   </main>
 
-  <script src="js/config.js?v=28"></script>
+  <script src="js/config.js?v=29"></script>
   <script>
+    function togglePasswordVisibility(inputId, btn) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.innerText = '🙈';
+      } else {
+        input.type = 'password';
+        btn.innerText = '👁️';
+      }
+    }
+
     function toggleForgotPassword(showForgot) {
       const loginSec = document.getElementById('login-section');
       const forgotSec = document.getElementById('forgot-section');
@@ -98,13 +224,16 @@
         if (loginEmail && document.getElementById('forgot-email')) {
           document.getElementById('forgot-email').value = loginEmail;
         }
+        document.getElementById('forgot-email')?.focus();
       } else {
         forgotSec.classList.add('hidden');
         loginSec.classList.remove('hidden');
+        document.getElementById('email')?.focus();
       }
     }
 
-    async function handleSignIn() {
+    async function handleSignInSubmit(event) {
+      if (event) event.preventDefault();
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
       const status = document.getElementById('status');
@@ -124,14 +253,19 @@
 
       if (error) {
         status.style.color = "#f87171";
-        status.innerText = error.message;
+        if (error.message && error.message.toLowerCase().includes("email not confirmed")) {
+          status.innerHTML = "⚠️ Email address has not been confirmed yet. Please check your inbox or spam folder.";
+        } else {
+          status.innerText = error.message;
+        }
         if (btn) btn.disabled = false;
       } else {
         window.location.href = "index.html";
       }
     }
 
-    async function handleForgotPassword() {
+    async function handleForgotPasswordSubmit(event) {
+      if (event) event.preventDefault();
       const email = document.getElementById('forgot-email').value.trim();
       const status = document.getElementById('forgot-status');
       const btn = document.getElementById('btn-forgot');
@@ -146,7 +280,8 @@
       status.style.color = "white";
       status.innerText = "Sending recovery email...";
 
-      const redirectUrl = window.location.origin + window.location.pathname.replace('login.html', 'reset-password.html');
+      // Robustly construct full reset-password.html redirect URL
+      const redirectUrl = new URL('reset-password.html', window.location.href).href;
 
       const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl
@@ -166,10 +301,50 @@
       }
     }
 
-    // Auto-redirect if already authenticated
-    supabaseClient.auth.getSession().then(({ data: { session } }) => {
-      if (session) window.location.href = "index.html";
-    });
+    // 1. Check for URL parameters / errors / recovery redirects
+    const hash = window.location.hash ? window.location.hash.substring(1) : '';
+    const hashParams = new URLSearchParams(hash);
+    const searchParams = new URLSearchParams(window.location.search);
+
+    const urlError = hashParams.get('error_description') ||
+                     searchParams.get('error_description') ||
+                     hashParams.get('error') ||
+                     searchParams.get('error');
+
+    if (urlError) {
+      const status = document.getElementById('status');
+      if (status) {
+        status.style.color = "#f87171";
+        status.innerText = "⚠️ " + decodeURIComponent(urlError.replace(/\+/g, ' '));
+      }
+    }
+
+    // 2. Open forgot password view if ?forgot=1 is requested
+    if (searchParams.get('forgot') === '1') {
+      toggleForgotPassword(true);
+    }
+
+    // 3. If arriving with recovery tokens or recovery code, route directly to reset-password.html
+    const isRecovery = hashParams.get('type') === 'recovery' ||
+                       searchParams.get('type') === 'recovery' ||
+                       window.location.hash.includes('type=recovery');
+    const hasCode = Boolean(searchParams.get('code'));
+
+    if (isRecovery || hasCode) {
+      window.location.replace("reset-password.html" + window.location.search + window.location.hash);
+    } else {
+      // 4. Auto-redirect if already authenticated normally
+      supabaseClient.auth.getSession().then(({ data: { session } }) => {
+        if (session) window.location.href = "index.html";
+      });
+
+      // 5. Listen for recovery events
+      supabaseClient.auth.onAuthStateChange((event) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          window.location.replace("reset-password.html" + window.location.search + window.location.hash);
+        }
+      });
+    }
   </script>
 </body>
 </html>

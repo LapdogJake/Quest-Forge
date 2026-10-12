@@ -4,6 +4,19 @@
 
 async function initDashboard() {
   try {
+    // 0. Safeguard: If landing on dashboard with password recovery tokens, forward to reset-password.html
+    const hash = window.location.hash ? window.location.hash.substring(1) : '';
+    const hashParams = new URLSearchParams(hash);
+    const searchParams = new URLSearchParams(window.location.search);
+    if (
+      hashParams.get('type') === 'recovery' || 
+      searchParams.get('type') === 'recovery' || 
+      window.location.hash.includes('type=recovery')
+    ) {
+      window.location.replace("reset-password.html" + window.location.search + window.location.hash);
+      return;
+    }
+
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (!session) {
       window.location.href = "login.html";
@@ -172,6 +185,13 @@ async function handleSignOut() {
   await supabaseClient.auth.signOut();
   window.location.href = "login.html";
 }
+
+// Forward recovery auth events to reset-password.html
+supabaseClient.auth.onAuthStateChange((event) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    window.location.replace("reset-password.html" + window.location.search + window.location.hash);
+  }
+});
 
 // Bootstrap dashboard on page load
 initDashboard();
