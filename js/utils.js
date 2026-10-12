@@ -101,21 +101,6 @@ function toggleParkSelectorAccordion() {
   }
 }
 
-// Profile Accordion Toggle
-function toggleProfileInventoryAccordion() {
-  const accordionBody = document.getElementById('profile-inventory-accordion-body');
-  const chevron = document.getElementById('profile-inventory-chevron');
-  if (!accordionBody) return;
-  const isHidden = accordionBody.classList.contains('hidden');
-
-  if (isHidden) {
-    accordionBody.classList.remove('hidden');
-    if (chevron) chevron.innerText = "▲";
-  } else {
-    accordionBody.classList.add('hidden');
-    if (chevron) chevron.innerText = "▼";
-  }
-}
 
 // Linear 1:1 Item Value & Durability Calculator (Based on buy-side store pricing)
 // Formula: Floor(buyPrice * (currentDurability / maxDurability))

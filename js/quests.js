@@ -350,8 +350,6 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
     const isLive = queueRoster?.queueStatus === 'active';
     const isQMUser = Boolean(currentUser && (currentQMId === currentUser.id || currentProfile?.role === 'questmaster' || currentProfile?.role === 'admin'));
 
-    const scenarioClean = (q.scenario_card || '').replace(/<!--\s*RULES:.*?-->/gs, '').trim();
-
     const isHighStakes = rules.defeatPenalty === 'items_lost' || rules.defeatPenalty === 'total_ruin';
     const highStakesBorder = rules.defeatPenalty === 'total_ruin' ? '#ef4444' : '#b91c1c';
     const cardBorder = isLive ? '#dc2626' : (isJoinedHero || isJoinedMonster ? 'var(--gold)' : (isHighStakes ? highStakesBorder : 'rgba(255,255,255,0.12)'));
@@ -526,38 +524,7 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
           </div>
         </div>
 
-        <!-- SECRET SCENARIO BRIEFING (Anti-Cheat: Revealed only during ACTIVE BATTLE to Monsters/QM) -->
-        ${scenarioClean ? (
-          isLive ? (
-            (isJoinedMonster || isQMUser) ? `
-              <div class="secret-briefing-card">
-                <div class="secret-briefing-header">
-                  <span>📜</span>
-                  <h5>Secret Monster Briefing (Active)</h5>
-                </div>
-                <p class="secret-briefing-content">${scenarioClean}</p>
-              </div>
-            ` : `
-              <div class="secret-briefing-locked">
-                <span>🔒</span> <em>Secret monster scenario briefing is locked to the Monster Line.</em>
-              </div>
-            `
-          ) : (
-            isQMUser ? `
-              <div class="secret-briefing-card" style="border-style:dashed; opacity:0.85;">
-                <div class="secret-briefing-header">
-                  <span>🔒</span>
-                  <h5>QM Preview: Secret Scenario Briefing (Encrypted for Players until Live)</h5>
-                </div>
-                <p class="secret-briefing-content">${scenarioClean}</p>
-              </div>
-            ` : `
-              <div class="secret-briefing-locked">
-                <span>🔒</span> <em>Secret Monster Briefing is Encrypted — Unlocks automatically when Battle goes LIVE!</em>
-              </div>
-            `
-          )
-        ) : ''}
+
       </div>
     `;
   }
@@ -946,7 +913,6 @@ async function createBattle() {
   const reward_gold_defeat = defeatInput ? (parseInt(defeatInput.value) || 0) : 0;
 
   const description = (document.getElementById('qm-battle-description') || document.getElementById('qm-description'))?.value.trim() || '';
-  const scenario_card = (document.getElementById('qm-battle-scenario') || document.getElementById('qm-scenario'))?.value.trim() || '';
   const repeatable = Boolean((document.getElementById('qm-battle-repeatable') || document.getElementById('qm-repeatable'))?.checked);
   
   const npcInput = document.getElementById('qm-battle-monsters-are-npc') || document.getElementById('qm-battle-monsters-npc') || document.getElementById('qm-monsters-are-npc');
@@ -975,7 +941,7 @@ async function createBattle() {
   if (!title) { alert("Please enter a Battle Title."); return; }
 
   const rulesMeta = `<!-- RULES: ${JSON.stringify({ monsters_are_npc, allowed_items: allowedList, reward_gold_defeat, defeat_gold: reward_gold_defeat, durability_wear, defeat_penalty, allow_mid_join, rng_loot_drops })} -->`;
-  const scenarioWithMeta = scenario_card ? `${scenario_card}\n${rulesMeta}` : rulesMeta;
+  const scenarioWithMeta = rulesMeta;
 
   const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
   const activeKingdom = typeof getActiveKingdom === 'function' ? getActiveKingdom() : "The Freeholds of Amtgard";
@@ -1044,8 +1010,7 @@ async function createBattle() {
   if (document.getElementById('qm-title')) document.getElementById('qm-title').value = '';
   if (document.getElementById('qm-battle-description')) document.getElementById('qm-battle-description').value = '';
   if (document.getElementById('qm-description')) document.getElementById('qm-description').value = '';
-  if (document.getElementById('qm-battle-scenario')) document.getElementById('qm-battle-scenario').value = '';
-  if (document.getElementById('qm-scenario')) document.getElementById('qm-scenario').value = '';
+
   if (victoryInput) victoryInput.value = '15';
   if (defeatInput) defeatInput.value = '10';
   if (document.getElementById('qm-battle-monsters-are-npc')) document.getElementById('qm-battle-monsters-are-npc').checked = false;

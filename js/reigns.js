@@ -670,6 +670,11 @@ function initQuestAbilitiesUI() {
     selectedQuestAbilities = [];
   }
 
+  // Ensure at most one ability is selected
+  if (selectedQuestAbilities.length > 1) {
+    selectedQuestAbilities = [selectedQuestAbilities[0]];
+  }
+
   if (countEl) countEl.innerText = `(${selectedQuestAbilities.length} active)`;
 
   const list = (typeof AMTGARD_ROP_QUEST_ABILITIES !== 'undefined') ? AMTGARD_ROP_QUEST_ABILITIES : [];
@@ -683,15 +688,20 @@ function initQuestAbilitiesUI() {
 
 function toggleAbilityChip(abilityName) {
   if (selectedQuestAbilities.includes(abilityName)) {
-    selectedQuestAbilities = selectedQuestAbilities.filter(a => a !== abilityName);
+    selectedQuestAbilities = [];
   } else {
-    selectedQuestAbilities.push(abilityName);
+    // Only allow one ability to be selected at a time
+    selectedQuestAbilities = [abilityName];
   }
   initQuestAbilitiesUI();
 }
 
 async function saveQuestAbilities() {
   if (!currentUser) return;
+
+  if (selectedQuestAbilities.length > 1) {
+    selectedQuestAbilities = [selectedQuestAbilities[0]];
+  }
 
   if (currentParkProfile) currentParkProfile.quest_abilities = selectedQuestAbilities;
   if (currentProfile) currentProfile.quest_abilities = selectedQuestAbilities;
@@ -708,7 +718,7 @@ async function saveQuestAbilities() {
       .update({ quest_abilities: selectedQuestAbilities })
       .eq('id', currentUser.id);
 
-    alert("⚡ Quest abilities saved!");
+    alert("⚡ Quest ability saved!");
     if (typeof fetchQuests === 'function') fetchQuests();
     if (typeof fetchMonsterEncounters === 'function') fetchMonsterEncounters();
   } catch (err) {

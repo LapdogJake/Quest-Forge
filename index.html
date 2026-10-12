@@ -83,31 +83,19 @@
 
         <!-- Collapsible Quest Abilities (Amtgard ROP) Accordion -->
         <div class="accordion-header" onclick="toggleQuestAbilitiesAccordion()">
-          <span>⚡ Quest Abilities (ROP) <small id="profile-abilities-count" style="color:var(--text-muted); font-weight:normal;">(0 active)</small></span>
+          <span>⚡ Quest Ability (ROP) <small id="profile-abilities-count" style="color:var(--text-muted); font-weight:normal;">(0 active)</small></span>
           <span id="abilities-chevron">▼</span>
         </div>
         <div id="abilities-accordion-body" class="accordion-content hidden">
           <p style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
-            Select your monster/quest abilities. When <em>Monsters are NPCs</em> is active in battle, these will appear next to your name!
+            Select 1 monster/quest ability. When <em>Monsters are NPCs</em> is active in battle, this will appear next to your name!
           </p>
           <div id="abilities-chip-container" class="abilities-chip-grid">
             <!-- Dynamic ability chips rendered via JS -->
           </div>
           <button class="btn btn-primary" style="margin-top:10px; font-size:13px;" onclick="saveQuestAbilities()">
-            Save Abilities
+            Save Ability
           </button>
-        </div>
-
-        <!-- Collapsible Inventory Accordion -->
-        <div class="accordion-header" onclick="toggleProfileInventoryAccordion()">
-          <span>🎒 Inventory <small id="profile-inventory-count" style="color:var(--text-muted); font-weight:normal;">(0
-              items)</small></span>
-          <span id="profile-inventory-chevron">▼</span>
-        </div>
-        <div id="profile-inventory-accordion-body" class="accordion-content hidden">
-          <div id="profile-inventory-list" class="item-grid">
-            <p class="empty-state">Your pouch is empty. Visit the Store to buy supplies!</p>
-          </div>
         </div>
 
         <button class="btn btn-danger" onclick="handleSignOut()">Sign Out</button>
@@ -277,12 +265,6 @@
               placeholder="Public battle description for heroes"></textarea>
           </div>
 
-          <div class="form-group"
-            style="background:#1e1e22; padding:10px; border-radius:8px; border:1px dashed var(--primary);">
-            <label style="color:#c084fc;">Hidden Scenario Description</label>
-            <textarea id="qm-battle-scenario" class="form-control" style="min-height:80px;"
-              placeholder="Monsters can only see this."></textarea>
-          </div>
 
           <!-- Durability & Magic Item Restriction Rules -->
           <div class="form-group"

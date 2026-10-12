@@ -293,8 +293,6 @@ async function fetchQMQueues() {
     const monsterMembers = activeQueue?.encounter_monsters || [];
     const queueId = activeQueue?.id || '';
 
-    const scenarioClean = (q.scenario_card || '').replace(/<!--\s*RULES:.*?-->/gs, '').trim();
-
     return `
       <div class="quest-card battle-card" style="border: 2px solid ${borderColor}; margin-bottom: 16px;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
@@ -335,15 +333,7 @@ async function fetchQMQueues() {
 
         ${q.description ? `<p style="font-size:13px; color:#cbd5e1; margin:4px 0 10px 0;">${q.description}</p>` : ''}
 
-        ${scenarioClean ? `
-          <div class="secret-briefing-card" style="margin-bottom:12px;">
-            <div class="secret-briefing-header">
-              <span>🔒</span>
-              <h5>Secret Scenario Briefing (Encrypted for Players until Live)</h5>
-            </div>
-            <p class="secret-briefing-content">${scenarioClean}</p>
-          </div>
-        ` : ''}
+
 
         ${state === 'closed' ? `
           <!-- STATE 1: CLOSED / STANDBY -->

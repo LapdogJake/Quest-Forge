@@ -19,9 +19,7 @@ function getStorageSlotCounts(itemsList) {
 async function fetchUserInventory() {
   const pouchList = document.getElementById('pouch-items-list');
   const bankList = document.getElementById('bank-items-list');
-  const profileList = document.getElementById('profile-inventory-list');
   const sellList = document.getElementById('store-sell-list');
-  const countLabel = document.getElementById('profile-inventory-count');
   const pouchCapLabel = document.getElementById('pouch-capacity-summary');
   const bankCapLabel = document.getElementById('bank-capacity-summary');
 
@@ -60,9 +58,6 @@ async function fetchUserInventory() {
     bankCapLabel.innerText = `Trinkets: ${bankCounts.Trinket}/3 | Talismans: ${bankCounts.Talismans}/2 | Artifact: ${bankCounts.Artifacts}/1`;
   }
 
-  if (countLabel) {
-    countLabel.innerText = `(${pouchItems.length} in pouch, ${bankItems.length} in bank)`;
-  }
 
   const isCombatLocked = Boolean(activeBattleQuest || activeMonsterClaim);
 
@@ -142,40 +137,6 @@ async function fetchUserInventory() {
     }
   }
 
-  // Profile Accordion (Displays Pouch Items summary)
-  if (profileList) {
-    try {
-      if (pouchItems.length === 0 && bankItems.length === 0) {
-        profileList.innerHTML = `<p class="empty-state">Your pouch and bank are empty. Visit the Items tab to buy gear!</p>`;
-      } else {
-        const cardsHtml = parkInventory.map(item => {
-          const itemName = item?.item_name || 'Item';
-          const isBank = item?.storage_location === 'bank';
-          const durabilityMax = getItemDurabilityMax(itemName) || Number(item?.durability_max) || 1;
-          const durabilityCurrent = Number(item?.durability_current !== undefined && item?.durability_current !== null ? item.durability_current : durabilityMax);
-          const normalizedCurrent = Math.max(0, durabilityCurrent);
-          const buyStorePrice = (typeof getItemStorePrice === 'function')
-            ? getItemStorePrice(itemName, item?.base_cost)
-            : Math.max(1, Number(item?.base_cost || 1));
-          const currentValue = calcFn(buyStorePrice, normalizedCurrent, durabilityMax);
-
-          return `<div class="item-card">
-            <div class="item-info">
-              <h4>${itemName} <span style="font-size:11px; padding:2px 6px; border-radius:4px; margin-left:6px; background:${isBank ? '#1e293b; color:#38bdf8;' : '#2e1065; color:#c084fc;'}">${isBank ? '🏦 Bank' : '🎒 Pouch'}</span></h4>
-              <small style="color:var(--gold);">Value: ${currentValue}g</small>
-              <small style="color:var(--text-muted);">
-                Durability: ${normalizedCurrent}/${durabilityMax}
-              </small>
-            </div>
-          </div>`;
-        }).join('');
-        profileList.innerHTML = cardsHtml;
-      }
-    } catch (err) {
-      console.error('Error rendering profile inventory list:', err);
-      profileList.innerHTML = `<p class="empty-state" style="color:var(--danger);">Error rendering pouch: ${err.message}</p>`;
-    }
-  }
 
   // Store Sell List
   if (sellList) {

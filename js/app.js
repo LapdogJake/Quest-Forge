@@ -132,11 +132,7 @@ function renderEmailVerificationStatus() {
   const isConfirmed = Boolean(currentUser.email_confirmed_at || currentUser.confirmed_at);
 
   if (isConfirmed) {
-    container.innerHTML = `
-      <div style="margin-bottom:8px;">
-        <span class="badge badge-verified">🛡️ Email Confirmed</span>
-      </div>
-    `;
+    container.innerHTML = '';
   } else {
     container.innerHTML = `
       <div class="email-verify-box" style="margin-bottom:8px;">
