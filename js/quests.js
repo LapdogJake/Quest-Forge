@@ -1141,7 +1141,7 @@ async function createAdventureQuest() {
   if (document.getElementById('qm-title')) document.getElementById('qm-title').value = '';
   if (document.getElementById('qm-quest-description')) document.getElementById('qm-quest-description').value = '';
   if (document.getElementById('qm-description')) document.getElementById('qm-description').value = '';
-  if (goldInput) goldInput.value = '15';
+  if (goldInput) goldInput.value = '5';
   if (document.getElementById('qm-quest-repeatable')) document.getElementById('qm-quest-repeatable').checked = false;
   if (document.getElementById('qm-repeatable')) document.getElementById('qm-repeatable').checked = false;
   if (document.getElementById('qm-quest-max-active')) document.getElementById('qm-quest-max-active').value = '0';

@@ -209,12 +209,6 @@
           <button id="qm-subnav-economy" class="qm-subnav-btn" onclick="switchQMSubTab('economy')">🪙 Economy</button>
         </div>
 
-        <div
-          style="font-size:12px; color:var(--text-muted); margin-bottom:12px; background:#18181b; padding:8px 12px; border-radius:6px; border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
-          <span>📍 Active Park Realm:</span>
-          <strong id="display-qm-park" style="color:var(--gold);">Delver's Rest</strong>
-        </div>
-
         <!-- SUB-TAB 1: BATTLE CREATOR -->
         <div id="qm-subtab-battle">
           <div class="form-group">
@@ -268,10 +262,6 @@
                 <span>Monsters are NPCs</span>
               </label>
               <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; margin:0;">
-                <input type="checkbox" id="qm-battle-repeatable" style="width:16px; height:16px;">
-                <span>Repeatable Battle</span>
-              </label>
-              <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; margin:0;">
                 <input type="checkbox" id="qm-battle-allow-mid-join" style="width:16px; height:16px;">
                 <span>Allow Mid-Battle Joining (e.g. Ditch Battles)</span>
               </label>
@@ -315,7 +305,7 @@
 
           <div class="form-group">
             <label>Reward Gold</label>
-            <input type="number" id="qm-quest-gold" class="form-control" value="15" min="0">
+            <input type="number" id="qm-quest-gold" class="form-control" value="5" min="0">
           </div>
 
           <div class="form-group">
@@ -324,59 +314,24 @@
               placeholder="Quest objectives and requirements"></textarea>
           </div>
 
-          <div class="form-group"
-            style="background:#18181b; padding:12px; border-radius:8px; border:1px solid var(--border);">
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
-              <div>
-                <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">
-                  👥 Max Active Players
-                </label>
-                <select id="qm-quest-max-active" class="form-control" style="padding:7px 8px; font-size:13px;">
-                  <option value="0" selected>All / Unlimited</option>
-                  <option value="1">1 Player (Solo Only)</option>
-                  <option value="2">2 Players</option>
-                  <option value="3">3 Players</option>
-                  <option value="4">4 Players</option>
-                  <option value="5">5 Players</option>
-                  <option value="10">10 Players</option>
-                </select>
-              </div>
+          <div class="form-group">
+            <label>Verification System</label>
+            <select id="qm-quest-verification" class="form-control">
+              <option value="Quest Master" selected>Questmaster</option>
+              <option value="Honor">Honor</option>
+            </select>
+          </div>
 
-              <div>
-                <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">
-                  🏆 Max Completions
-                </label>
-                <select id="qm-quest-max-completions" class="form-control" style="padding:7px 8px; font-size:13px;">
-                  <option value="0" selected>All / Unlimited</option>
-                  <option value="1">1 Winner (Bounty Race)</option>
-                  <option value="2">2 Completions</option>
-                  <option value="3">3 Completions</option>
-                  <option value="5">5 Completions</option>
-                  <option value="10">10 Completions</option>
-                </select>
-              </div>
-            </div>
+          <div class="form-group">
+            <label>🏆 Max Completions</label>
+            <input type="number" id="qm-quest-max-completions" class="form-control" value="0" min="0" placeholder="0 = Unlimited">
+          </div>
 
-            <div style="border-top:1px solid #27272a; padding-top:10px;">
-              <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">
-                🛡️ Verification System
-              </label>
-              <select id="qm-quest-verification" class="form-control" style="padding:7px 8px; font-size:13px; margin-bottom:10px;">
-                <option value="Quest Master" selected>👑 Quest Master Verified (Turn-in to QM)</option>
-                <option value="Honor">🤝 Player Self-Complete (Honor System)</option>
-              </select>
-            </div>
-
-            <div style="border-top:1px solid #27272a; padding-top:10px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
-              <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; margin:0;">
-                <input type="checkbox" id="qm-quest-repeatable" style="width:16px; height:16px;">
-                <span>Repeatable Quest</span>
-              </label>
-              <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; margin:0; color:var(--gold);">
-                <input type="checkbox" id="qm-quest-rng-loot" style="width:16px; height:16px;">
-                <span>🎲 Roll Item Loot Drops on Completion</span>
-              </label>
-            </div>
+          <div class="form-group" style="margin-bottom:16px;">
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; margin:0;">
+              <input type="checkbox" id="qm-quest-repeatable" style="width:16px; height:16px;">
+              <span>Repeatable Quest</span>
+            </label>
           </div>
 
           <button class="btn btn-primary" onclick="createAdventureQuest()">Save Quest</button>
