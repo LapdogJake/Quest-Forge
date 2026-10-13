@@ -512,49 +512,201 @@ function renderAbilitiesLibrary() {
   }).join('');
 }
 
-// Sub-tab switching between Items, Abilities, and Monsters
+// Sub-tab switching between Items, Abilities, Durability, and Misc
 function switchLibrarySubTab(subTab) {
   const isItems = subTab === 'items';
   const isAbilities = subTab === 'abilities';
-  const isMonsters = subTab === 'monsters';
+  const isDurability = subTab === 'durability';
+  const isMisc = subTab === 'misc' || subTab === 'monsters';
 
   const itemsContainer = document.getElementById('library-subtab-items');
   const abilitiesContainer = document.getElementById('library-subtab-abilities');
-  const monstersContainer = document.getElementById('library-subtab-monsters');
+  const durabilityContainer = document.getElementById('library-subtab-durability');
+  const miscContainer = document.getElementById('library-subtab-misc') || document.getElementById('library-subtab-monsters');
 
   const btnItems = document.getElementById('library-subnav-items');
   const btnAbilities = document.getElementById('library-subnav-abilities');
-  const btnMonsters = document.getElementById('library-subnav-monsters');
+  const btnDurability = document.getElementById('library-subnav-durability');
+  const btnMisc = document.getElementById('library-subnav-misc') || document.getElementById('library-subnav-monsters');
 
   if (itemsContainer) itemsContainer.classList.toggle('hidden', !isItems);
   if (abilitiesContainer) abilitiesContainer.classList.toggle('hidden', !isAbilities);
-  if (monstersContainer) monstersContainer.classList.toggle('hidden', !isMonsters);
+  if (durabilityContainer) durabilityContainer.classList.toggle('hidden', !isDurability);
+  if (miscContainer) miscContainer.classList.toggle('hidden', !isMisc);
 
   if (btnItems) btnItems.classList.toggle('active', isItems);
   if (btnAbilities) btnAbilities.classList.toggle('active', isAbilities);
-  if (btnMonsters) btnMonsters.classList.toggle('active', isMonsters);
+  if (btnDurability) btnDurability.classList.toggle('active', isDurability);
+  if (btnMisc) btnMisc.classList.toggle('active', isMisc);
 
   if (isItems) {
     renderLibrary();
   } else if (isAbilities) {
     renderAbilitiesLibrary();
-  } else if (isMonsters) {
-    renderMonstersLibrary();
+  } else if (isDurability) {
+    renderDurabilityLibrary();
+  } else if (isMisc) {
+    renderMiscLibrary();
   }
 }
 
-const MONSTERS_DATA = [];
+const DURABILITY_DATA = [
+  {
+    id: 'durability-categories',
+    title: 'Durability by Category',
+    content: `
+      <div class="library-section-body">
+        <div style="font-size:12px; line-height:1.6; color:var(--text-muted); margin-bottom:12px;">
+          The Durability System in Quest-Forge balances risk, resource management, and item longevity across Amtgard battlegames and quests. Here is how the entire system works under the hood:
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Trinkets &nbsp;•&nbsp; 1 / 1 Max Durability</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              Single-use consumables (potions, scrolls, one-time magical items). Shatters or is consumed upon use / battle resolution.
+            </div>
+          </div>
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Talismans &nbsp;•&nbsp; 5 / 5 Max Durability</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              Multi-use enchanted items (wands, amulets, enchanted jewelry). Endures several battles before depleting.
+            </div>
+          </div>
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Artifacts &nbsp;•&nbsp; 20 / 20 Max Durability</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              Legendary, kingdom-tier relics and weapons. Built for extended campaign play with high endurance.
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+  },
+  {
+    id: 'durability-pouch-bank',
+    title: 'Pouch vs. Bank Vault Protection',
+    content: `
+      <div class="library-section-body">
+        <div style="font-size:12px; line-height:1.6; color:var(--text-muted); margin-bottom:12px;">
+          Storage location determines whether gear is at risk:
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">🎒 Pouch (Combat Loadout)</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div>• Items equipped in your Pouch are brought onto the battlefield.</div>
+              <div>• <strong>Only items in your Pouch suffer combat wear and risk breaking.</strong></div>
+            </div>
+          </div>
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">🏦 Bank Vault (Safe Storage)</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div>• Items stored in your Bank are <strong>100% immune</strong> to battle wear and defeat penalties.</div>
+              <div>• You can freely transfer items between your Pouch and Bank using the <strong>↳ Inventory</strong> and <strong>↰ Pouch</strong> buttons when preparing for battle.</div>
+            </div>
+          </div>
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">🔒 Combat Lock</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              Once you accept a battle quest or join a monster queue, your inventory is locked until the encounter resolves to prevent swapping gear mid-fight.
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+  },
+  {
+    id: 'durability-combat-rules',
+    title: 'Combat Wear & Quest Rules',
+    content: `
+      <div class="library-section-body">
+        <div style="font-size:12px; line-height:1.6; color:var(--text-muted); margin-bottom:12px;">
+          When a Quest Master / Reeve resolves an encounter, durability wear is processed automatically based on the battle&rsquo;s rules:
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Gear Wear Multipliers</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div>• <strong>0x (No Wear):</strong> Practice or friendly sparring matches. No durability is lost.</div>
+              <div>• <strong>1x (Standard):</strong> Standard battle. All participating items in your Pouch lose 1 durability.</div>
+              <div>• <strong>2x / 3x (Harsh Environments):</strong> Deadly dungeons or hazardous boss fights where items degrade twice or thrice as fast.</div>
+            </div>
+          </div>
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Allowed Items Filter</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              If a battle only permits Trinkets and bans Artifacts, any Artifact in your pouch is automatically spared from taking wear during that match.
+            </div>
+          </div>
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">&ldquo;Monsters are NPCs&rdquo; Rule</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div>• If the QM has this enabled, players fighting on the <strong>Monster team</strong> do not lose gear durability. This encourages players to volunteer as monsters without risking their personal gear.</div>
+              <div>• If disabled, monsters risk their gear just like the hero party.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+  },
+  {
+    id: 'durability-breakage',
+    title: 'Breakage & Destruction',
+    content: `
+      <div class="library-section-body">
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Zero Durability Depletion</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div>• When an item&rsquo;s durability drops to <strong>0</strong>, it breaks completely.</div>
+              <div>• The system automatically destroys and deletes the broken item from your inventory database upon battle conclusion.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+  },
+  {
+    id: 'durability-resale',
+    title: 'Resale Value Scaling',
+    content: `
+      <div class="library-section-body">
+        <div style="font-size:12px; line-height:1.6; color:var(--text-muted); margin-bottom:12px;">
+          You can sell items back to the merchant for gold, but the system accounts for wear:
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Bank-Only Sales</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              Items can only be sold directly from your <strong>Bank Vault</strong> (keeping your active Pouch deliberate).
+            </div>
+          </div>
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Value Formula</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              <div>Payout scales directly with remaining durability:</div>
+              <div style="margin:8px 0; padding:8px 10px; background:rgba(255,255,255,0.04); border-radius:4px; font-family:monospace; color:var(--secondary); font-size:12px;">
+                Gold Payout = Floor(Store Catalog Price &times; (Current Durability / Max Durability))
+              </div>
+              <div style="margin-top:6px;">
+                <strong>Example:</strong> A Talisman worth 50g at full 5/5 durability sells for 50g. If it has taken wear down to 2/5, the merchant pays 20g (50 &times; 2/5).
+              </div>
+              <div style="margin-top:6px; color:var(--danger);">
+                Completely broken items (0 durability) cannot be sold.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+  }
+];
 
-function renderMonstersLibrary() {
-  const container = document.getElementById('library-monsters-container');
+function renderDurabilityLibrary() {
+  const container = document.getElementById('library-durability-container');
   if (!container) return;
 
-  if (!MONSTERS_DATA || MONSTERS_DATA.length === 0) {
-    container.innerHTML = `<p class="empty-state">No monster entries loaded yet.</p>`;
-    return;
-  }
-
-  container.innerHTML = MONSTERS_DATA.map((section) => {
+  container.innerHTML = DURABILITY_DATA.map((section) => {
     return `
       <details class="store-category" id="library-section-${section.id}">
         <summary class="store-category-summary">${section.title}</summary>
@@ -565,6 +717,32 @@ function renderMonstersLibrary() {
     `;
   }).join('');
 }
+
+const MISC_DATA = [];
+const MONSTERS_DATA = MISC_DATA;
+
+function renderMiscLibrary() {
+  const container = document.getElementById('library-misc-container') || document.getElementById('library-monsters-container');
+  if (!container) return;
+
+  if (!MISC_DATA || MISC_DATA.length === 0) {
+    container.innerHTML = `<p class="empty-state">No miscellaneous entries loaded yet.</p>`;
+    return;
+  }
+
+  container.innerHTML = MISC_DATA.map((section) => {
+    return `
+      <details class="store-category" id="library-section-${section.id}">
+        <summary class="store-category-summary">${section.title}</summary>
+        <div class="store-category-items">
+          ${section.content}
+        </div>
+      </details>
+    `;
+  }).join('');
+}
+
+const renderMonstersLibrary = renderMiscLibrary;
 
 // Toggle individual accordion sections (supports both details and legacy accordion)
 function toggleLibraryAccordion(sectionId) {
