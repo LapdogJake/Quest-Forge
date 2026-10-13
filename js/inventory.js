@@ -19,7 +19,6 @@ function getStorageSlotCounts(itemsList) {
 async function fetchUserInventory() {
   const pouchList = document.getElementById('pouch-items-list');
   const bankList = document.getElementById('bank-items-list');
-  const sellList = document.getElementById('store-sell-list');
   const pouchCapLabel = document.getElementById('pouch-capacity-summary');
   const bankCapLabel = document.getElementById('bank-capacity-summary');
 
@@ -92,9 +91,6 @@ async function fetchUserInventory() {
             <button class="btn-transfer" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="transferItemStorage('${item.id}', 'bank')">
               ${isCombatLocked ? '🔒 Locked' : '🏦 To Bank'}
             </button>
-            <button class="btn-sell" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="sellItem('${item.id}', ${sellGoldValue}, '${itemName}')">
-              Sell (${sellGoldValue}g)
-            </button>
           </div>
         </div>`;
       }).join('');
@@ -138,39 +134,7 @@ async function fetchUserInventory() {
   }
 
 
-  // Store Sell List
-  if (sellList) {
-    try {
-      if (parkInventory.length === 0) {
-        sellList.innerHTML = `<p class="empty-state">No items available to sell.</p>`;
-      } else {
-        const sellCardsHtml = parkInventory.map(item => {
-          const itemName = item?.item_name || 'Item';
-          const isBank = item?.storage_location === 'bank';
-          const durabilityMax = getItemDurabilityMax(itemName) || Number(item?.durability_max) || 1;
-          const durabilityCurrent = Number(item?.durability_current !== undefined && item?.durability_current !== null ? item.durability_current : durabilityMax);
-          const normalizedCurrent = Math.max(0, durabilityCurrent);
-          const buyStorePrice = (typeof getItemStorePrice === 'function')
-            ? getItemStorePrice(itemName, item?.base_cost)
-            : Math.max(1, Number(item?.base_cost || 1));
-          const sellGoldValue = calcFn(buyStorePrice, normalizedCurrent, durabilityMax);
 
-          return `<div class="item-card">
-            <div class="item-info">
-              <h4>${itemName} <span style="font-size:11px; padding:2px 5px; border-radius:4px; margin-left:4px; background:${isBank ? '#1e293b; color:#38bdf8;' : '#2e1065; color:#c084fc;'}">${isBank ? '🏦 Bank' : '🎒 Pouch'}</span> <span style="font-size: 13px; color: var(--text-muted); font-weight: normal; margin-left: 6px;">(${normalizedCurrent}/${durabilityMax} dur)</span></h4>
-            </div>
-            <button class="btn-sell" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="sellItem('${item.id}', ${sellGoldValue}, '${itemName}')">
-              ${isCombatLocked ? '🔒 In Battle' : `Sell (${sellGoldValue}g)`}
-            </button>
-          </div>`;
-        }).join('');
-        sellList.innerHTML = sellCardsHtml;
-      }
-    } catch (err) {
-      console.error('Error rendering store sell list:', err);
-      sellList.innerHTML = `<p class="empty-state" style="color:var(--danger);">Error rendering store sell list: ${err.message}</p>`;
-    }
-  }
 }
 
 // Seamlessly transfer an item between Pouch and Bank

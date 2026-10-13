@@ -223,6 +223,39 @@ CREATE TABLE IF NOT EXISTS public.encounter_monsters (
 
 CREATE INDEX IF NOT EXISTS idx_encounter_monsters_queue ON public.encounter_monsters (queue_id);
 
+-- Explicit foreign key references to public.profiles for PostgREST schema cache joins
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints 
+    WHERE constraint_name = 'user_quests_user_id_profiles_fkey' AND table_name = 'user_quests'
+  ) THEN
+    ALTER TABLE public.user_quests 
+      ADD CONSTRAINT user_quests_user_id_profiles_fkey 
+      FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints 
+    WHERE constraint_name = 'queue_members_user_id_profiles_fkey' AND table_name = 'queue_members'
+  ) THEN
+    ALTER TABLE public.queue_members 
+      ADD CONSTRAINT queue_members_user_id_profiles_fkey 
+      FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints 
+    WHERE constraint_name = 'encounter_monsters_user_id_profiles_fkey' AND table_name = 'encounter_monsters'
+  ) THEN
+    ALTER TABLE public.encounter_monsters 
+      ADD CONSTRAINT encounter_monsters_user_id_profiles_fkey 
+      FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END $$;
+
 -- ------------------------------------------------------------------------------
 -- 10. Row Level Security (RLS) Policies
 -- ------------------------------------------------------------------------------

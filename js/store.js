@@ -37,26 +37,13 @@ function switchItemsSubTab(subTab) {
   }
 }
 
-// Merchant Store sub-navigation (Buy / Sell Back)
+// Merchant Store sub-navigation
 function switchStoreSubTab(subTab) {
   const buyTab = document.getElementById('store-subtab-buy');
-  const sellTab = document.getElementById('store-subtab-sell');
   const buyNav = document.getElementById('store-subnav-buy');
-  const sellNav = document.getElementById('store-subnav-sell');
 
-  if (buyTab) buyTab.classList.add('hidden');
-  if (sellTab) sellTab.classList.add('hidden');
-  if (buyNav) buyNav.classList.remove('active');
-  if (sellNav) sellNav.classList.remove('active');
-
-  if (subTab === 'buy') {
-    if (buyTab) buyTab.classList.remove('hidden');
-    if (buyNav) buyNav.classList.add('active');
-  } else {
-    if (sellTab) sellTab.classList.remove('hidden');
-    if (sellNav) sellNav.classList.add('active');
-    if (typeof fetchUserInventory === 'function') fetchUserInventory();
-  }
+  if (buyTab) buyTab.classList.remove('hidden');
+  if (buyNav) buyNav.classList.add('active');
 }
 
 // Render the merchant catalog organized by category (Trinket, Talismans, Artifacts)
@@ -71,7 +58,7 @@ function renderStoreCatalog() {
     const items = STORE_CATALOG.filter(item => item.category === category);
 
     return `<details class="store-category" open>
-      <summary class="store-category-summary">${category} (${category === 'Trinket' ? 'Max 3 Pouch / 3 Bank' : (category === 'Talismans' ? 'Max 2 Pouch / 2 Bank' : 'Max 1 Pouch / 1 Bank')})</summary>
+      <summary class="store-category-summary">${category}</summary>
       <div class="item-grid store-category-items">
         ${items.map(item => {
           const maxDur = item.durability_max || (typeof getItemDurabilityMax === 'function' ? getItemDurabilityMax(item.item_name) : 1);
@@ -211,10 +198,28 @@ async function buyItem(itemName, cost) {
   }
 }
 
-// Sell an item back to the merchant for scaled durability value
+// Sell an item back to the merchant for scaled durability value (Bank Vault only)
 async function sellItem(itemId, goldValue, itemName) {
   if (activeBattleQuest || activeMonsterClaim) {
     alert("⚠️ Action Failed: Inventory is locked during active combat encounters!");
+    return;
+  }
+
+  // Strictly enforce that items can only be sold directly from the Bank vault
+  const { data: itemData } = await supabaseClient
+    .from('user_inventory')
+    .select('id, storage_location')
+    .eq('id', itemId)
+    .eq('user_id', currentUser.id)
+    .maybeSingle();
+
+  if (!itemData) {
+    alert("⚠️ This item could not be found in your inventory.");
+    return;
+  }
+
+  if (itemData.storage_location !== 'bank') {
+    alert("⚠️ Items can only be sold directly from your Bank vault! Move this item to your Bank first.");
     return;
   }
 

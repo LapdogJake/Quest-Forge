@@ -132,8 +132,8 @@
           </div>
         </div>
 
-        <!-- Subnavigation: Pouch, Bank, Store -->
-        <div class="qm-subnav" style="margin-bottom:14px;">
+        <!-- Subnavigation: Pouch, Bank, Store (Single Line) -->
+        <div class="qm-subnav items-subnav" style="margin-bottom:14px; display:grid; grid-template-columns:repeat(3, 1fr); gap:6px;">
           <button id="items-subnav-pouch" class="qm-subnav-btn active" onclick="switchItemsSubTab('pouch')">🎒 Pouch</button>
           <button id="items-subnav-bank" class="qm-subnav-btn" onclick="switchItemsSubTab('bank')">🏦 Bank</button>
           <button id="items-subnav-store" class="qm-subnav-btn" onclick="switchItemsSubTab('store')">🛒 Store</button>
@@ -144,10 +144,7 @@
           <div class="storage-capacity-bar" id="pouch-capacity-bar">
             <span id="pouch-capacity-summary">Trinkets: 0/3 | Talismans: 0/2 | Artifact: 0/1</span>
           </div>
-          <p style="font-size:12px; color:var(--text-muted); margin: 6px 0 10px 0;">
-            ⚔️ Items in your pouch are active in battle. Combat wears down their durability.
-          </p>
-          <div id="pouch-items-list" class="item-grid">
+          <div id="pouch-items-list" class="item-grid" style="margin-top:10px;">
             <p class="empty-state">Your pouch is empty. Visit the Store tab to buy supplies!</p>
           </div>
         </div>
@@ -157,32 +154,21 @@
           <div class="storage-capacity-bar" id="bank-capacity-bar">
             <span id="bank-capacity-summary">Trinkets: 0/3 | Talismans: 0/2 | Artifact: 0/1</span>
           </div>
-          <p style="font-size:12px; color:var(--text-muted); margin: 6px 0 10px 0;">
-            🏦 Items in your bank vault never consume combat durability and are protected from defeat penalties.
-          </p>
-          <div id="bank-items-list" class="item-grid">
+          <div id="bank-items-list" class="item-grid" style="margin-top:10px;">
             <p class="empty-state">Your bank vault is empty.</p>
           </div>
         </div>
 
-        <!-- SUB-TAB 3: STORE (Buy & Sell) -->
+        <!-- SUB-TAB 3: STORE (Buy) -->
         <div id="items-subtab-store" class="hidden">
-          <div class="qm-subnav" style="margin-top:0; margin-bottom:12px;">
-            <button id="store-subnav-buy" class="qm-subnav-btn active" onclick="switchStoreSubTab('buy')">Buy Catalog</button>
-            <button id="store-subnav-sell" class="qm-subnav-btn" onclick="switchStoreSubTab('sell')">Sell Back</button>
+          <div class="qm-subnav" style="margin-top:0; margin-bottom:12px; display:flex;">
+            <button id="store-subnav-buy" class="qm-subnav-btn active" style="flex:1; cursor:default;">Buy</button>
           </div>
 
           <!-- BUY CATALOG -->
           <div id="store-subtab-buy">
             <div id="store-catalog-list" class="store-catalog-list">
               <!-- Catalog items rendered via JS -->
-            </div>
-          </div>
-
-          <!-- SELL BACK -->
-          <div id="store-subtab-sell" class="hidden">
-            <div id="store-sell-list" class="item-grid">
-              <p class="empty-state">Loading items...</p>
             </div>
           </div>
         </div>

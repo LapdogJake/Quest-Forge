@@ -356,47 +356,47 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
 
     return `
       <div class="quest-card battle-card" style="border: 2px solid ${cardBorder}; margin-bottom:16px;">
-        <!-- Header & Status Badges -->
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:8px;">
-          <div>
-            <h4 style="margin:0 0 4px 0; font-size:17px; font-weight:800; letter-spacing:0.3px;">⚔️ ${q.title}</h4>
-            <div class="tag-container" style="margin-bottom:0;">
-              <span class="badge badge-battle" style="background:#dc2626; color:white;">⚔️ Battle</span>
-              <span class="badge badge-type" style="color:var(--gold); border-color:var(--gold); font-weight:bold;">🏆 +${victoryGold}g Win</span>
-              <span class="badge badge-type" style="color:#94a3b8; border-color:#64748b;">💀 +${defeatGold}g Loss</span>
-              ${rules.durabilityWear === 0 
-                ? '<span class="badge badge-active">🛡️ No Gear Wear</span>' 
-                : (rules.durabilityWear === 2 
-                  ? '<span class="badge badge-threat-loot">🔥 2x Gear Wear</span>' 
-                  : (rules.durabilityWear >= 3 
-                    ? `<span class="badge badge-threat-loot">💥 ${rules.durabilityWear}x Gear Wear</span>` 
-                    : ''))}
-              ${rules.defeatPenalty === 'items_lost' 
-                ? '<span class="badge badge-monster" style="background:#b91c1c; color:white; font-weight:bold;">💀 Items Lost</span>' 
-                : (rules.defeatPenalty === 'total_ruin' 
-                  ? '<span class="badge badge-monster" style="background:#7f1d1d; border:1px solid #ef4444; color:white; font-weight:bold;">☠️ Total Ruin</span>' 
-                  : '')}
-              ${rules.monstersAreNpc 
-                ? '<span class="badge badge-monster" title="Monster queue does not lose durability">👹 Monsters are NPCs</span>' 
-                : ''}
-              ${rules.allowMidJoin 
-                ? '<span class="badge badge-active" style="background:#0284c7; color:white; border-color:#38bdf8;">🔄 Mid-Battle Joining</span>' 
-                : ''}
-              ${rules.allowedTypes.length === 3 
-                ? '<span class="badge badge-active">✨ All Items Active</span>' 
-                : (rules.allowedTypes.length === 0 
-                  ? '<span class="badge badge-threat-loot">🚫 No Magic Items</span>' 
-                  : `<span class="badge badge-type">✨ ${rules.allowedTypes.join(', ')}</span>`)}
-              ${q.repeatable ? '<span class="badge badge-quest">🔁 Repeatable</span>' : ''}
-            </div>
-          </div>
-          <div>
+        <!-- Header Row: Title & Line Status across from each other -->
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:6px;">
+          <h4 style="margin:0; font-size:17px; font-weight:800; letter-spacing:0.3px; word-break:break-word;">⚔️ ${q.title}</h4>
+          <div style="flex-shrink:0; white-space:nowrap;">
             ${isLive 
-              ? '<span class="badge badge-active" style="background:#dc2626; color:white; border-color:#ef4444; font-size:12px; padding:4px 8px; font-weight:800; animation: pulse 2s infinite;">⚔️ LIVE BATTLE</span>'
+              ? '<span class="badge badge-active" style="background:#dc2626; color:white; border-color:#ef4444; font-size:12px; padding:4px 8px; font-weight:800; animation: pulse 2s infinite; white-space:nowrap;">⚔️ LIVE BATTLE</span>'
               : (isJoinedHero || isJoinedMonster 
-                ? '<span class="badge badge-active" style="font-size:12px; padding:4px 8px; background:var(--primary); color:white;">⏳ IN QUEUE</span>' 
-                : '<span class="badge badge-draft" style="font-size:12px; padding:4px 8px;">⏳ OPEN LINE</span>')}
+                ? '<span class="badge badge-active" style="font-size:12px; padding:4px 8px; background:var(--primary); color:white; white-space:nowrap;">⏳ IN QUEUE</span>' 
+                : '<span class="badge badge-draft" style="font-size:12px; padding:4px 8px; white-space:nowrap;">⏳ OPEN LINE</span>')}
           </div>
+        </div>
+
+        <!-- Tag Container / Badges Row (Full width) -->
+        <div class="tag-container" style="margin-bottom:8px;">
+          <span class="badge badge-type" style="color:var(--gold); border-color:var(--gold); font-weight:bold;">🏆 +${victoryGold}g Win</span>
+          <span class="badge badge-type" style="color:#94a3b8; border-color:#64748b;">💀 +${defeatGold}g Loss</span>
+          ${rules.durabilityWear === 0 
+            ? '<span class="badge badge-active">🛡️ No Gear Wear</span>' 
+            : (rules.durabilityWear === 2 
+              ? '<span class="badge badge-threat-loot">🔥 2x Gear Wear</span>' 
+              : (rules.durabilityWear >= 3 
+                ? `<span class="badge badge-threat-loot">💥 ${rules.durabilityWear}x Gear Wear</span>` 
+                : ''))}
+          ${rules.defeatPenalty === 'items_lost' 
+            ? '<span class="badge badge-monster" style="background:#b91c1c; color:white; font-weight:bold;">💀 Items Lost</span>' 
+            : (rules.defeatPenalty === 'total_ruin' 
+              ? '<span class="badge badge-monster" style="background:#7f1d1d; border:1px solid #ef4444; color:white; font-weight:bold;">☠️ Total Ruin</span>' 
+              : '')}
+          ${rules.monstersAreNpc 
+            ? '<span class="badge badge-monster" title="Monster queue does not lose durability">👹 Monsters are NPCs</span>' 
+            : ''}
+          ${rules.allowMidJoin 
+            ? '<span class="badge badge-active" style="background:#0284c7; color:white; border-color:#38bdf8;">🔄 Mid-Battle Joining</span>' 
+            : ''}
+          ${rules.allowedTypes.length === 3 
+            ? '<span class="badge badge-active">✨ All Items Active</span>' 
+            : (rules.allowedTypes.length === 0 
+              ? '<span class="badge badge-threat-loot">🚫 No Magic Items</span>' 
+              : `<span class="badge badge-type">✨ ${rules.allowedTypes.join(', ')}</span>`)}
+          ${q.repeatable ? '<span class="badge badge-quest">🔁 Repeatable</span>' : ''}
+          ${rules.rngLootDrops ? '<span class="badge badge-threat-loot" style="background:#7c3aed; color:white; border-color:#a855f7;">🎲 RNG Loot</span>' : ''}
         </div>
 
         ${q.description ? `<p style="font-size:13px; color:#cbd5e1; margin:6px 0 10px 0; line-height:1.45;">${q.description}</p>` : ''}
@@ -631,27 +631,60 @@ async function fetchQMQuests() {
   }
 
   const nonBattleQuestIds = nonBattleQuests.map(q => q.id);
-  const { data: userAssignments } = await supabaseClient
-    .from('user_quests')
-    .select(`
-      id,
-      quest_id,
-      user_id,
-      status,
-      created_at,
-      profiles(id, username, quest_abilities)
-    `)
-    .in('quest_id', nonBattleQuestIds)
-    .in('status', ['accepted', 'completed']);
 
+  // 1. Fetch user quest rows directly without relational join to prevent PostgREST foreign key cache errors
+  let userAssignments = [];
+  try {
+    const { data: rawAssignments, error: uqErr } = await supabaseClient
+      .from('user_quests')
+      .select('id, quest_id, user_id, status, created_at')
+      .in('quest_id', nonBattleQuestIds);
+
+    if (uqErr) {
+      console.warn("Could not query user_quests in QM catalog:", uqErr);
+    } else if (rawAssignments) {
+      userAssignments = rawAssignments;
+    }
+  } catch (err) {
+    console.error("Fatal error fetching user_quests in QM catalog:", err);
+  }
+
+  // 2. Fetch profiles for all distinct users who accepted or completed these quests
+  const userIds = [...new Set(userAssignments.map(u => u.user_id).filter(Boolean))];
+  const profilesMap = new Map();
+
+  if (userIds.length > 0) {
+    try {
+      const { data: profs, error: profErr } = await supabaseClient
+        .from('profiles')
+        .select('id, username, quest_abilities')
+        .in('id', userIds);
+
+      if (!profErr && profs) {
+        profs.forEach(p => profilesMap.set(p.id, p));
+      }
+    } catch (err) {
+      console.warn("Could not resolve profiles for questers:", err);
+    }
+  }
+
+  // 3. Attach profile info and organize into active vs completed maps
   const activeByQuest = new Map();
   const completedByQuest = new Map();
 
-  (userAssignments || []).forEach(ua => {
-    if (ua.status === 'accepted') {
+  userAssignments.forEach(ua => {
+    const prof = profilesMap.get(ua.user_id);
+    ua.profiles = {
+      id: ua.user_id,
+      username: prof?.username || 'Adventurer',
+      quest_abilities: prof?.quest_abilities || []
+    };
+
+    const st = (ua.status || '').toLowerCase();
+    if (st === 'accepted' || st === 'active') {
       if (!activeByQuest.has(ua.quest_id)) activeByQuest.set(ua.quest_id, []);
       activeByQuest.get(ua.quest_id).push(ua);
-    } else if (ua.status === 'completed') {
+    } else if (st === 'completed') {
       if (!completedByQuest.has(ua.quest_id)) completedByQuest.set(ua.quest_id, []);
       completedByQuest.get(ua.quest_id).push(ua);
     }
@@ -720,7 +753,7 @@ async function fetchQMQuests() {
                   </div>
                   <div class="qm-quester-actions">
                     <button class="btn-qm-verify" onclick="qmVerifyCompleteQuest('${aq.id}', '${aq.user_id}', '${q.id}', ${q.reward_gold}, '${(q.title || '').replace(/'/g, "\\'")}', ${maxCompletions})">
-                      ✅ Complete
+                      ✅ Complete Quest
                     </button>
                     <button class="btn-qm-kick" onclick="qmKickUserFromQuest('${aq.id}', '${(uName).replace(/'/g, "\\'")}', '${(q.title || '').replace(/'/g, "\\'")}')">
                       🚫 Kick

@@ -207,6 +207,21 @@ async function awardGoldToUser(userId, amount, park = null, qmId = null) {
         });
     }
 
+    // Also sync base profiles table gold as reliable fallback
+    try {
+      const { data: profRow } = await supabaseClient
+        .from('profiles')
+        .select('gold')
+        .eq('id', userId)
+        .maybeSingle();
+      if (profRow) {
+        await supabaseClient
+          .from('profiles')
+          .update({ gold: Math.max(0, (Number(profRow.gold) || 0) + Number(amount)) })
+          .eq('id', userId);
+      }
+    } catch (_) {}
+
     // If current logged-in user matches, sync local state and displays immediately
     if (currentUser && currentUser.id === userId) {
       const curAmt = (currentParkProfile && currentParkProfile.park === targetPark)
