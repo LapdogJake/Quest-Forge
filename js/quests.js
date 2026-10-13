@@ -787,7 +787,7 @@ async function qmVerifyCompleteQuest(userQuestId, userId, questId, rewardGold, q
     // 1. Mark user_quest as completed
     const { error: updateErr } = await supabaseClient
       .from('user_quests')
-      .update({ status: 'completed', completed_at: new Date().toISOString() })
+      .update({ status: 'completed' })
       .eq('id', userQuestId);
 
     if (updateErr) {
@@ -1227,7 +1227,7 @@ async function completeQuest(userQuestId, rewardGold) {
 
   await updateParkGold(rewardGold, true);
 
-  await supabaseClient.from('user_quests').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', userQuestId);
+  await supabaseClient.from('user_quests').update({ status: 'completed' }).eq('id', userQuestId);
 
   if (isCombat) {
     await applyCombatDurabilityDamage(currentUser.id, rules.allowedTypes);

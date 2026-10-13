@@ -184,6 +184,7 @@ CREATE TABLE IF NOT EXISTS public.user_quests (
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_quests_user ON public.user_quests (user_id, status);
+ALTER TABLE public.user_quests ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ;
 
 -- ------------------------------------------------------------------------------
 -- 7. Quest Queues & Encounter Lines
