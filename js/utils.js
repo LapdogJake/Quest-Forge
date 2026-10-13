@@ -71,7 +71,7 @@ function switchQMSubTab(subTabName) {
     if (navBtn) navBtn.classList.remove('active');
   });
 
-  const normalized = (subTabName === 'create') ? 'battle' : subTabName;
+  const normalized = (subTabName === 'create') ? 'battle' : ((subTabName === 'tools') ? 'economy' : subTabName);
   const targetTab = document.getElementById(`qm-subtab-${normalized}`) || (normalized === 'battle' ? document.getElementById('qm-subtab-create') : null);
   const targetNav = document.getElementById(`qm-subnav-${normalized}`) || (normalized === 'battle' ? document.getElementById('qm-subnav-create') : null);
 
