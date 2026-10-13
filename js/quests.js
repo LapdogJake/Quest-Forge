@@ -327,24 +327,16 @@ function renderActiveAdventureQuestCard(uq) {
       <div class="quest-accordion-content">
         <div class="quest-details-body">
           <div class="quest-details-panel">
-            <div class="tag-container">
+            <div class="tag-container" style="margin-bottom:8px;">
               <span class="badge badge-discipline">${discIcon} ${discName}</span>
-              <span class="badge badge-quest">Quest</span>
-              <span class="badge badge-type">${groupType}</span>
-              <span class="badge badge-active">Active on Field</span>
-              ${isQMVerified ? '<span class="badge badge-threat-loot" style="background:#0284c7; color:white; border-color:#38bdf8;">👑 QM Verification Needed</span>' : '<span class="badge badge-type">🤝 Self-Complete</span>'}
+              <span class="badge badge-type">🪙 +${rewardGold} Gold</span>
+              <span class="badge badge-type" style="color:#c084fc; border-color:rgba(192,132,252,0.4);">
+                ${isQMVerified ? '👑 QM Verified' : '🤝 Self-Report'}
+              </span>
+              ${q.repeatable ? '<span class="badge badge-quest">🔁 Repeatable</span>' : ''}
             </div>
             ${q.requirements ? `<p style="color:var(--warning); font-size:12px; margin-bottom:4px;"><strong>Req:</strong> ${q.requirements}</p>` : ''}
             <p>${q.description || ''}</p>
-            <div class="quest-rewards" style="margin-bottom:8px;">
-              <span class="reward-gold">🪙 +${rewardGold} Gold</span>
-            </div>
-            ${isQMVerified ? `
-              <div style="background:rgba(2, 132, 199, 0.12); border:1px solid rgba(56, 189, 248, 0.35); border-radius:6px; padding:8px 10px; font-size:12px; color:#bae6fd; display:flex; align-items:center; gap:6px;">
-                <span>🛡️</span>
-                <span><strong>Awaiting QM Turn-in:</strong> Complete this objective on the field and report to your Questmaster to verify and claim your gold!</span>
-              </div>
-            ` : ''}
           </div>
         </div>
       </div>
@@ -638,19 +630,16 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
         <div class="quest-accordion-content">
           <div class="quest-details-body">
             <div class="quest-details-panel">
-              <div class="tag-container">
+              <div class="tag-container" style="margin-bottom:8px;">
                 <span class="badge badge-discipline">${discIcon} ${discName}</span>
-                <span class="badge badge-quest">Quest</span>
-                <span class="badge badge-type">${groupType}</span>
-                ${maxActive > 0 ? `<span class="badge badge-type" style="color:#38bdf8; border-color:rgba(56,189,248,0.4);">👥 ${activeCount}/${maxActive} Active</span>` : ''}
-                ${maxCompletions > 0 ? `<span class="badge badge-type" style="color:var(--gold); border-color:var(--gold);">🏆 ${completedCount}/${maxCompletions} Completed</span>` : ''}
-                ${rules.verificationMethod === 'Quest Master' ? '<span class="badge badge-type" style="color:#c084fc; border-color:rgba(192,132,252,0.4);">👑 QM Verified</span>' : ''}
+                <span class="badge badge-type">🪙 +${q.reward_gold} Gold</span>
+                <span class="badge badge-type" style="color:#c084fc; border-color:rgba(192,132,252,0.4);">
+                  ${rules.verificationMethod === 'Quest Master' ? '👑 QM Verified' : '🤝 Self-Report'}
+                </span>
                 ${q.repeatable ? '<span class="badge badge-quest">🔁 Repeatable</span>' : ''}
               </div>
+              ${q.requirements ? `<p style="color:var(--warning); font-size:12px; margin-bottom:4px;"><strong>Req:</strong> ${q.requirements}</p>` : ''}
               <p>${q.description || ''}</p>
-              <div class="quest-rewards">
-                <span class="reward-gold">🪙 +${q.reward_gold} Gold</span>
-              </div>
             </div>
           </div>
         </div>
