@@ -380,10 +380,10 @@ async function fetchQMQueues() {
 
             <!-- ACTIONS: CLOSED -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; gap:8px;">
-              <button class="btn-battle-action btn-battle-hero" style="flex:1;" onclick="qmLaunchBattle('${q.id}')">
-                🚀 Launch Battle (Open Line)
+              <button class="btn-battle-action btn-battle-hero" style="flex:1; min-height:40px; font-size:13px; font-weight:bold; border-radius:6px; text-transform:none;" onclick="qmLaunchBattle('${q.id}')">
+                Open
               </button>
-              <button class="btn-delete" style="padding:10px 14px;" onclick="qmDeleteQuest('${q.id}', '${(q.title || '').replace(/'/g, "\\'")}')" title="Delete battle from catalog">
+              <button class="btn-delete" style="min-height:40px; padding:8px 14px; font-size:13px; font-weight:bold; justify-content:center; border-radius:6px;" onclick="qmDeleteQuest('${q.id}', '${(q.title || '').replace(/'/g, "\\'")}')" title="Delete battle from catalog">
                 🗑️ Delete
               </button>
             </div>
@@ -460,21 +460,14 @@ async function fetchQMQueues() {
             </div>
 
             <!-- 2. ONE-TAP VICTOR RESOLUTION GRID -->
-            <div style="margin-top:6px; margin-bottom:12px;">
-              <p style="font-size:11px; font-weight:bold; color:var(--gold); text-transform:uppercase; margin:0 0 6px 0; text-align:center;">
-                ⚡ Declare Winner & Instant Payout (${heroMembers.length + monsterMembers.length} fighters)
-              </p>
-              <div class="qm-victor-grid">
-                <button class="btn-qm-victor btn-qm-victor-hero" onclick="qmFinishBattle('${queueId}', '${q.id}', ${victoryGold}, ${defeatGold}, 'heroes')">
-                  <span class="btn-qm-victor-title">🏆 Heroes Won</span>
-                  <span class="btn-qm-victor-sub">Heroes +${victoryGold}g | Monsters +${defeatGold}g</span>
-                </button>
+            <div class="qm-victor-grid" style="margin-top:4px; margin-bottom:10px;">
+              <button class="btn-qm-victor btn-qm-victor-hero" onclick="qmFinishBattle('${queueId}', '${q.id}', ${victoryGold}, ${defeatGold}, 'heroes')">
+                Heroes Won
+              </button>
 
-                <button class="btn-qm-victor btn-qm-victor-monster" onclick="qmFinishBattle('${queueId}', '${q.id}', ${victoryGold}, ${defeatGold}, 'monsters')">
-                  <span class="btn-qm-victor-title">🏆 Monsters Won</span>
-                  <span class="btn-qm-victor-sub">Monsters +${victoryGold}g | Heroes +${defeatGold}g</span>
-                </button>
-              </div>
+              <button class="btn-qm-victor btn-qm-victor-monster" onclick="qmFinishBattle('${queueId}', '${q.id}', ${victoryGold}, ${defeatGold}, 'monsters')">
+                Monsters Won
+              </button>
             </div>
 
             <!-- 3. BADGES CONTAINER (Below Line & Resolution) -->
@@ -512,21 +505,21 @@ async function fetchQMQueues() {
             ${q.description ? `<p style="font-size:13px; color:#cbd5e1; margin:6px 0 10px 0; line-height:1.45;">${q.description}</p>` : ''}
 
             <!-- 5. QM CONTROLS (BOTTOM) -->
-            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:8px;">
               ${state === 'open' ? `
-                <button class="btn-accept" style="flex:2; min-height:44px; font-size:13px; font-weight:bold;" onclick="qmStartCombat('${queueId}', '${q.id}')">
-                  ⚔️ Start Combat (Go Live)
+                <button class="btn-accept" style="flex:2; min-height:40px; font-size:13px; font-weight:bold; border-radius:6px;" onclick="qmStartCombat('${queueId}', '${q.id}')">
+                  Go Live
                 </button>
               ` : `
-                <button class="btn-secondary" style="flex:2; min-height:44px; font-size:13px; font-weight:bold; background:#dc2626; color:white;" disabled>
-                  ⚔️ BATTLE IS CURRENTLY LIVE
+                <button style="flex:2; min-height:40px; font-size:13px; font-weight:bold; background:#27272a; color:#a1a1aa; border:1px solid #3f3f46; border-radius:6px; opacity:0.8; cursor:not-allowed; display:flex; align-items:center; justify-content:center;" disabled>
+                  Live
                 </button>
               `}
-              <button class="btn-leave" style="flex:1; min-height:44px; font-size:12px;" onclick="qmCloseBattle('${q.id}', '${queueId}')">
-                🛑 Abort / Close
+              <button class="btn-leave" style="flex:1; min-height:40px; font-size:13px; font-weight:bold; border-radius:6px;" onclick="qmCloseBattle('${q.id}', '${queueId}')">
+                Close
               </button>
-              <button class="btn-delete" style="min-height:44px; padding:8px 12px;" onclick="qmDeleteQuest('${q.id}', '${(q.title || '').replace(/'/g, "\\'")}')" title="Delete battle from catalog">
-                🗑️
+              <button class="btn-delete" style="min-height:40px; padding:8px 14px; font-size:13px; font-weight:bold; justify-content:center; border-radius:6px;" onclick="qmDeleteQuest('${q.id}', '${(q.title || '').replace(/'/g, "\\'")}')" title="Delete battle from catalog">
+                🗑️ Delete
               </button>
             </div>
           `}
