@@ -16,6 +16,7 @@
     <!-- 1. PROFILE TAB -->
     <section id="tab-profile" class="tab-view">
       <div class="card card-profile">
+        <h2 style="margin:0 0 12px 0;">Profile</h2>
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
           <span id="user-display" style="font-weight: bold; color: var(--primary); font-size: 20px;">Loading...</span>
           <span id="role-badge" class="badge badge-type" style="display:none;">Questmaster</span>
@@ -97,6 +98,7 @@
     <!-- 2. BATTLE TAB (COMBAT & MONSTER LINES) -->
     <section id="tab-battles" class="tab-view hidden">
       <div class="card card-heroes card-battles">
+        <h2 style="margin:0 0 12px 0;">Battle</h2>
         <div id="available-combat-quests">
           <p class="empty-state">Loading active battle...</p>
         </div>
@@ -106,6 +108,7 @@
     <!-- 3. QUEST TAB (NON-COMBAT) -->
     <section id="tab-adventure" class="tab-view hidden">
       <div class="card card-adventure card-quest">
+        <h2 style="margin:0 0 12px 0;">Quest</h2>
         <div id="available-larpie-quests">
           <p class="empty-state">No Active Quests.</p>
         </div>
@@ -116,7 +119,7 @@
     <section id="tab-items" class="tab-view hidden">
       <div class="card card-items">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h2 style="margin:0;">🎒 Items</h2>
+          <h2 style="margin:0;">Items</h2>
           <div style="display:flex; align-items:center; gap:5px; font-weight:bold; font-size:16px; color:var(--gold);">
             <span>🪙</span>
             <span id="items-player-gold">0</span>
@@ -192,7 +195,7 @@
     <!-- 6. QUESTMASTER CONTROL TAB -->
     <section id="tab-admin" class="tab-view hidden">
       <div class="card">
-        <h2>👑 Questmaster Panel</h2>
+        <h2 style="margin:0 0 12px 0;">QM Panel</h2>
 
         <div class="qm-subnav qm-subnav-grid">
           <button id="qm-subnav-battle" class="qm-subnav-btn active" onclick="switchQMSubTab('battle')">⚔️ Forge Battle</button>
