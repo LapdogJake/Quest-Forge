@@ -129,6 +129,18 @@ async function fetchQuests() {
   const combatQuests = available.filter(q => q.category === 'Battle' || q.category === 'Combat');
   const larpieQuests = available.filter(q => q.category === 'Adventure' || q.category === 'Quest' || (q.category !== 'Battle' && q.category !== 'Combat'));
 
+  // Sort adventure quests by Discipline first, then by title
+  larpieQuests.sort((a, b) => {
+    const discA = typeof getQuestDiscipline === 'function' ? getQuestDiscipline(a) : 'Service';
+    const discB = typeof getQuestDiscipline === 'function' ? getQuestDiscipline(b) : 'Service';
+    const idxA = (typeof DISCIPLINE_ORDER !== 'undefined') ? DISCIPLINE_ORDER.indexOf(discA) : -1;
+    const idxB = (typeof DISCIPLINE_ORDER !== 'undefined') ? DISCIPLINE_ORDER.indexOf(discB) : -1;
+    const posA = idxA !== -1 ? idxA : 999;
+    const posB = idxB !== -1 ? idxB : 999;
+    if (posA !== posB) return posA - posB;
+    return (a.title || '').localeCompare(b.title || '');
+  });
+
   const joinedQueueMap = new Map();
   (myQueueMemberships || []).forEach(m => {
     const queue = m.quest_queues;
@@ -213,6 +225,17 @@ async function fetchQuests() {
       });
     }
 
+    activeAdventureQuests.sort((a, b) => {
+      const discA = typeof getQuestDiscipline === 'function' ? getQuestDiscipline(a.quests) : 'Service';
+      const discB = typeof getQuestDiscipline === 'function' ? getQuestDiscipline(b.quests) : 'Service';
+      const idxA = (typeof DISCIPLINE_ORDER !== 'undefined') ? DISCIPLINE_ORDER.indexOf(discA) : -1;
+      const idxB = (typeof DISCIPLINE_ORDER !== 'undefined') ? DISCIPLINE_ORDER.indexOf(discB) : -1;
+      const posA = idxA !== -1 ? idxA : 999;
+      const posB = idxB !== -1 ? idxB : 999;
+      if (posA !== posB) return posA - posB;
+      return (a.quests?.title || '').localeCompare(b.quests?.title || '');
+    });
+
     const activeAdvHtml = activeAdventureQuests.map(uq => renderActiveAdventureQuestCard(uq)).join('');
     const availAdvHtml = larpieQuests.map(q => renderAvailableQuestCard(q, 'larpie', null, null, questUsageMap.get(q.id))).join('');
     const totalAdvHtml = activeAdvHtml + availAdvHtml;
@@ -236,6 +259,9 @@ function renderActiveAdventureQuestCard(uq) {
   const isQMVerified = rules.verificationMethod === 'Quest Master';
   const groupType = q.participation_type || 'Solo';
   const rewardGold = q.reward_gold || 0;
+  const displayTitle = typeof getQuestDisplayTitle === 'function' ? getQuestDisplayTitle(q) : (q.title || 'Quest');
+  const discName = typeof getQuestDiscipline === 'function' ? getQuestDiscipline(q) : 'Service';
+  const discIcon = typeof getQuestDisciplineIcon === 'function' ? getQuestDisciplineIcon(discName) : '🌹';
 
   const summaryActions = isQMVerified
     ? `
@@ -253,13 +279,14 @@ function renderActiveAdventureQuestCard(uq) {
   return `
     <details class="quest-accordion quest-joined" open>
       <summary>
-        <span class="quest-summary-title">${q.title}</span>
+        <span class="quest-summary-title">${displayTitle}</span>
         ${summaryActions}
       </summary>
       <div class="quest-accordion-content">
         <div class="quest-details-body">
           <div class="quest-details-panel">
             <div class="tag-container">
+              <span class="badge badge-discipline">${discIcon} ${discName}</span>
               <span class="badge badge-quest">Quest</span>
               <span class="badge badge-type">${groupType}</span>
               <span class="badge badge-active">Active on Field</span>
@@ -543,6 +570,9 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
     const maxCompletions = rules.maxCompletions || 0;
     const isFull = maxActive > 0 && activeCount >= maxActive;
     const isExhausted = maxCompletions > 0 && completedCount >= maxCompletions;
+    const displayTitle = typeof getQuestDisplayTitle === 'function' ? getQuestDisplayTitle(q) : (q.title || 'Quest');
+    const discName = typeof getQuestDiscipline === 'function' ? getQuestDiscipline(q) : 'Service';
+    const discIcon = typeof getQuestDisciplineIcon === 'function' ? getQuestDisciplineIcon(discName) : '🌹';
 
     let acceptButton = '';
     if (isExhausted) {
@@ -560,18 +590,20 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
     return `
       <details class="quest-accordion">
         <summary>
-          <span class="quest-summary-title">${q.title}</span>
+          <span class="quest-summary-title">${displayTitle}</span>
           ${summaryAction}
         </summary>
         <div class="quest-accordion-content">
           <div class="quest-details-body">
             <div class="quest-details-panel">
               <div class="tag-container">
+                <span class="badge badge-discipline">${discIcon} ${discName}</span>
                 <span class="badge badge-quest">Quest</span>
                 <span class="badge badge-type">${groupType}</span>
                 ${maxActive > 0 ? `<span class="badge badge-type" style="color:#38bdf8; border-color:rgba(56,189,248,0.4);">👥 ${activeCount}/${maxActive} Active</span>` : ''}
                 ${maxCompletions > 0 ? `<span class="badge badge-type" style="color:var(--gold); border-color:var(--gold);">🏆 ${completedCount}/${maxCompletions} Completed</span>` : ''}
                 ${rules.verificationMethod === 'Quest Master' ? '<span class="badge badge-type" style="color:#c084fc; border-color:rgba(192,132,252,0.4);">👑 QM Verified</span>' : ''}
+                ${q.repeatable ? '<span class="badge badge-quest">🔁 Repeatable</span>' : ''}
               </div>
               <p>${q.description || ''}</p>
               <div class="quest-rewards">
@@ -629,6 +661,18 @@ async function fetchQMQuests() {
     (!q.park || q.park === activePark) &&
     (!q.qm_id || !activeQMId || q.qm_id === activeQMId)
   );
+
+  // Sort non-battle quests by Discipline first, then by title
+  nonBattleQuests.sort((a, b) => {
+    const discA = typeof getQuestDiscipline === 'function' ? getQuestDiscipline(a) : 'Service';
+    const discB = typeof getQuestDiscipline === 'function' ? getQuestDiscipline(b) : 'Service';
+    const idxA = (typeof DISCIPLINE_ORDER !== 'undefined') ? DISCIPLINE_ORDER.indexOf(discA) : -1;
+    const idxB = (typeof DISCIPLINE_ORDER !== 'undefined') ? DISCIPLINE_ORDER.indexOf(discB) : -1;
+    const posA = idxA !== -1 ? idxA : 999;
+    const posB = idxB !== -1 ? idxB : 999;
+    if (posA !== posB) return posA - posB;
+    return (a.title || '').localeCompare(b.title || '');
+  });
 
   if (nonBattleQuests.length === 0) {
     container.innerHTML = `<p class="empty-state">No non-battle quests in the catalog for ${activePark} (${activeQMName}).</p>`;
@@ -700,6 +744,9 @@ async function fetchQMQuests() {
     const maxActive = rules.maxActive || 0;
     const maxCompletions = rules.maxCompletions || 0;
     const verificationMethod = rules.verificationMethod || 'Quest Master';
+    const displayTitle = typeof getQuestDisplayTitle === 'function' ? getQuestDisplayTitle(q) : q.title;
+    const discName = typeof getQuestDiscipline === 'function' ? getQuestDiscipline(q) : 'Service';
+    const discIcon = typeof getQuestDisciplineIcon === 'function' ? getQuestDisciplineIcon(discName) : '🌹';
 
     const activeList = activeByQuest.get(q.id) || [];
     const completedList = completedByQuest.get(q.id) || [];
@@ -711,8 +758,9 @@ async function fetchQMQuests() {
       <div class="quest-card" style="border-left: 4px solid ${q.is_active ? 'var(--success)' : '#52525b'}; margin-bottom:16px;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
           <div>
-            <h4 style="margin:0 0 4px 0;">${q.title}</h4>
+            <h4 style="margin:0 0 4px 0;">${displayTitle}</h4>
             <div class="tag-container" style="margin-top:4px;">
+              <span class="badge badge-discipline">${discIcon} ${discName}</span>
               <span class="badge badge-quest">Quest</span>
               <span class="badge badge-type">🪙 ${q.reward_gold} Gold</span>
               <span class="badge badge-type" style="color:#38bdf8; border-color:rgba(56,189,248,0.4);">
@@ -1073,20 +1121,18 @@ async function createBattle() {
 
 async function createAdventureQuest() {
   const title = (document.getElementById('qm-quest-title') || document.getElementById('qm-title'))?.value.trim();
+  const discipline = document.getElementById('qm-quest-discipline')?.value || 'Service';
   const category = 'Quest';
   const goldInput = document.getElementById('qm-quest-gold') || document.getElementById('qm-gold-victory') || document.getElementById('qm-gold');
   const reward_gold = goldInput ? (parseInt(goldInput.value) || 0) : 0;
   const description = (document.getElementById('qm-quest-description') || document.getElementById('qm-description'))?.value.trim() || '';
   const repeatable = Boolean((document.getElementById('qm-quest-repeatable') || document.getElementById('qm-repeatable'))?.checked);
 
-  const max_active = parseInt(document.getElementById('qm-quest-max-active')?.value) || 0;
-  const max_completions = parseInt(document.getElementById('qm-quest-max-completions')?.value) || 0;
   const verification_method = document.getElementById('qm-quest-verification')?.value || 'Quest Master';
-  const rng_loot_drops = Boolean((document.getElementById('qm-quest-rng-loot'))?.checked);
 
   if (!title) { alert("Please enter a Quest Title."); return; }
 
-  const rulesMeta = `<!-- RULES: ${JSON.stringify({ max_active, max_completions, verification_method, rng_loot_drops })} -->`;
+  const rulesMeta = `<!-- RULES: ${JSON.stringify({ discipline, verification_method, repeatable })} -->`;
   const scenarioWithMeta = rulesMeta;
 
   const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
@@ -1096,6 +1142,7 @@ async function createAdventureQuest() {
 
   const questPayload = {
     title,
+    discipline,
     category,
     reward_gold,
     description,
@@ -1105,10 +1152,7 @@ async function createAdventureQuest() {
     kingdom: activeKingdom,
     qm_id: activeQMId,
     qm_username: activeQMUsername,
-    max_active,
-    max_completions,
     verification_method,
-    rng_loot_drops,
     is_active: true
   };
 
@@ -1121,9 +1165,10 @@ async function createAdventureQuest() {
     if (colMatch && colMatch[1] && colMatch[1] in fallbackPayload) {
       delete fallbackPayload[colMatch[1]];
     }
+    delete fallbackPayload.discipline;
+    delete fallbackPayload.verification_method;
     delete fallbackPayload.max_active;
     delete fallbackPayload.max_completions;
-    delete fallbackPayload.verification_method;
     delete fallbackPayload.rng_loot_drops;
     delete fallbackPayload.qm_id;
     delete fallbackPayload.qm_username;
@@ -1139,15 +1184,13 @@ async function createAdventureQuest() {
 
   if (document.getElementById('qm-quest-title')) document.getElementById('qm-quest-title').value = '';
   if (document.getElementById('qm-title')) document.getElementById('qm-title').value = '';
+  if (document.getElementById('qm-quest-discipline')) document.getElementById('qm-quest-discipline').value = 'Service';
   if (document.getElementById('qm-quest-description')) document.getElementById('qm-quest-description').value = '';
   if (document.getElementById('qm-description')) document.getElementById('qm-description').value = '';
   if (goldInput) goldInput.value = '5';
   if (document.getElementById('qm-quest-repeatable')) document.getElementById('qm-quest-repeatable').checked = false;
   if (document.getElementById('qm-repeatable')) document.getElementById('qm-repeatable').checked = false;
-  if (document.getElementById('qm-quest-max-active')) document.getElementById('qm-quest-max-active').value = '0';
-  if (document.getElementById('qm-quest-max-completions')) document.getElementById('qm-quest-max-completions').value = '0';
   if (document.getElementById('qm-quest-verification')) document.getElementById('qm-quest-verification').value = 'Quest Master';
-  if (document.getElementById('qm-quest-rng-loot')) document.getElementById('qm-quest-rng-loot').checked = false;
 
   await fetchUserSlotState();
   await fetchQuests();

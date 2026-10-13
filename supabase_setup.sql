@@ -145,6 +145,7 @@ CREATE TABLE IF NOT EXISTS public.quests (
   max_active INTEGER DEFAULT 0,
   max_completions INTEGER DEFAULT 0,
   verification_method TEXT DEFAULT 'Quest Master',
+  discipline TEXT DEFAULT 'Service',
   allow_mid_join BOOLEAN DEFAULT FALSE,
   rng_loot_drops BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT now()
@@ -164,6 +165,7 @@ ALTER TABLE public.quests
   ADD COLUMN IF NOT EXISTS max_active INTEGER DEFAULT 0,
   ADD COLUMN IF NOT EXISTS max_completions INTEGER DEFAULT 0,
   ADD COLUMN IF NOT EXISTS verification_method TEXT DEFAULT 'Quest Master',
+  ADD COLUMN IF NOT EXISTS discipline TEXT DEFAULT 'Service',
   ADD COLUMN IF NOT EXISTS allow_mid_join BOOLEAN DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS rng_loot_drops BOOLEAN DEFAULT FALSE;
 

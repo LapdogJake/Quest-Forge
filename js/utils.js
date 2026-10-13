@@ -156,6 +156,7 @@ function getQuestDurabilityRules(q) {
   let verificationMethod = q?.verification_method || 'Quest Master';
   let allowMidJoin = q?.allow_mid_join;
   let rngLootDrops = q?.rng_loot_drops;
+  let discipline = q?.discipline;
 
   // Check fallback metadata embedded in scenario_card or description
   const textToCheck = `${q?.scenario_card || ''} ${q?.description || ''}`;
@@ -193,6 +194,9 @@ function getQuestDurabilityRules(q) {
       if (rngLootDrops === undefined && (parsed.rng_loot_drops !== undefined || parsed.rng_loot !== undefined)) {
         rngLootDrops = Boolean(parsed.rng_loot_drops ?? parsed.rng_loot);
       }
+      if (!discipline && parsed.discipline !== undefined) {
+        discipline = parsed.discipline;
+      }
     } catch (e) {
       console.warn("Failed to parse embedded quest rules", e);
     }
@@ -222,6 +226,77 @@ function getQuestDurabilityRules(q) {
     maxCompletions: Number.isFinite(maxCompletions) ? maxCompletions : 0,
     verificationMethod: verificationMethod || 'Quest Master',
     allowMidJoin: Boolean(allowMidJoin),
-    rngLootDrops: Boolean(rngLootDrops)
+    rngLootDrops: Boolean(rngLootDrops),
+    discipline: discipline || 'Service'
   };
+}
+
+// ------------------------------------------------------------------------------
+// Quest Discipline Definitions & Helpers
+// ------------------------------------------------------------------------------
+const QUEST_DISCIPLINES = [
+  { name: 'Service', icon: '🌹' },
+  { name: 'Bardic', icon: '🎵' },
+  { name: 'Roleplay', icon: '🎭' },
+  { name: 'Exploration', icon: '🌿' },
+  { name: 'Crafting', icon: '🛠' },
+  { name: 'Arts & Sciences', icon: '🎨' },
+  { name: 'Knowledge', icon: '📚' },
+  { name: 'Challenge', icon: '🏆' },
+  { name: 'Trial', icon: '🏅' }
+];
+
+const DISCIPLINE_ICONS = {
+  'Service': '🌹',
+  'Bardic': '🎵',
+  'Roleplay': '🎭',
+  'Exploration': '🌿',
+  'Crafting': '🛠',
+  'Arts & Sciences': '🎨',
+  'Knowledge': '📚',
+  'Challenge': '🏆',
+  'Trial': '🏅'
+};
+
+const DISCIPLINE_ORDER = [
+  'Service',
+  'Bardic',
+  'Roleplay',
+  'Exploration',
+  'Crafting',
+  'Arts & Sciences',
+  'Knowledge',
+  'Challenge',
+  'Trial'
+];
+
+function getQuestDiscipline(q) {
+  let disc = q?.discipline;
+  if (!disc) {
+    const textToCheck = `${q?.scenario_card || ''} ${q?.description || ''}`;
+    const match = textToCheck.match(/<!--\s*RULES:\s*(\{.*?\})\s*-->/);
+    if (match) {
+      try {
+        const parsed = JSON.parse(match[1]);
+        if (parsed.discipline) disc = parsed.discipline;
+      } catch (e) {}
+    }
+  }
+  if (!disc) return 'Service';
+  const clean = disc.replace(/^[^\w\s&]+/, '').trim();
+  return clean || 'Service';
+}
+
+function getQuestDisciplineIcon(disc) {
+  return DISCIPLINE_ICONS[disc] || '📜';
+}
+
+function getQuestDisplayTitle(q) {
+  const disc = getQuestDiscipline(q);
+  const icon = getQuestDisciplineIcon(disc);
+  let title = (q?.title || 'Untitled Quest').trim();
+  if (title.startsWith(icon)) {
+    return title;
+  }
+  return `${icon} ${title}`;
 }

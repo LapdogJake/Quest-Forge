@@ -555,6 +555,12 @@ button:focus-visible, select:focus-visible {
   border: 1px solid #047857;
 }
 
+.badge-discipline {
+  background: #1e1b4b;
+  color: #c7d2fe;
+  border: 1px solid #4338ca;
+}
+
 .badge-monster {
   background: #7f1d1d;
   color: #f87171;
