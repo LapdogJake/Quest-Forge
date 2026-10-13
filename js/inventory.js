@@ -19,8 +19,6 @@ function getStorageSlotCounts(itemsList) {
 async function fetchUserInventory() {
   const pouchList = document.getElementById('pouch-items-list');
   const bankList = document.getElementById('bank-items-list');
-  const pouchCapLabel = document.getElementById('pouch-capacity-summary');
-  const bankCapLabel = document.getElementById('bank-capacity-summary');
 
   if (!currentUser) return;
 
@@ -50,95 +48,107 @@ async function fetchUserInventory() {
   const pouchCounts = getStorageSlotCounts(pouchItems);
   const bankCounts = getStorageSlotCounts(bankItems);
 
-  const pouchTrinketMax = (STORAGE_LIMITS.pouch && STORAGE_LIMITS.pouch.Trinket) || 3;
-  const pouchTalismanMax = (STORAGE_LIMITS.pouch && STORAGE_LIMITS.pouch.Talismans) || 2;
-  const pouchArtifactMax = (STORAGE_LIMITS.pouch && STORAGE_LIMITS.pouch.Artifacts) || 1;
-
-  const bankTrinketMax = (STORAGE_LIMITS.bank && STORAGE_LIMITS.bank.Trinket) || 6;
-  const bankTalismanMax = (STORAGE_LIMITS.bank && STORAGE_LIMITS.bank.Talismans) || 4;
-  const bankArtifactMax = (STORAGE_LIMITS.bank && STORAGE_LIMITS.bank.Artifacts) || 2;
-
-  if (pouchCapLabel) {
-    pouchCapLabel.innerText = `Trinkets: ${pouchCounts.Trinket}/${pouchTrinketMax} | Talismans: ${pouchCounts.Talismans}/${pouchTalismanMax} | Artifact: ${pouchCounts.Artifacts}/${pouchArtifactMax}`;
-  }
-  if (bankCapLabel) {
-    bankCapLabel.innerText = `Trinkets: ${bankCounts.Trinket}/${bankTrinketMax} | Talismans: ${bankCounts.Talismans}/${bankTalismanMax} | Artifact: ${bankCounts.Artifacts}/${bankArtifactMax}`;
-  }
-
-
   const isCombatLocked = Boolean(activeBattleQuest || activeMonsterClaim);
 
   const calcFn = (typeof calculateItemValue === 'function')
     ? calculateItemValue
     : (bp, cur, mx) => (!mx || mx <= 0 ? 0 : Math.floor((bp || 0) * (Math.min(1, Math.max(0, cur) / mx))));
 
-  // Render Pouch List
-  if (pouchList) {
-    if (pouchItems.length === 0) {
-      pouchList.innerHTML = `<p class="empty-state">Your combat pouch is empty. Buy items from the Store or move them from your Inventory!</p>`;
-    } else {
-      pouchList.innerHTML = pouchItems.map(item => {
-        const itemName = item?.item_name || 'Item';
-        const durabilityMax = getItemDurabilityMax(itemName) || Number(item?.durability_max) || 1;
-        const durabilityCurrent = Number(item?.durability_current !== undefined && item?.durability_current !== null ? item.durability_current : durabilityMax);
-        const normalizedCurrent = Math.max(0, durabilityCurrent);
-        const buyStorePrice = (typeof getItemStorePrice === 'function')
-          ? getItemStorePrice(itemName, item?.base_cost)
-          : Math.max(1, Number(item?.base_cost || 1));
-        const sellGoldValue = calcFn(buyStorePrice, normalizedCurrent, durabilityMax);
+  const categories = ['Trinket', 'Talismans', 'Artifacts'];
 
-        return `<div class="item-card">
-          <div class="item-info">
-            <h4>${itemName}</h4>
-            <small style="color:var(--gold);">Value: ${sellGoldValue}g</small>
-            <small style="color:var(--text-muted);">
-              Durability: ${normalizedCurrent}/${durabilityMax}
-            </small>
-          </div>
-          <div class="item-actions">
-            <button class="btn-transfer" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="transferItemStorage('${item.id}', 'bank')">
-              ${isCombatLocked ? '🔒 Locked' : '📦 To Inventory'}
-            </button>
-          </div>
-        </div>`;
-      }).join('');
-    }
+  const getItemCat = (itemName) => {
+    let c = getCategoryForItemName(itemName);
+    if (c === 'Trinkets' || c === 'Trinket') return 'Trinket';
+    if (c === 'Talisman' || c === 'Talismans') return 'Talismans';
+    if (c === 'Artifact' || c === 'Artifacts' || c === 'Legendary') return 'Artifacts';
+    return 'Trinket';
+  };
+
+  // Render Pouch List (grouped by category)
+  if (pouchList) {
+    pouchList.innerHTML = categories.map(category => {
+      const catItems = pouchItems.filter(item => getItemCat(item?.item_name) === category);
+      const curCount = pouchCounts[category] || 0;
+      const maxCount = (STORAGE_LIMITS.pouch && STORAGE_LIMITS.pouch[category]) || 1;
+
+      const itemsHtml = catItems.length === 0
+        ? `<p class="empty-state" style="padding:12px; margin:0; font-size:13px;">No ${category}s in pouch.</p>`
+        : catItems.map(item => {
+            const itemName = item?.item_name || 'Item';
+            const durabilityMax = getItemDurabilityMax(itemName) || Number(item?.durability_max) || 1;
+            const durabilityCurrent = Number(item?.durability_current !== undefined && item?.durability_current !== null ? item.durability_current : durabilityMax);
+            const normalizedCurrent = Math.max(0, durabilityCurrent);
+            const buyStorePrice = (typeof getItemStorePrice === 'function')
+              ? getItemStorePrice(itemName, item?.base_cost)
+              : Math.max(1, Number(item?.base_cost || 1));
+            const sellGoldValue = calcFn(buyStorePrice, normalizedCurrent, durabilityMax);
+
+            return `<div class="item-card">
+              <div class="item-info">
+                <h4>${itemName}</h4>
+                <small style="color:var(--gold);">Value: ${sellGoldValue}g</small>
+                <small style="color:var(--text-muted);">Durability: ${normalizedCurrent}/${durabilityMax}</small>
+              </div>
+              <div class="item-actions">
+                <button class="btn-transfer" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="transferItemStorage('${item.id}', 'bank')">
+                  ${isCombatLocked ? '🔒 Locked' : '📦 To Inventory'}
+                </button>
+              </div>
+            </div>`;
+          }).join('');
+
+      return `<details class="store-category" open>
+        <summary class="store-category-summary">${category} (${curCount}/${maxCount})</summary>
+        <div class="item-grid store-category-items">
+          ${itemsHtml}
+        </div>
+      </details>`;
+    }).join('');
   }
 
-  // Render Bank List
+  // Render Bank / Inventory List (grouped by category)
   if (bankList) {
-    if (bankItems.length === 0) {
-      bankList.innerHTML = `<p class="empty-state">Your inventory is empty. Move items from your pouch to protect them safely!</p>`;
-    } else {
-      bankList.innerHTML = bankItems.map(item => {
-        const itemName = item?.item_name || 'Item';
-        const durabilityMax = getItemDurabilityMax(itemName) || Number(item?.durability_max) || 1;
-        const durabilityCurrent = Number(item?.durability_current !== undefined && item?.durability_current !== null ? item.durability_current : durabilityMax);
-        const normalizedCurrent = Math.max(0, durabilityCurrent);
-        const buyStorePrice = (typeof getItemStorePrice === 'function')
-          ? getItemStorePrice(itemName, item?.base_cost)
-          : Math.max(1, Number(item?.base_cost || 1));
-        const sellGoldValue = calcFn(buyStorePrice, normalizedCurrent, durabilityMax);
+    bankList.innerHTML = categories.map(category => {
+      const catItems = bankItems.filter(item => getItemCat(item?.item_name) === category);
+      const curCount = bankCounts[category] || 0;
+      const maxCount = (STORAGE_LIMITS.bank && STORAGE_LIMITS.bank[category]) || 1;
 
-        return `<div class="item-card">
-          <div class="item-info">
-            <h4>${itemName}</h4>
-            <small style="color:var(--gold);">Value: ${sellGoldValue}g</small>
-            <small style="color:var(--text-muted);">
-              Durability: ${normalizedCurrent}/${durabilityMax} (Safe in Inventory)
-            </small>
-          </div>
-          <div class="item-actions">
-            <button class="btn-transfer" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="transferItemStorage('${item.id}', 'pouch')">
-              ${isCombatLocked ? '🔒 Locked' : '🎒 To Pouch'}
-            </button>
-            <button class="btn-sell" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="sellItem('${item.id}', ${sellGoldValue}, '${itemName}')">
-              Sell (${sellGoldValue}g)
-            </button>
-          </div>
-        </div>`;
-      }).join('');
-    }
+      const itemsHtml = catItems.length === 0
+        ? `<p class="empty-state" style="padding:12px; margin:0; font-size:13px;">No ${category}s in inventory.</p>`
+        : catItems.map(item => {
+            const itemName = item?.item_name || 'Item';
+            const durabilityMax = getItemDurabilityMax(itemName) || Number(item?.durability_max) || 1;
+            const durabilityCurrent = Number(item?.durability_current !== undefined && item?.durability_current !== null ? item.durability_current : durabilityMax);
+            const normalizedCurrent = Math.max(0, durabilityCurrent);
+            const buyStorePrice = (typeof getItemStorePrice === 'function')
+              ? getItemStorePrice(itemName, item?.base_cost)
+              : Math.max(1, Number(item?.base_cost || 1));
+            const sellGoldValue = calcFn(buyStorePrice, normalizedCurrent, durabilityMax);
+
+            return `<div class="item-card">
+              <div class="item-info">
+                <h4>${itemName}</h4>
+                <small style="color:var(--gold);">Value: ${sellGoldValue}g</small>
+                <small style="color:var(--text-muted);">Durability: ${normalizedCurrent}/${durabilityMax}</small>
+              </div>
+              <div class="item-actions">
+                <button class="btn-transfer" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="transferItemStorage('${item.id}', 'pouch')">
+                  ${isCombatLocked ? '🔒 Locked' : '🎒 To Pouch'}
+                </button>
+                <button class="btn-sell" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="sellItem('${item.id}', ${sellGoldValue}, '${itemName}')">
+                  Sell (${sellGoldValue}g)
+                </button>
+              </div>
+            </div>`;
+          }).join('');
+
+      return `<details class="store-category" open>
+        <summary class="store-category-summary">${category} (${curCount}/${maxCount})</summary>
+        <div class="item-grid store-category-items">
+          ${itemsHtml}
+        </div>
+      </details>`;
+    }).join('');
   }
 
 

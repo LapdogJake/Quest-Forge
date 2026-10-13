@@ -64,7 +64,9 @@ function renderStoreCatalog() {
           const maxDur = item.durability_max || (typeof getItemDurabilityMax === 'function' ? getItemDurabilityMax(item.item_name) : 1);
           return `<div class="item-card">
             <div class="item-info">
-              <h4>${item.item_name} <span style="font-size:12px; color:var(--text-muted); font-weight:normal;">(${maxDur} dur)</span></h4>
+              <h4>${item.item_name}</h4>
+              <small style="color:var(--gold);">Value: ${item.base_cost}g</small>
+              <small style="color:var(--text-muted);">Durability: ${maxDur}/${maxDur}</small>
             </div>
             <button class="btn-buy" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="buyItem('${item.item_name}', ${item.base_cost})">
               ${isCombatLocked ? '🔒 In Battle' : `Buy (${item.base_cost}g)`}
