@@ -620,6 +620,7 @@ function updateGroupBannerDisplays() {
   const kingdomEl = document.getElementById('display-profile-kingdom');
   const parkEl = document.getElementById('display-profile-park');
   const qmEl = document.getElementById('display-profile-qm');
+  const abilityEl = document.getElementById('display-profile-ability');
   const qmPanelParkEl = document.getElementById('display-qm-park');
 
   const activeKingdom = currentKingdom || "The Freeholds of Amtgard";
@@ -629,6 +630,10 @@ function updateGroupBannerDisplays() {
   if (kingdomEl) kingdomEl.innerText = activeKingdom;
   if (parkEl) parkEl.innerText = activePark;
   if (qmEl) qmEl.innerText = activeQM;
+  if (abilityEl) {
+    const rawAbs = (selectedQuestAbilities && selectedQuestAbilities[0]) || (currentParkProfile?.quest_abilities?.[0]) || (currentProfile?.quest_abilities?.[0]) || "";
+    abilityEl.innerText = rawAbs || "None";
+  }
   if (qmPanelParkEl) qmPanelParkEl.innerText = `${activePark} (${activeQM})`;
 }
 
@@ -671,7 +676,7 @@ function toggleQuestAbilitiesAccordion() {
 
 function initQuestAbilitiesUI() {
   const selectEl = document.getElementById('profile-ability-select');
-  const countEl = document.getElementById('profile-abilities-count');
+  const abilityEl = document.getElementById('display-profile-ability');
 
   // Resolve user's stored abilities
   const rawAbs = currentParkProfile?.quest_abilities || currentProfile?.quest_abilities || [];
@@ -688,7 +693,9 @@ function initQuestAbilitiesUI() {
   const activeAbility = selectedQuestAbilities[0] || "";
   selectedQuestAbilities = activeAbility ? [activeAbility] : [];
 
-  if (countEl) countEl.innerText = activeAbility ? `(1 active)` : `(0 active)`;
+  if (abilityEl) {
+    abilityEl.innerText = activeAbility || "None";
+  }
 
   if (selectEl) {
     const list = (typeof AMTGARD_ROP_QUEST_ABILITIES !== 'undefined') ? AMTGARD_ROP_QUEST_ABILITIES : [];
@@ -701,11 +708,9 @@ function initQuestAbilitiesUI() {
 
 function handleAbilitySelectChange() {
   const selectEl = document.getElementById('profile-ability-select');
-  const countEl = document.getElementById('profile-abilities-count');
   if (!selectEl) return;
   const val = selectEl.value;
   selectedQuestAbilities = val ? [val] : [];
-  if (countEl) countEl.innerText = val ? `(1 active)` : `(0 active)`;
 }
 
 async function saveQuestAbilities() {
@@ -720,6 +725,18 @@ async function saveQuestAbilities() {
   if (currentParkProfile) currentParkProfile.quest_abilities = selectedQuestAbilities;
   if (currentProfile) currentProfile.quest_abilities = selectedQuestAbilities;
 
+  // Collapse the accordion box
+  const accordionBody = document.getElementById('abilities-accordion-body');
+  const chevron = document.getElementById('abilities-chevron');
+  if (accordionBody) accordionBody.classList.add('hidden');
+  if (chevron) chevron.innerText = "▼";
+
+  // Update the new display line
+  const abilityEl = document.getElementById('display-profile-ability');
+  if (abilityEl) {
+    abilityEl.innerText = selectedQuestAbilities[0] || "None";
+  }
+
   try {
     if (currentParkProfile?.id) {
       await supabaseClient
@@ -732,11 +749,9 @@ async function saveQuestAbilities() {
       .update({ quest_abilities: selectedQuestAbilities })
       .eq('id', currentUser.id);
 
-    alert("Quest ability saved!");
     if (typeof fetchQuests === 'function') fetchQuests();
     if (typeof fetchMonsterEncounters === 'function') fetchMonsterEncounters();
   } catch (err) {
     console.warn("Could not save quest abilities to DB:", err);
-    alert("Saved locally for this session!");
   }
 }
