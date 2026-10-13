@@ -305,24 +305,10 @@ function renderActiveAdventureQuestCard(uq) {
   const discName = typeof getQuestDiscipline === 'function' ? getQuestDiscipline(q) : 'Service';
   const discIcon = typeof getQuestDisciplineIcon === 'function' ? getQuestDisciplineIcon(discName) : '🌹';
 
-  const summaryActions = isQMVerified
-    ? `
-      <span class="quest-summary-actions">
-        <button class="btn-leave" onclick="abandonQuest('${uq.id}')">Abandon</button>
-      </span>
-    `
-    : `
-      <span class="quest-summary-actions">
-        <button class="btn-leave" onclick="abandonQuest('${uq.id}')">Abandon</button>
-        <button class="btn-complete" onclick="completeQuest('${uq.id}', ${rewardGold})">Complete</button>
-      </span>
-    `;
-
   return `
     <details class="quest-accordion quest-joined" open>
       <summary>
         <span class="quest-summary-title">${displayTitle}</span>
-        ${summaryActions}
       </summary>
       <div class="quest-accordion-content">
         <div class="quest-details-body">
@@ -337,6 +323,10 @@ function renderActiveAdventureQuestCard(uq) {
             </div>
             ${q.requirements ? `<p style="color:var(--warning); font-size:12px; margin-bottom:4px;"><strong>Req:</strong> ${q.requirements}</p>` : ''}
             <p>${q.description || ''}</p>
+            <div class="quest-actions-footer" style="display:flex; justify-content:flex-end; align-items:center; gap:8px; margin-top:12px;">
+              <button class="btn-leave" style="min-height:32px; padding:6px 16px; font-size:12px; font-weight:700; border-radius:6px; cursor:pointer;" onclick="abandonQuest('${uq.id}')">Abandon</button>
+              ${!isQMVerified ? `<button class="btn-complete" style="min-height:32px; padding:6px 16px; font-size:12px; font-weight:700; border-radius:6px; cursor:pointer;" onclick="completeQuest('${uq.id}', ${rewardGold})">Complete</button>` : ''}
+            </div>
           </div>
         </div>
       </div>
@@ -420,10 +410,10 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
     const isOpen = Boolean(isCardOpen);
 
     const statusBadge = isLive 
-      ? '<span class="badge badge-active" style="background:#dc2626; color:white; border-color:#ef4444; font-size:11px; padding:3px 8px; font-weight:700; animation: pulse 2s infinite;">🔴 Live</span>'
+      ? '<span class="badge" style="background:transparent; color:#ffffff; font-size:12px; font-weight:600; padding:2px 4px; border:none;">🟠 Live</span>'
       : (q.is_active || queueRoster
-        ? '<span class="badge badge-threat-loot" style="background:#ca8a04; color:#0f172a; border-color:#eab308; font-size:11px; padding:3px 8px; font-weight:700;">🟢 Open</span>' 
-        : '<span class="badge badge-draft" style="color:#94a3b8; border-color:#52525b; font-size:11px; padding:3px 8px; font-weight:700;">⚪ Closed</span>');
+        ? '<span class="badge" style="background:transparent; color:#ffffff; font-size:12px; font-weight:600; padding:2px 4px; border:none;">🟢 Open</span>' 
+        : '<span class="badge" style="background:transparent; color:#ffffff; font-size:12px; font-weight:600; padding:2px 4px; border:none;">⚪ Closed</span>');
 
     return `
       <details class="quest-accordion battle-accordion" data-quest-id="${q.id}" ${isOpen ? 'open' : ''}>
@@ -610,22 +600,19 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
 
     let acceptButton = '';
     if (isExhausted) {
-      acceptButton = `<button class="btn-secondary" disabled style="opacity:0.6;">Bounty Claimed</button>`;
+      acceptButton = `<button class="btn-secondary" disabled style="min-height:32px; padding:6px 16px; font-size:12px; font-weight:700; border-radius:6px; opacity:0.6;">Bounty Claimed</button>`;
     } else if (isFull) {
-      acceptButton = `<button class="btn-secondary" disabled style="opacity:0.6;">Quest Full (${activeCount}/${maxActive})</button>`;
+      acceptButton = `<button class="btn-secondary" disabled style="min-height:32px; padding:6px 16px; font-size:12px; font-weight:700; border-radius:6px; opacity:0.6;">Quest Full (${activeCount}/${maxActive})</button>`;
     } else if (isSlotLocked) {
-      acceptButton = `<button class="btn-secondary" disabled style="opacity:0.6;">Quest Slot Full</button>`;
+      acceptButton = `<button class="btn-secondary" disabled style="min-height:32px; padding:6px 16px; font-size:12px; font-weight:700; border-radius:6px; opacity:0.6;">Quest Slot Full</button>`;
     } else {
-      acceptButton = `<button class="btn-join" style="background:var(--quest); color:white;" onclick="acceptQuest('${q.id}')">Accept</button>`;
+      acceptButton = `<button class="btn-join" style="background:var(--quest); color:white; min-height:32px; padding:6px 16px; font-size:12px; font-weight:700; border-radius:6px; cursor:pointer;" onclick="acceptQuest('${q.id}')">Accept</button>`;
     }
-
-    const summaryAction = `<span class="quest-summary-actions">${acceptButton}</span>`;
 
     return `
       <details class="quest-accordion">
         <summary>
           <span class="quest-summary-title">${displayTitle}</span>
-          ${summaryAction}
         </summary>
         <div class="quest-accordion-content">
           <div class="quest-details-body">
@@ -640,6 +627,9 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
               </div>
               ${q.requirements ? `<p style="color:var(--warning); font-size:12px; margin-bottom:4px;"><strong>Req:</strong> ${q.requirements}</p>` : ''}
               <p>${q.description || ''}</p>
+              <div class="quest-actions-footer" style="display:flex; justify-content:flex-end; align-items:center; margin-top:12px;">
+                ${acceptButton}
+              </div>
             </div>
           </div>
         </div>

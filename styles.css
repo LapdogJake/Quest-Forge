@@ -1313,19 +1313,19 @@ button:focus-visible, select:focus-visible {
 }
 
 #nav-profile.active {
-  color: #3B82F6;
+  color: #f4f4f5;
 }
 #nav-profile.active .nav-icon {
-  stroke: #3B82F6;
-  filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.55));
+  stroke: #f4f4f5;
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.5));
 }
 
 #nav-battles.active {
-  color: #C2413B;
+  color: #3B82F6;
 }
 #nav-battles.active .nav-icon {
-  stroke: #C2413B;
-  filter: drop-shadow(0 0 6px rgba(194, 65, 59, 0.55));
+  stroke: #3B82F6;
+  filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.55));
 }
 
 #nav-adventure.active,

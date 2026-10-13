@@ -318,14 +318,11 @@ async function fetchQMQueues() {
       state = 'open';
     }
 
-    let borderColor = 'rgba(255,255,255,0.12)';
-    let statusBadge = `<span class="badge badge-draft" style="color:#94a3b8; border-color:#52525b; font-size:11px; font-weight:700; white-space:nowrap; padding:3px 8px;">⚪ Closed</span>`;
+    let statusBadge = `<span class="badge" style="background:transparent; color:#ffffff; font-size:12px; font-weight:600; white-space:nowrap; padding:2px 4px; border:none;">⚪ Closed</span>`;
     if (state === 'live') {
-      borderColor = '#dc2626';
-      statusBadge = `<span class="badge badge-active" style="background:#dc2626; color:white; border-color:#ef4444; font-size:11px; font-weight:700; white-space:nowrap; padding:3px 8px; animation: pulse 2s infinite;">🔴 Live</span>`;
+      statusBadge = `<span class="badge" style="background:transparent; color:#ffffff; font-size:12px; font-weight:600; white-space:nowrap; padding:2px 4px; border:none;">🟠 Live</span>`;
     } else if (state === 'open') {
-      borderColor = 'var(--gold)';
-      statusBadge = `<span class="badge badge-threat-loot" style="background:#ca8a04; color:#0f172a; border-color:#eab308; font-size:11px; font-weight:700; white-space:nowrap; padding:3px 8px;">🟢 Open</span>`;
+      statusBadge = `<span class="badge" style="background:transparent; color:#ffffff; font-size:12px; font-weight:600; white-space:nowrap; padding:2px 4px; border:none;">🟢 Open</span>`;
     }
 
     const heroMembers = activeQueue?.queue_members || [];
@@ -334,7 +331,7 @@ async function fetchQMQueues() {
     const isOpenByDefault = state === 'live';
 
     return `
-      <details class="quest-accordion battle-accordion" data-quest-id="${q.id}" ${isOpenByDefault ? 'open' : ''} style="border: 2px solid ${borderColor}; margin-bottom: 12px;">
+      <details class="quest-accordion battle-accordion" data-quest-id="${q.id}" ${isOpenByDefault ? 'open' : ''} style="border: 1px solid var(--border); margin-bottom: 12px;">
         <summary>
           <span class="quest-summary-title" style="font-size:15px; font-weight:800;">⚔️ ${q.title}</span>
           <span class="quest-summary-actions">
