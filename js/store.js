@@ -67,9 +67,11 @@ function renderStoreCatalog() {
               <h4>${item.item_name}</h4>
               <small style="color:var(--text-muted);">Durability: ${maxDur}/${maxDur}</small>
             </div>
-            <button class="btn-buy" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="buyItem('${item.item_name}', ${item.base_cost})">
-              ${isCombatLocked ? '🔒 In Battle' : `Buy (${item.base_cost}g)`}
-            </button>
+            <div class="item-actions">
+              <button class="btn-buy" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="buyItem('${item.item_name}', ${item.base_cost})">
+                ${isCombatLocked ? '🔒 In Battle' : `Buy (${item.base_cost}g)`}
+              </button>
+            </div>
           </div>`;
         }).join('')}
       </div>

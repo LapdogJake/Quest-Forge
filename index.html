@@ -132,9 +132,9 @@
 
         <!-- Subnavigation: Pouch, Inventory, Store (Single Line) -->
         <div class="qm-subnav items-subnav" style="margin-bottom:14px; display:grid; grid-template-columns:repeat(3, 1fr); gap:6px;">
-          <button id="items-subnav-pouch" class="qm-subnav-btn active" onclick="switchItemsSubTab('pouch')">🎒 Pouch</button>
-          <button id="items-subnav-bank" class="qm-subnav-btn" onclick="switchItemsSubTab('bank')">📦 Inventory</button>
-          <button id="items-subnav-store" class="qm-subnav-btn" onclick="switchItemsSubTab('store')">🛒 Store</button>
+          <button id="items-subnav-pouch" class="qm-subnav-btn active" onclick="switchItemsSubTab('pouch')">Pouch</button>
+          <button id="items-subnav-bank" class="qm-subnav-btn" onclick="switchItemsSubTab('bank')">Inventory</button>
+          <button id="items-subnav-store" class="qm-subnav-btn" onclick="switchItemsSubTab('store')">Store</button>
         </div>
 
         <!-- SUB-TAB 1: POUCH (Active Combat Loadout) -->
@@ -153,12 +153,8 @@
 
         <!-- SUB-TAB 3: STORE -->
         <div id="items-subtab-store" class="hidden">
-
-          <!-- BUY CATALOG -->
-          <div id="store-subtab-buy">
-            <div id="store-catalog-list" class="store-catalog-list">
-              <!-- Catalog items rendered via JS -->
-            </div>
+          <div id="store-catalog-list" class="store-catalog-list">
+            <!-- Catalog items rendered via JS -->
           </div>
         </div>
 

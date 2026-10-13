@@ -28,6 +28,11 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+html {
+  scrollbar-gutter: stable;
+  overflow-y: scroll;
+}
+
 html, body {
   background-color: var(--bg);
   color: var(--text);
@@ -336,24 +341,36 @@ button:focus-visible, select:focus-visible {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  min-height: 64px;
+  box-sizing: border-box;
+}
+
+.item-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .item-info h4 {
   font-size: 15px;
+  font-weight: 700;
   color: var(--text);
+  line-height: 1.25;
+  margin: 0;
 }
 
 .item-info small {
   display: block;
   font-size: 12px;
   color: var(--text-muted);
-  margin-top: 2px;
+  margin-top: 3px;
+  line-height: 1.2;
 }
 
 .item-actions {
   display: flex;
   gap: 6px;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .quest-card {
@@ -1051,14 +1068,31 @@ button:focus-visible, select:focus-visible {
 }
 
 .btn-buy {
-  background: var(--gold);
-  color: #000;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+  min-height: 32px;
+  min-width: 82px;
   padding: 6px 12px;
   font-size: 12px;
   border-radius: 6px;
-  border: none;
-  font-weight: bold;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  font-weight: 700;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.btn-buy:hover {
+  filter: brightness(1.15);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+}
+
+.btn-buy:active {
+  transform: scale(0.96);
 }
 
 .storage-capacity-bar {
@@ -1078,18 +1112,21 @@ button:focus-visible, select:focus-visible {
 .btn-transfer {
   background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
   color: #fff;
+  min-height: 32px;
   padding: 6px 10px;
-  font-size: 11px;
+  font-size: 12px;
   border-radius: 6px;
   border: 1px solid rgba(56, 189, 248, 0.4);
-  font-weight: bold;
+  font-weight: 700;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   transition: all 0.15s ease;
   user-select: none;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .btn-transfer:hover {
@@ -1102,14 +1139,31 @@ button:focus-visible, select:focus-visible {
 }
 
 .btn-sell {
-  background: #b45309;
+  background: linear-gradient(135deg, #b45309 0%, #92400e 100%);
   color: #fff;
-  padding: 6px 10px;
-  font-size: 11px;
+  min-height: 32px;
+  min-width: 82px;
+  padding: 6px 12px;
+  font-size: 12px;
   border-radius: 6px;
-  border: none;
-  font-weight: bold;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  font-weight: 700;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.btn-sell:hover {
+  filter: brightness(1.15);
+  box-shadow: 0 2px 8px rgba(180, 83, 9, 0.35);
+}
+
+.btn-sell:active {
+  transform: scale(0.96);
 }
 
 .btn-use {
