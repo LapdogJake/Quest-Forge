@@ -226,10 +226,17 @@ async function fetchQMQueues() {
     return;
   }
 
-  const battleQuests = (allBattleQuests || []).filter(q => 
-    (!q.park || q.park === activePark) &&
-    (!q.qm_id || !activeQMId || q.qm_id === activeQMId)
-  );
+  const normActivePark = typeof normalizeParkName === 'function' ? normalizeParkName(activePark) : (activePark || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
+  const myUserId = currentUser?.id;
+
+  const battleQuests = (allBattleQuests || []).filter(q => {
+    const normQPark = typeof normalizeParkName === 'function' ? normalizeParkName(q.park) : (q.park || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
+    const parkMatches = !normQPark || !normActivePark || (normQPark === normActivePark);
+    if (!parkMatches) return false;
+    const isMyQuest = Boolean(myUserId && q.qm_id === myUserId);
+    const qmMatches = !q.qm_id || !activeQMId || (q.qm_id === activeQMId) || isMyQuest;
+    return qmMatches;
+  });
 
   if (!battleQuests || battleQuests.length === 0) {
     container.innerHTML = `<p class="empty-state">No battle quests found for ${activePark} (${activeQMName}). Create one in the Forge Quest tab!</p>`;
@@ -257,7 +264,40 @@ async function fetchQMQueues() {
     }
   });
 
-  // 3. Render cards with state management (Standby -> Prepping -> Live -> Finish)
+  // 3. Sort battles: Live first (0), Open second (1), Closed last (2), newest created first
+  const stateRank = { 'live': 0, 'open': 1, 'closed': 2 };
+
+  battleQuests.sort((a, b) => {
+    const queueA = queuesByQuest.get(a.id);
+    const queueB = queuesByQuest.get(b.id);
+
+    let stateA = 'closed';
+    if (queueA) {
+      stateA = queueA.status === 'active' ? 'live' : (queueA.status === 'waiting' ? 'open' : 'closed');
+    } else if (a.is_active) {
+      stateA = 'open';
+    }
+
+    let stateB = 'closed';
+    if (queueB) {
+      stateB = queueB.status === 'active' ? 'live' : (queueB.status === 'waiting' ? 'open' : 'closed');
+    } else if (b.is_active) {
+      stateB = 'open';
+    }
+
+    const rankA = stateRank[stateA] ?? 99;
+    const rankB = stateRank[stateB] ?? 99;
+    if (rankA !== rankB) return rankA - rankB;
+
+    // Within same state group: newest created first
+    const timeA = new Date(a.created_at || 0).getTime();
+    const timeB = new Date(b.created_at || 0).getTime();
+    if (timeB !== timeA) return timeB - timeA;
+
+    return (a.title || '').localeCompare(b.title || '');
+  });
+
+  // 4. Render collapsible battle cards formatted like the Battle Line
   container.innerHTML = battleQuests.map(q => {
     const activeQueue = queuesByQuest.get(q.id);
     const rules = typeof getQuestDurabilityRules === 'function' 
@@ -266,196 +306,232 @@ async function fetchQMQueues() {
     const victoryGold = Number(q.reward_gold) || 0;
     const defeatGold = Number(q.reward_gold_defeat) || Number(rules.defeatGold) || 0;
 
-    // Determine state
-    let state = 'closed'; // 'closed' | 'prepped' | 'live'
+    // Determine state: 'closed' | 'open' | 'live'
+    let state = 'closed';
     if (activeQueue) {
       if (activeQueue.status === 'active') {
         state = 'live';
       } else if (activeQueue.status === 'waiting') {
-        state = 'prepped';
+        state = 'open';
       }
     } else if (q.is_active) {
-      state = 'prepped';
+      state = 'open';
     }
 
     let borderColor = 'rgba(255,255,255,0.12)';
-    let statusBadge = `<span class="badge badge-draft" style="font-size:11px; white-space:nowrap;">STANDBY (CLOSED)</span>`;
+    let statusBadge = `<span class="badge badge-draft" style="color:#94a3b8; border-color:#52525b; font-size:11px; font-weight:700; white-space:nowrap; padding:3px 8px;">⚪ Closed</span>`;
     if (state === 'live') {
       borderColor = '#dc2626';
-      statusBadge = `<span class="badge badge-active" style="background:#dc2626; color:white; border-color:#ef4444; font-size:11px; font-weight:bold; white-space:nowrap;">LIVE IN COMBAT</span>`;
-    } else if (state === 'prepped') {
+      statusBadge = `<span class="badge badge-active" style="background:#dc2626; color:white; border-color:#ef4444; font-size:11px; font-weight:700; white-space:nowrap; padding:3px 8px; animation: pulse 2s infinite;">🔴 Live</span>`;
+    } else if (state === 'open') {
       borderColor = 'var(--gold)';
-      statusBadge = `<span class="badge badge-threat-loot" style="background:#ca8a04; color:#0f172a; border-color:#eab308; font-size:11px; font-weight:bold; white-space:nowrap;">OPEN LINE (GATHERING)</span>`;
+      statusBadge = `<span class="badge badge-threat-loot" style="background:#ca8a04; color:#0f172a; border-color:#eab308; font-size:11px; font-weight:700; white-space:nowrap; padding:3px 8px;">🟢 Open</span>`;
     }
 
     const heroMembers = activeQueue?.queue_members || [];
     const monsterMembers = activeQueue?.encounter_monsters || [];
     const queueId = activeQueue?.id || '';
+    const isOpenByDefault = state === 'live';
 
     return `
-      <div class="quest-card battle-card" style="border: 2px solid ${borderColor}; margin-bottom: 16px;">
-        <!-- Header Row: Title & Line Status across from each other -->
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:6px;">
-          <h4 style="margin:0; font-size:16px; font-weight:800; word-break:break-word;">${q.title}</h4>
-          <div style="flex-shrink:0; white-space:nowrap;">${statusBadge}</div>
-        </div>
+      <details class="quest-accordion battle-accordion" data-quest-id="${q.id}" ${isOpenByDefault ? 'open' : ''} style="border: 2px solid ${borderColor}; margin-bottom: 12px;">
+        <summary>
+          <span class="quest-summary-title" style="font-size:15px; font-weight:800;">⚔️ ${q.title}</span>
+          <span class="quest-summary-actions">
+            ${statusBadge}
+          </span>
+        </summary>
 
-        <!-- Tag Container / Badges Row (Full width) -->
-        <div class="tag-container" style="margin-bottom:8px;">
-          <span class="badge badge-type" style="color:var(--gold); border-color:var(--gold); font-weight:bold;">+${victoryGold}g Win</span>
-          <span class="badge badge-type" style="color:#94a3b8; border-color:#64748b;">+${defeatGold}g Loss</span>
-          ${rules.durabilityWear === 0 
-            ? '<span class="badge badge-active">No Gear Wear</span>' 
-            : (rules.durabilityWear === 2 
-              ? '<span class="badge badge-threat-loot">2x Gear Wear</span>' 
-              : (rules.durabilityWear >= 3 
-                ? `<span class="badge badge-threat-loot">${rules.durabilityWear}x Gear Wear</span>` 
-                : ''))}
-          ${rules.defeatPenalty === 'items_lost' 
-            ? '<span class="badge badge-monster" style="background:#b91c1c; color:white; font-weight:bold;">Items Lost</span>' 
-            : (rules.defeatPenalty === 'total_ruin' 
-              ? '<span class="badge badge-monster" style="background:#7f1d1d; border:1px solid #ef4444; color:white; font-weight:bold;">Total Ruin</span>' 
-              : '')}
-          ${rules.monstersAreNpc 
-            ? '<span class="badge badge-monster" title="Monster queue does not lose durability">Monsters are NPCs</span>' 
-            : ''}
-          ${rules.allowMidJoin 
-            ? '<span class="badge badge-active" style="background:#0284c7; color:white; border-color:#38bdf8;">Mid-Battle Joining</span>' 
-            : ''}
-          ${rules.allowedTypes.length === 3 
-            ? '<span class="badge badge-active">All Items Active</span>' 
-            : (rules.allowedTypes.length === 0 
-              ? '<span class="badge badge-threat-loot">No Magic Items</span>' 
-              : `<span class="badge badge-type">${rules.allowedTypes.join(', ')}</span>`)}
-          ${q.repeatable ? '<span class="badge badge-quest">Repeatable</span>' : ''}
-          ${rules.rngLootDrops ? '<span class="badge badge-threat-loot" style="background:#7c3aed; color:white; border-color:#a855f7;">RNG Loot</span>' : ''}
-        </div>
+        <div class="quest-accordion-content">
+          ${state === 'closed' ? `
+            <!-- BADGES CONTAINER -->
+            <div class="tag-container" style="margin-top:6px; margin-bottom:8px;">
+              <span class="badge badge-type" style="color:var(--gold); border-color:var(--gold); font-weight:bold;">+${victoryGold}g Win</span>
+              <span class="badge badge-type" style="color:#94a3b8; border-color:#64748b;">+${defeatGold}g Loss</span>
+              ${rules.durabilityWear === 0 
+                ? '<span class="badge badge-active">No Gear Wear</span>' 
+                : (rules.durabilityWear === 2 
+                  ? '<span class="badge badge-threat-loot">2x Gear Wear</span>' 
+                  : (rules.durabilityWear >= 3 
+                    ? `<span class="badge badge-threat-loot">${rules.durabilityWear}x Gear Wear</span>` 
+                    : ''))}
+              ${rules.defeatPenalty === 'items_lost' 
+                ? '<span class="badge badge-monster" style="background:#b91c1c; color:white; font-weight:bold;">Items Lost</span>' 
+                : (rules.defeatPenalty === 'total_ruin' 
+                  ? '<span class="badge badge-monster" style="background:#7f1d1d; border:1px solid #ef4444; color:white; font-weight:bold;">Total Ruin</span>' 
+                  : '')}
+              ${rules.monstersAreNpc 
+                ? '<span class="badge badge-monster" title="Monster queue does not lose durability">Monsters are NPCs</span>' 
+                : ''}
+              ${rules.allowMidJoin 
+                ? '<span class="badge badge-active" style="background:#0284c7; color:white; border-color:#38bdf8;">Mid-Battle Joining</span>' 
+                : ''}
+              ${rules.allowedTypes.length === 3 
+                ? '<span class="badge badge-active">All Items Active</span>' 
+                : (rules.allowedTypes.length === 0 
+                  ? '<span class="badge badge-threat-loot">No Magic Items</span>' 
+                  : `<span class="badge badge-type">${rules.allowedTypes.join(', ')}</span>`)}
+              ${q.repeatable ? '<span class="badge badge-quest">Repeatable</span>' : ''}
+              ${rules.rngLootDrops ? '<span class="badge badge-threat-loot" style="background:#7c3aed; color:white; border-color:#a855f7;">RNG Loot</span>' : ''}
+            </div>
 
-        ${state === 'closed' ? `
-          <!-- Description below line / before actions -->
-          ${q.description ? `<p style="font-size:13px; color:#cbd5e1; margin:6px 0 10px 0; line-height:1.45;">${q.description}</p>` : ''}
-          <!-- STATE 1: CLOSED / STANDBY -->
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; gap:8px;">
-            <button class="btn-battle-action btn-battle-hero" style="flex:1;" onclick="qmLaunchBattle('${q.id}')">
-              Launch Battle (Open Line)
-            </button>
-            <button class="btn-delete" style="padding:12px 14px;" onclick="qmDeleteQuest('${q.id}', '${(q.title || '').replace(/'/g, "\\'")}')" title="Delete battle from catalog">
-              Delete
-            </button>
-          </div>
-        ` : `
-          <!-- DUAL QUEUE ROSTER (SIDE-BY-SIDE) -->
-          <div class="dual-queue-grid">
-            <div class="queue-box hero-box">
-              <div>
-                <div class="queue-header-row">
-                  <h5 class="queue-header-title" style="color:#38bdf8;">Heroes Line</h5>
-                  <span class="queue-count-pill" style="color:#38bdf8; border:1px solid rgba(56,189,248,0.3);">${heroMembers.length}</span>
-                </div>
-                <div class="queue-roster-list">
-                  ${heroMembers.length > 0
-                    ? heroMembers.map(m => {
-                        const p = m.profiles;
-                        const uName = p?.username || 'Warrior';
-                        const abs = Array.isArray(p?.quest_abilities) ? p.quest_abilities : [];
-                        const absBadge = (rules.monstersAreNpc && abs.length > 0)
-                          ? abs.map(a => `<span class="ability-pill">${a}</span>`).join('')
-                          : '';
-                        return `
-                          <span class="party-member-tag" style="justify-content:space-between; gap:4px;">
-                            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:flex; align-items:center; gap:4px;">
-                              👤 ${uName}${absBadge}
+            <!-- DESCRIPTION -->
+            ${q.description ? `<p style="font-size:13px; color:#cbd5e1; margin:6px 0 10px 0; line-height:1.45;">${q.description}</p>` : ''}
+
+            <!-- ACTIONS: CLOSED -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; gap:8px;">
+              <button class="btn-battle-action btn-battle-hero" style="flex:1;" onclick="qmLaunchBattle('${q.id}')">
+                🚀 Launch Battle (Open Line)
+              </button>
+              <button class="btn-delete" style="padding:10px 14px;" onclick="qmDeleteQuest('${q.id}', '${(q.title || '').replace(/'/g, "\\'")}')" title="Delete battle from catalog">
+                🗑️ Delete
+              </button>
+            </div>
+          ` : `
+            <!-- 1. DUAL QUEUE ROSTER (SIDE-BY-SIDE ON TOP, LIKE BATTLE LINE) -->
+            <div class="dual-queue-grid" style="margin-top:6px; margin-bottom:12px;">
+              <div class="queue-box hero-box">
+                <div>
+                  <div class="queue-header-row">
+                    <h5 class="queue-header-title" style="color:#38bdf8;">Heroes Line</h5>
+                    <span class="queue-count-pill" style="color:#38bdf8; border:1px solid rgba(56,189,248,0.3);">${heroMembers.length}</span>
+                  </div>
+                  <div class="queue-roster-list">
+                    ${heroMembers.length > 0
+                      ? heroMembers.map(m => {
+                          const p = m.profiles;
+                          const uName = p?.username || 'Warrior';
+                          const abs = Array.isArray(p?.quest_abilities) ? p.quest_abilities : [];
+                          const absBadge = (rules.monstersAreNpc && abs.length > 0)
+                            ? abs.map(a => `<span class="ability-pill">${a}</span>`).join('')
+                            : '';
+                          return `
+                            <span class="party-member-tag" style="justify-content:space-between; gap:4px;">
+                              <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:flex; align-items:center; gap:4px;">
+                                👤 ${uName}${absBadge}
+                              </span>
+                              <button onclick="qmKickHeroFromQueue('${m.id}', '${(uName).replace(/'/g, "\\'")}')" 
+                                title="Kick ${uName} from Heroes Line" 
+                                style="background:none; border:none; color:#f87171; cursor:pointer; font-size:12px; padding:0 2px; line-height:1;">
+                                ✖
+                              </button>
                             </span>
-                            <button onclick="qmKickHeroFromQueue('${m.id}', '${(uName).replace(/'/g, "\\'")}')" 
-                              title="Kick ${uName} from Heroes Line" 
-                              style="background:none; border:none; color:#f87171; cursor:pointer; font-size:12px; padding:0 2px; line-height:1;">
-                              ✖
-                            </button>
-                          </span>
-                        `;
-                      }).join('')
-                    : '<p style="font-size:11px; color:#64748b; margin:6px 0; font-style:italic; text-align:center;">No heroes yet.</p>'
-                  }
+                          `;
+                        }).join('')
+                      : '<p style="font-size:11px; color:#64748b; margin:6px 0; font-style:italic; text-align:center;">No heroes yet.</p>'
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <div class="queue-box monster-box">
+                <div>
+                  <div class="queue-header-row">
+                    <h5 class="queue-header-title" style="color:#f43f5e;">Monster Line</h5>
+                    <span class="queue-count-pill" style="color:#f43f5e; border:1px solid rgba(244,63,94,0.3);">${monsterMembers.length}</span>
+                  </div>
+                  <div class="queue-roster-list">
+                    ${monsterMembers.length > 0
+                      ? monsterMembers.map(m => {
+                          const p = m.profiles;
+                          const uName = p?.username || 'Monster';
+                          const abs = Array.isArray(p?.quest_abilities) ? p.quest_abilities : [];
+                          const absBadge = (rules.monstersAreNpc && abs.length > 0)
+                            ? abs.map(a => `<span class="ability-pill" style="border-color:rgba(244,63,94,0.4); color:#fda4af; background:rgba(244,63,94,0.15);">${a}</span>`).join('')
+                            : '';
+                          return `
+                            <span class="party-member-tag" style="border-color:rgba(244,63,94,0.3); justify-content:space-between; gap:4px;">
+                              <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:flex; align-items:center; gap:4px;">
+                                👤 ${uName}${absBadge}
+                              </span>
+                              <button onclick="qmKickMonsterFromQueue('${m.id}', '${(uName).replace(/'/g, "\\'")}')" 
+                                title="Kick ${uName} from Monster Line" 
+                                style="background:none; border:none; color:#f87171; cursor:pointer; font-size:12px; padding:0 2px; line-height:1;">
+                                ✖
+                              </button>
+                            </span>
+                          `;
+                        }).join('')
+                      : '<p style="font-size:11px; color:#64748b; margin:6px 0; font-style:italic; text-align:center;">No monsters yet.</p>'
+                    }
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div class="queue-box monster-box">
-              <div>
-                <div class="queue-header-row">
-                  <h5 class="queue-header-title" style="color:#f43f5e;">Monster Line</h5>
-                  <span class="queue-count-pill" style="color:#f43f5e; border:1px solid rgba(244,63,94,0.3);">${monsterMembers.length}</span>
-                </div>
-                <div class="queue-roster-list">
-                  ${monsterMembers.length > 0
-                    ? monsterMembers.map(m => {
-                        const p = m.profiles;
-                        const uName = p?.username || 'Monster';
-                        const abs = Array.isArray(p?.quest_abilities) ? p.quest_abilities : [];
-                        const absBadge = (rules.monstersAreNpc && abs.length > 0)
-                          ? abs.map(a => `<span class="ability-pill" style="border-color:rgba(244,63,94,0.4); color:#fda4af; background:rgba(244,63,94,0.15);">${a}</span>`).join('')
-                          : '';
-                        return `
-                          <span class="party-member-tag" style="border-color:rgba(244,63,94,0.3); justify-content:space-between; gap:4px;">
-                            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:flex; align-items:center; gap:4px;">
-                              👤 ${uName}${absBadge}
-                            </span>
-                            <button onclick="qmKickMonsterFromQueue('${m.id}', '${(uName).replace(/'/g, "\\'")}')" 
-                              title="Kick ${uName} from Monster Line" 
-                              style="background:none; border:none; color:#f87171; cursor:pointer; font-size:12px; padding:0 2px; line-height:1;">
-                              ✖
-                            </button>
-                          </span>
-                        `;
-                      }).join('')
-                    : '<p style="font-size:11px; color:#64748b; margin:6px 0; font-style:italic; text-align:center;">No monsters yet.</p>'
-                  }
-                </div>
+            <!-- 2. ONE-TAP VICTOR RESOLUTION GRID -->
+            <div style="margin-top:6px; margin-bottom:12px;">
+              <p style="font-size:11px; font-weight:bold; color:var(--gold); text-transform:uppercase; margin:0 0 6px 0; text-align:center;">
+                ⚡ Declare Winner & Instant Payout (${heroMembers.length + monsterMembers.length} fighters)
+              </p>
+              <div class="qm-victor-grid">
+                <button class="btn-qm-victor btn-qm-victor-hero" onclick="qmFinishBattle('${queueId}', '${q.id}', ${victoryGold}, ${defeatGold}, 'heroes')">
+                  <span class="btn-qm-victor-title">🏆 Heroes Won</span>
+                  <span class="btn-qm-victor-sub">Heroes +${victoryGold}g | Monsters +${defeatGold}g</span>
+                </button>
+
+                <button class="btn-qm-victor btn-qm-victor-monster" onclick="qmFinishBattle('${queueId}', '${q.id}', ${victoryGold}, ${defeatGold}, 'monsters')">
+                  <span class="btn-qm-victor-title">🏆 Monsters Won</span>
+                  <span class="btn-qm-victor-sub">Monsters +${victoryGold}g | Heroes +${defeatGold}g</span>
+                </button>
               </div>
             </div>
-          </div>
 
-          <!-- Description of the Battle below the Queue Line -->
-          ${q.description ? `<p style="font-size:13px; color:#cbd5e1; margin:10px 0 10px 0; line-height:1.45;">${q.description}</p>` : ''}
+            <!-- 3. BADGES CONTAINER (Below Line & Resolution) -->
+            <div class="tag-container" style="margin-bottom:8px;">
+              <span class="badge badge-type" style="color:var(--gold); border-color:var(--gold); font-weight:bold;">+${victoryGold}g Win</span>
+              <span class="badge badge-type" style="color:#94a3b8; border-color:#64748b;">+${defeatGold}g Loss</span>
+              ${rules.durabilityWear === 0 
+                ? '<span class="badge badge-active">No Gear Wear</span>' 
+                : (rules.durabilityWear === 2 
+                  ? '<span class="badge badge-threat-loot">2x Gear Wear</span>' 
+                  : (rules.durabilityWear >= 3 
+                    ? `<span class="badge badge-threat-loot">${rules.durabilityWear}x Gear Wear</span>` 
+                    : ''))}
+              ${rules.defeatPenalty === 'items_lost' 
+                ? '<span class="badge badge-monster" style="background:#b91c1c; color:white; font-weight:bold;">Items Lost</span>' 
+                : (rules.defeatPenalty === 'total_ruin' 
+                  ? '<span class="badge badge-monster" style="background:#7f1d1d; border:1px solid #ef4444; color:white; font-weight:bold;">Total Ruin</span>' 
+                  : '')}
+              ${rules.monstersAreNpc 
+                ? '<span class="badge badge-monster" title="Monster queue does not lose durability">Monsters are NPCs</span>' 
+                : ''}
+              ${rules.allowMidJoin 
+                ? '<span class="badge badge-active" style="background:#0284c7; color:white; border-color:#38bdf8;">Mid-Battle Joining</span>' 
+                : ''}
+              ${rules.allowedTypes.length === 3 
+                ? '<span class="badge badge-active">All Items Active</span>' 
+                : (rules.allowedTypes.length === 0 
+                  ? '<span class="badge badge-threat-loot">No Magic Items</span>' 
+                  : `<span class="badge badge-type">${rules.allowedTypes.join(', ')}</span>`)}
+              ${q.repeatable ? '<span class="badge badge-quest">Repeatable</span>' : ''}
+              ${rules.rngLootDrops ? '<span class="badge badge-threat-loot" style="background:#7c3aed; color:white; border-color:#a855f7;">RNG Loot</span>' : ''}
+            </div>
 
-          <!-- STREAMLINED ONE-TAP VICTOR RESOLUTION GRID -->
-          <div style="margin-top:10px; margin-bottom:12px;">
-            <p style="font-size:11px; font-weight:bold; color:var(--gold); text-transform:uppercase; margin:0 0 6px 0; text-align:center;">
-              ⚡ Declare Winner & Instant Payout (${heroMembers.length + monsterMembers.length} fighters)
-            </p>
-            <div class="qm-victor-grid">
-              <button class="btn-qm-victor btn-qm-victor-hero" onclick="qmFinishBattle('${queueId}', '${q.id}', ${victoryGold}, ${defeatGold}, 'heroes')">
-                <span class="btn-qm-victor-title">🏆 Heroes Won</span>
-                <span class="btn-qm-victor-sub">Heroes +${victoryGold}g | Monsters +${defeatGold}g</span>
+            <!-- 4. DESCRIPTION TEXT -->
+            ${q.description ? `<p style="font-size:13px; color:#cbd5e1; margin:6px 0 10px 0; line-height:1.45;">${q.description}</p>` : ''}
+
+            <!-- 5. QM CONTROLS (BOTTOM) -->
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+              ${state === 'open' ? `
+                <button class="btn-accept" style="flex:2; min-height:44px; font-size:13px; font-weight:bold;" onclick="qmStartCombat('${queueId}', '${q.id}')">
+                  ⚔️ Start Combat (Go Live)
+                </button>
+              ` : `
+                <button class="btn-secondary" style="flex:2; min-height:44px; font-size:13px; font-weight:bold; background:#dc2626; color:white;" disabled>
+                  ⚔️ BATTLE IS CURRENTLY LIVE
+                </button>
+              `}
+              <button class="btn-leave" style="flex:1; min-height:44px; font-size:12px;" onclick="qmCloseBattle('${q.id}', '${queueId}')">
+                🛑 Abort / Close
               </button>
-
-              <button class="btn-qm-victor btn-qm-victor-monster" onclick="qmFinishBattle('${queueId}', '${q.id}', ${victoryGold}, ${defeatGold}, 'monsters')">
-                <span class="btn-qm-victor-title">🏆 Monsters Won</span>
-                <span class="btn-qm-victor-sub">Monsters +${victoryGold}g | Heroes +${defeatGold}g</span>
+              <button class="btn-delete" style="min-height:44px; padding:8px 12px;" onclick="qmDeleteQuest('${q.id}', '${(q.title || '').replace(/'/g, "\\'")}')" title="Delete battle from catalog">
+                🗑️
               </button>
             </div>
-          </div>
-
-          <!-- QM FIELD MANAGEMENT BUTTONS -->
-          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-            ${state === 'prepped' ? `
-              <button class="btn-accept" style="flex:2; min-height:44px; font-size:13px; font-weight:bold;" onclick="qmStartCombat('${queueId}', '${q.id}')">
-                ⚔️ Start Combat (Go Live)
-              </button>
-            ` : `
-              <button class="btn-secondary" style="flex:2; min-height:44px; font-size:13px; font-weight:bold; background:#dc2626; color:white;" disabled>
-                ⚔️ BATTLE IS CURRENTLY LIVE
-              </button>
-            `}
-            <button class="btn-leave" style="flex:1; min-height:44px; font-size:12px;" onclick="qmCloseBattle('${q.id}', '${queueId}')">
-              🛑 Abort / Close
-            </button>
-            <button class="btn-delete" style="min-height:44px; padding:8px 12px;" onclick="qmDeleteQuest('${q.id}', '${(q.title || '').replace(/'/g, "\\'")}')" title="Delete battle from catalog">
-              🗑️
-            </button>
-          </div>
-        `}
-      </div>
+          `}
+        </div>
+      </details>
     `;
   }).join('');
 }

@@ -24,11 +24,18 @@ async function fetchUserSlotState() {
 
   const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
   const activeQMId = currentQMId;
+  const normActivePark = typeof normalizeParkName === 'function' ? normalizeParkName(activePark) : (activePark || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
+  const myUserId = currentUser?.id;
 
   activeMonsterClaim = (monsterClaims && monsterClaims.length > 0) 
     ? (monsterClaims.find(mc => {
         const q = mc.quest_queues?.quests;
-        return (!q?.park || q?.park === activePark) && (!q?.qm_id || !activeQMId || q?.qm_id === activeQMId);
+        if (!q) return false;
+        const normQPark = typeof normalizeParkName === 'function' ? normalizeParkName(q.park) : (q.park || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
+        const parkMatches = !normQPark || !normActivePark || (normQPark === normActivePark);
+        const isMyQuest = Boolean(myUserId && q.qm_id === myUserId);
+        const qmMatches = !q.qm_id || !activeQMId || (q.qm_id === activeQMId) || isMyQuest;
+        return parkMatches && qmMatches;
       }) || null)
     : null;
 
@@ -38,15 +45,37 @@ async function fetchUserSlotState() {
     await supabaseClient.from('user_quests').delete().in('id', orphanQuestIds);
   }
 
-  const activeSoloBattle = userQuests?.find(uq => uq.quests?.is_active && (!uq.quests?.park || uq.quests?.park === activePark) && (!uq.quests?.qm_id || !activeQMId || uq.quests?.qm_id === activeQMId) && (uq.quests?.category === 'Battle' || uq.quests?.category === 'Combat'));
+  const activeSoloBattle = userQuests?.find(uq => {
+    const q = uq.quests;
+    if (!q?.is_active) return false;
+    const normQPark = typeof normalizeParkName === 'function' ? normalizeParkName(q.park) : (q.park || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
+    const parkMatches = !normQPark || !normActivePark || (normQPark === normActivePark);
+    const isMyQuest = Boolean(myUserId && q.qm_id === myUserId);
+    const qmMatches = !q.qm_id || !activeQMId || (q.qm_id === activeQMId) || isMyQuest;
+    return parkMatches && qmMatches && (q.category === 'Battle' || q.category === 'Combat');
+  });
+
   const activeGroupBattle = queueMemberships?.find(qm => {
     const queue = qm.quest_queues;
     const quest = queue?.quests;
-    return (queue?.status !== 'completed') && quest?.is_active && (!quest?.park || quest?.park === activePark) && (!quest?.qm_id || !activeQMId || quest?.qm_id === activeQMId) && (quest?.category === 'Battle' || quest?.category === 'Combat');
+    if (!quest?.is_active || queue?.status === 'completed') return false;
+    const normQPark = typeof normalizeParkName === 'function' ? normalizeParkName(quest.park) : (quest.park || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
+    const parkMatches = !normQPark || !normActivePark || (normQPark === normActivePark);
+    const isMyQuest = Boolean(myUserId && quest.qm_id === myUserId);
+    const qmMatches = !quest.qm_id || !activeQMId || (quest.qm_id === activeQMId) || isMyQuest;
+    return parkMatches && qmMatches && (quest.category === 'Battle' || quest.category === 'Combat');
   });
 
   activeBattleQuest = activeSoloBattle || activeGroupBattle;
-  activeLarpieQuest = userQuests?.find(uq => uq.quests?.is_active && (!uq.quests?.park || uq.quests?.park === activePark) && (!uq.quests?.qm_id || !activeQMId || uq.quests?.qm_id === activeQMId) && (uq.quests?.category === 'Adventure' || (uq.quests?.category !== 'Battle' && uq.quests?.category !== 'Combat')));
+  activeLarpieQuest = userQuests?.find(uq => {
+    const q = uq.quests;
+    if (!q?.is_active) return false;
+    const normQPark = typeof normalizeParkName === 'function' ? normalizeParkName(q.park) : (q.park || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
+    const parkMatches = !normQPark || !normActivePark || (normQPark === normActivePark);
+    const isMyQuest = Boolean(myUserId && q.qm_id === myUserId);
+    const qmMatches = !q.qm_id || !activeQMId || (q.qm_id === activeQMId) || isMyQuest;
+    return parkMatches && qmMatches && (q.category === 'Adventure' || (q.category !== 'Battle' && q.category !== 'Combat'));
+  });
 
   const battleStatusEl = document.getElementById('slot-battle-status');
   const larpieStatusEl = document.getElementById('slot-larpie-status');
@@ -85,6 +114,8 @@ async function fetchQuests() {
   const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
   const activeQMId = currentQMId;
   const activeQMName = typeof getActiveQMUsername === 'function' ? getActiveQMUsername() : 'Default Realm';
+  const normActivePark = typeof normalizeParkName === 'function' ? normalizeParkName(activePark) : (activePark || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
+  const myUserId = currentUser?.id;
 
   const { data: userQuests } = await supabaseClient
     .from('user_quests')
@@ -100,7 +131,15 @@ async function fetchQuests() {
   const completedQuestIds = userQuests ? userQuests.filter(uq => uq.status === 'completed').map(uq => uq.quest_id) : [];
 
   const activeAdventureQuests = userQuests
-    ? userQuests.filter(uq => uq.status === 'accepted' && uq.quests && (!uq.quests.park || uq.quests.park === activePark) && (!uq.quests.qm_id || !activeQMId || uq.quests.qm_id === activeQMId) && (uq.quests.category === 'Adventure' || (uq.quests.category !== 'Battle' && uq.quests.category !== 'Combat')))
+    ? userQuests.filter(uq => {
+        if (uq.status !== 'accepted' || !uq.quests) return false;
+        const q = uq.quests;
+        const normQPark = typeof normalizeParkName === 'function' ? normalizeParkName(q.park) : (q.park || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
+        const parkMatches = !normQPark || !normActivePark || (normQPark === normActivePark);
+        const isMyQuest = Boolean(myUserId && q.qm_id === myUserId);
+        const qmMatches = !q.qm_id || !activeQMId || (q.qm_id === activeQMId) || isMyQuest;
+        return parkMatches && qmMatches && (q.category === 'Adventure' || (q.category !== 'Battle' && q.category !== 'Combat'));
+      })
     : [];
 
   const { data: allQuests } = await supabaseClient
@@ -110,10 +149,13 @@ async function fetchQuests() {
     .order('created_at', { ascending: false });
 
   // Filter available quests strictly by the player's active park AND active QM reign
-  const parkQuests = (allQuests || []).filter(q => 
-    (!q.park || q.park === activePark) &&
-    (!q.qm_id || !activeQMId || q.qm_id === activeQMId)
-  );
+  const parkQuests = (allQuests || []).filter(q => {
+    const normQPark = typeof normalizeParkName === 'function' ? normalizeParkName(q.park) : (q.park || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
+    const parkMatches = !normQPark || !normActivePark || (normQPark === normActivePark);
+    const isMyQuest = Boolean(myUserId && q.qm_id === myUserId);
+    const qmMatches = !q.qm_id || !activeQMId || (q.qm_id === activeQMId) || isMyQuest;
+    return parkMatches && qmMatches;
+  });
 
   if (!parkQuests || parkQuests.length === 0) {
     if (combatContainer) combatContainer.innerHTML = `<p class="empty-state">No Active Battle in ${activePark} (${activeQMName}).</p>`;
@@ -386,10 +428,10 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
     const isOpen = Boolean(isCardOpen);
 
     const statusBadge = isLive 
-      ? '<span class="badge badge-active" style="background:#dc2626; color:white; border-color:#ef4444; font-size:11px; padding:3px 7px; font-weight:700; animation: pulse 2s infinite;">LIVE BATTLE</span>'
-      : (isJoinedHero || isJoinedMonster 
-        ? '<span class="badge badge-active" style="font-size:11px; padding:3px 7px; background:var(--primary); color:white;">IN QUEUE</span>' 
-        : '<span class="badge badge-draft" style="font-size:11px; padding:3px 7px;">OPEN LINE</span>');
+      ? '<span class="badge badge-active" style="background:#dc2626; color:white; border-color:#ef4444; font-size:11px; padding:3px 8px; font-weight:700; animation: pulse 2s infinite;">🔴 Live</span>'
+      : (q.is_active || queueRoster
+        ? '<span class="badge badge-threat-loot" style="background:#ca8a04; color:#0f172a; border-color:#eab308; font-size:11px; padding:3px 8px; font-weight:700;">🟢 Open</span>' 
+        : '<span class="badge badge-draft" style="color:#94a3b8; border-color:#52525b; font-size:11px; padding:3px 8px; font-weight:700;">⚪ Closed</span>');
 
     return `
       <details class="quest-accordion battle-accordion" data-quest-id="${q.id}" ${isOpen ? 'open' : ''}>
@@ -648,24 +690,41 @@ async function fetchQMQuests() {
   const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
   const activeQMId = currentQMId || currentUser?.id;
   const activeQMName = typeof getActiveQMUsername === 'function' ? getActiveQMUsername() : 'Default Realm';
+  const normActivePark = typeof normalizeParkName === 'function' ? normalizeParkName(activePark) : (activePark || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
+  const myUserId = currentUser?.id;
 
-  const { data: quests } = await supabaseClient
-    .from('quests')
-    .select('*')
-    .order('created_at', { ascending: false });
+  try {
+    const { data: quests, error: questsErr } = await supabaseClient
+      .from('quests')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-  // Only non-battle (Quest) quests belonging to the active park & QM are shown in the Quest Catalog tab
-  const nonBattleQuests = (quests || []).filter(q => 
-    q.category !== 'Battle' && 
-    q.category !== 'Combat' && 
-    (!q.park || q.park === activePark) &&
-    (!q.qm_id || !activeQMId || q.qm_id === activeQMId)
-  );
+    if (questsErr) {
+      console.error("Error querying quests in QM catalog:", questsErr);
+      container.innerHTML = `<p class="empty-state" style="color:var(--danger);">Error loading catalog: ${questsErr.message}</p>`;
+      return;
+    }
 
-  // Sort non-battle quests by Discipline first, then by title
-  nonBattleQuests.sort((a, b) => {
-    const discA = typeof getQuestDiscipline === 'function' ? getQuestDiscipline(a) : 'Service';
-    const discB = typeof getQuestDiscipline === 'function' ? getQuestDiscipline(b) : 'Service';
+    // Only non-battle (Quest) quests belonging to the active park & QM are shown in the Quest Catalog tab
+    const nonBattleQuests = (quests || []).filter(q => {
+      if (q.category === 'Battle' || q.category === 'Combat') return false;
+
+      // Lenient park check (handles curly/straight apostrophes, case, null/unassigned)
+      const normQPark = typeof normalizeParkName === 'function' ? normalizeParkName(q.park) : (q.park || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
+      const parkMatches = !normQPark || !normActivePark || (normQPark === normActivePark);
+      if (!parkMatches) return false;
+
+      // QM / Creator match:
+      // Show if unassigned QM, OR matches active QM, OR created by the currently logged-in user
+      const isMyQuest = Boolean(myUserId && q.qm_id === myUserId);
+      const qmMatches = !q.qm_id || !activeQMId || (q.qm_id === activeQMId) || isMyQuest;
+      return qmMatches;
+    });
+
+    // Sort non-battle quests by Discipline first, then by title
+    nonBattleQuests.sort((a, b) => {
+      const discA = typeof getQuestDiscipline === 'function' ? getQuestDiscipline(a) : 'Service';
+      const discB = typeof getQuestDiscipline === 'function' ? getQuestDiscipline(b) : 'Service';
     const idxA = (typeof DISCIPLINE_ORDER !== 'undefined') ? DISCIPLINE_ORDER.indexOf(discA) : -1;
     const idxB = (typeof DISCIPLINE_ORDER !== 'undefined') ? DISCIPLINE_ORDER.indexOf(discB) : -1;
     const posA = idxA !== -1 ? idxA : 999;
@@ -830,6 +889,10 @@ async function fetchQMQuests() {
       </div>
     `;
   }).join('');
+  } catch (err) {
+    console.error("Fatal error rendering QM quests catalog:", err);
+    container.innerHTML = `<p class="empty-state" style="color:var(--danger);">Error rendering quest catalog: ${err.message || err}</p>`;
+  }
 }
 
 async function qmVerifyCompleteQuest(userQuestId, userId, questId, rewardGold, questTitle, maxCompletions = 0) {
@@ -1137,7 +1200,9 @@ async function createAdventureQuest() {
 
   const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
   const activeKingdom = typeof getActiveKingdom === 'function' ? getActiveKingdom() : "The Freeholds of Amtgard";
-  const activeQMId = currentQMId || currentUser?.id || null;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const rawQMId = currentQMId || currentUser?.id || null;
+  const activeQMId = (rawQMId && uuidRegex.test(rawQMId)) ? rawQMId : (currentUser?.id && uuidRegex.test(currentUser.id) ? currentUser.id : null);
   const activeQMUsername = currentQMUsername || currentProfile?.username || 'Questmaster';
 
   const questPayload = {
@@ -1160,25 +1225,52 @@ async function createAdventureQuest() {
 
   // Resilient retry loop if any optional column is missing in Supabase schema cache
   if (error) {
+    console.warn("Initial quest insert error, attempting schema fallback:", error.message);
     let fallbackPayload = { ...questPayload };
+
+    // 1. Remove column identified directly in the error message
     const colMatch = error.message.match(/'([^']+)' column/) || error.message.match(/column ["']?([^"'\s]+)["']? of relation/);
     if (colMatch && colMatch[1] && colMatch[1] in fallbackPayload) {
       delete fallbackPayload[colMatch[1]];
     }
+
+    // 2. Remove recently added custom columns if they don't exist yet in user's Supabase schema
+    // (Note: discipline and verification_method are already safely preserved inside scenario_card metadata)
     delete fallbackPayload.discipline;
     delete fallbackPayload.verification_method;
-    delete fallbackPayload.max_active;
-    delete fallbackPayload.max_completions;
-    delete fallbackPayload.rng_loot_drops;
-    delete fallbackPayload.qm_id;
-    delete fallbackPayload.qm_username;
-    delete fallbackPayload.park;
-    delete fallbackPayload.kingdom;
+
+    // 3. ONLY remove park / kingdom / qm_id if the error message explicitly says those columns don't exist!
+    if (error.message.includes('qm_id') || error.message.includes('qm_username')) {
+      delete fallbackPayload.qm_id;
+      delete fallbackPayload.qm_username;
+    }
+    if (error.message.includes('park')) delete fallbackPayload.park;
+    if (error.message.includes('kingdom')) delete fallbackPayload.kingdom;
+    if (error.message.includes('repeatable')) delete fallbackPayload.repeatable;
+
     let retry = await supabaseClient.from('quests').insert(fallbackPayload);
+    if (retry.error) {
+      console.warn("Second retry attempt for quest insert:", retry.error.message);
+      const colMatch2 = retry.error.message.match(/'([^']+)' column/) || retry.error.message.match(/column ["']?([^"'\s]+)["']? of relation/);
+      if (colMatch2 && colMatch2[1] && colMatch2[1] in fallbackPayload) {
+        delete fallbackPayload[colMatch2[1]];
+      }
+      if (retry.error.message.includes('repeatable')) delete fallbackPayload.repeatable;
+      if (retry.error.message.includes('qm_id')) delete fallbackPayload.qm_id;
+      if (retry.error.message.includes('qm_username')) delete fallbackPayload.qm_username;
+      if (retry.error.message.includes('park')) delete fallbackPayload.park;
+      if (retry.error.message.includes('kingdom')) delete fallbackPayload.kingdom;
+
+      retry = await supabaseClient.from('quests').insert(fallbackPayload);
+    }
     error = retry.error;
   }
 
-  if (error) { alert("Failed to save quest: " + error.message); return; }
+  if (error) {
+    console.error("Failed to save quest:", error);
+    alert("Failed to save quest: " + error.message);
+    return;
+  }
 
   alert(`📜 Quest "${title}" published to catalog!`);
 
@@ -1195,10 +1287,13 @@ async function createAdventureQuest() {
   await fetchUserSlotState();
   await fetchQuests();
   switchQMSubTab('library');
+  if (typeof fetchQMQuests === 'function') {
+    await fetchQMQuests();
+  }
 }
 
 async function createQuest() {
-  const category = document.getElementById('qm-category')?.value || 'Battle';
+  const category = document.getElementById('qm-category')?.value || 'Quest';
   if (category === 'Battle') {
     await createBattle();
   } else {

@@ -111,6 +111,12 @@ function calculateItemValue(basePrice, currentDurability, maxDurability) {
   return Math.floor(price * ratio);
 }
 
+// Normalize park names to prevent mismatches caused by curly apostrophes, casing, or whitespace
+function normalizeParkName(name) {
+  if (!name) return '';
+  return String(name).replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
+}
+
 // Lookup official buy-side store catalog price for an item
 function getItemStorePrice(itemName, fallbackCost = 1) {
   if (!itemName) return Math.max(1, Number(fallbackCost || 1));
