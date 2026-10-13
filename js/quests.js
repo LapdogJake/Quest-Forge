@@ -471,7 +471,7 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
                 ${isLive ? (
                   isJoinedHero ? `
                     <button class="btn-battle-action btn-battle-hero" disabled style="opacity:0.95; cursor:default;">
-                      IN COMBAT (HERO)
+                      IN COMBAT
                     </button>
                   ` : (rules.allowMidJoin ? (isSlotLocked ? `
                     <button class="btn-battle-action btn-battle-disabled" disabled>
@@ -479,7 +479,7 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
                     </button>
                   ` : `
                     <button class="btn-battle-action btn-battle-hero" onclick="joinOrCreateGroupQueue('${q.id}')">
-                      JOIN HEROES (LIVE)
+                      JOIN
                     </button>
                   `) : `
                     <button class="btn-battle-action btn-battle-disabled" disabled>
@@ -489,7 +489,7 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
                 ) : (
                   isJoinedHero ? `
                     <button class="btn-battle-action btn-battle-leave" onclick="leaveQueue('${joinedHeroQueueId}')">
-                      LEAVE HEROES
+                      LEAVE
                     </button>
                   ` : (isSlotLocked ? `
                     <button class="btn-battle-action btn-battle-disabled" disabled>
@@ -497,7 +497,7 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
                     </button>
                   ` : `
                     <button class="btn-battle-action btn-battle-hero" onclick="joinOrCreateGroupQueue('${q.id}')">
-                      JOIN HEROES
+                      JOIN
                     </button>
                   `)
                 )}
@@ -531,7 +531,7 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
                 ${isLive ? (
                   isJoinedMonster ? `
                     <button class="btn-battle-action btn-battle-monster" disabled style="opacity:0.95; cursor:default;">
-                      IN COMBAT (MONSTER)
+                      IN COMBAT
                     </button>
                   ` : (rules.allowMidJoin ? (isSlotLocked ? `
                     <button class="btn-battle-action btn-battle-disabled" disabled>
@@ -539,7 +539,7 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
                     </button>
                   ` : `
                     <button class="btn-battle-action btn-battle-monster" onclick="claimMonsterRole('${q.id}', 'Standard Monster')">
-                      JOIN MONSTERS (LIVE)
+                      JOIN
                     </button>
                   `) : `
                     <button class="btn-battle-action btn-battle-disabled" disabled>
@@ -549,7 +549,7 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
                 ) : (
                   isJoinedMonster ? `
                     <button class="btn-battle-action btn-battle-leave" onclick="abandonMonsterRole('${joinedMonsterClaimId}')">
-                      LEAVE MONSTERS
+                      LEAVE
                     </button>
                   ` : (isSlotLocked ? `
                     <button class="btn-battle-action btn-battle-disabled" disabled>
@@ -557,7 +557,7 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
                     </button>
                   ` : `
                     <button class="btn-battle-action btn-battle-monster" onclick="claimMonsterRole('${q.id}', 'Standard Monster')">
-                      JOIN MONSTERS
+                      JOIN
                     </button>
                   `)
                 )}
@@ -721,17 +721,21 @@ async function fetchQMQuests() {
       return qmMatches;
     });
 
-    // Sort non-battle quests by Discipline first, then by title
+    // Sort: Quest Open first, Quest Closed second; then by Discipline, then by title
     nonBattleQuests.sort((a, b) => {
+      const stateA = a.is_active ? 0 : 1;
+      const stateB = b.is_active ? 0 : 1;
+      if (stateA !== stateB) return stateA - stateB;
+
       const discA = typeof getQuestDiscipline === 'function' ? getQuestDiscipline(a) : 'Service';
       const discB = typeof getQuestDiscipline === 'function' ? getQuestDiscipline(b) : 'Service';
-    const idxA = (typeof DISCIPLINE_ORDER !== 'undefined') ? DISCIPLINE_ORDER.indexOf(discA) : -1;
-    const idxB = (typeof DISCIPLINE_ORDER !== 'undefined') ? DISCIPLINE_ORDER.indexOf(discB) : -1;
-    const posA = idxA !== -1 ? idxA : 999;
-    const posB = idxB !== -1 ? idxB : 999;
-    if (posA !== posB) return posA - posB;
-    return (a.title || '').localeCompare(b.title || '');
-  });
+      const idxA = (typeof DISCIPLINE_ORDER !== 'undefined') ? DISCIPLINE_ORDER.indexOf(discA) : -1;
+      const idxB = (typeof DISCIPLINE_ORDER !== 'undefined') ? DISCIPLINE_ORDER.indexOf(discB) : -1;
+      const posA = idxA !== -1 ? idxA : 999;
+      const posB = idxB !== -1 ? idxB : 999;
+      if (posA !== posB) return posA - posB;
+      return (a.title || '').localeCompare(b.title || '');
+    });
 
   if (nonBattleQuests.length === 0) {
     container.innerHTML = `<p class="empty-state">No non-battle quests in the catalog for ${activePark} (${activeQMName}).</p>`;
@@ -803,90 +807,93 @@ async function fetchQMQuests() {
     const maxActive = rules.maxActive || 0;
     const maxCompletions = rules.maxCompletions || 0;
     const verificationMethod = rules.verificationMethod || 'Quest Master';
-    const displayTitle = typeof getQuestDisplayTitle === 'function' ? getQuestDisplayTitle(q) : q.title;
     const discName = typeof getQuestDiscipline === 'function' ? getQuestDiscipline(q) : 'Service';
     const discIcon = typeof getQuestDisciplineIcon === 'function' ? getQuestDisciplineIcon(discName) : '🌹';
 
     const activeList = activeByQuest.get(q.id) || [];
-    const completedList = completedByQuest.get(q.id) || [];
     const activeCount = activeList.length;
-    const completedCount = completedList.length;
-    const isExhausted = maxCompletions > 0 && completedCount >= maxCompletions;
+
+    const borderColor = q.is_active ? 'rgba(34, 197, 94, 0.4)' : 'rgba(255, 255, 255, 0.1)';
+    const statusBadge = q.is_active
+      ? '<span class="badge badge-active" style="background:#16a34a; color:white; border-color:#22c55e; font-size:11px; font-weight:700; white-space:nowrap; padding:3px 8px;">🟢 Quest Open</span>'
+      : '<span class="badge badge-draft" style="color:#94a3b8; border-color:#52525b; font-size:11px; font-weight:700; white-space:nowrap; padding:3px 8px;">⚪ Quest Closed</span>';
 
     return `
-      <div class="quest-card" style="border-left: 4px solid ${q.is_active ? 'var(--success)' : '#52525b'}; margin-bottom:16px;">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
-          <div>
-            <h4 style="margin:0 0 4px 0;">${displayTitle}</h4>
-            <div class="tag-container" style="margin-top:4px;">
-              <span class="badge badge-discipline">${discIcon} ${discName}</span>
-              <span class="badge badge-quest">Quest</span>
-              <span class="badge badge-type">🪙 ${q.reward_gold} Gold</span>
-              <span class="badge badge-type" style="color:#38bdf8; border-color:rgba(56,189,248,0.4);">
-                👥 ${maxActive > 0 ? `${activeCount}/${maxActive} Active` : `${activeCount} Active (Unlimited)`}
-              </span>
-              <span class="badge badge-type" style="color:var(--gold); border-color:var(--gold);">
-                🏆 ${maxCompletions > 0 ? `${completedCount}/${maxCompletions} Completed` : `${completedCount} Completed`}
-              </span>
-              <span class="badge badge-type" style="color:#c084fc; border-color:rgba(192,132,252,0.4);">
-                ${verificationMethod === 'Quest Master' ? '👑 QM Verified' : '🤝 Self-Report'}
-              </span>
-              ${q.repeatable ? '<span class="badge badge-quest">🔁 Repeatable</span>' : ''}
-              ${isExhausted ? '<span class="badge badge-monster" style="background:#7f1d1d; color:white; border:1px solid #ef4444;">🏆 Max Completions Reached</span>' : ''}
+      <details class="quest-accordion" data-quest-id="${q.id}" style="border: 2px solid ${borderColor}; margin-bottom: 12px;">
+        <summary>
+          <span class="quest-summary-title" style="font-size:14px; font-weight:700;">${discIcon} ${q.title}</span>
+          <span class="quest-summary-actions">
+            ${activeCount > 0 ? `<span style="font-size:12px; color:#94a3b8; font-weight:600;">👥 ${activeCount}</span>` : ''}
+            ${statusBadge}
+          </span>
+        </summary>
+
+        <div class="quest-accordion-content" style="padding-top:6px;">
+          <!-- 1. BADGES CONTAINER -->
+          <div class="tag-container" style="margin-bottom:8px;">
+            <span class="badge badge-discipline">${discIcon} ${discName}</span>
+            <span class="badge badge-type">🪙 ${q.reward_gold} Gold</span>
+            <span class="badge badge-type" style="color:#c084fc; border-color:rgba(192,132,252,0.4);">
+              ${verificationMethod === 'Quest Master' ? '👑 QM Verified' : '🤝 Self-Report'}
+            </span>
+            ${q.repeatable ? '<span class="badge badge-quest">🔁 Repeatable</span>' : ''}
+          </div>
+
+          <!-- 2. DESCRIPTION -->
+          ${q.description ? `<p style="font-size:13px; color:#cbd5e1; margin:6px 0 10px 0; line-height:1.45;">${q.description}</p>` : ''}
+
+          <!-- 3. QUESTER ROSTER -->
+          <div class="qm-questers-box" style="margin-top:8px; margin-bottom:10px;">
+            <div class="qm-questers-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.08);">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-weight:700; font-size:12px; color:var(--primary); text-transform:uppercase; letter-spacing:0.5px;">
+                  Questers
+                </span>
+                <span class="queue-count-pill" style="color:var(--primary); border:1px solid rgba(56,189,248,0.3);">${activeCount}</span>
+              </div>
+            </div>
+            <div class="qm-questers-list">
+              ${activeList.length > 0 ? activeList.map(aq => {
+                const uName = aq.profiles?.username || 'Adventurer';
+                const abs = Array.isArray(aq.profiles?.quest_abilities) ? aq.profiles.quest_abilities : [];
+                const absBadges = abs.map(a => `<span class="ability-pill">${a}</span>`).join('');
+                return `
+                  <div class="qm-quester-item">
+                    <div class="qm-quester-info">
+                      <span class="qm-quester-name">👤 ${uName}</span>
+                      ${absBadges}
+                    </div>
+                    <div class="qm-quester-actions">
+                      <button class="btn-qm-verify" onclick="qmVerifyCompleteQuest('${aq.id}', '${aq.user_id}', '${q.id}', ${q.reward_gold}, '${(q.title || '').replace(/'/g, "\\'")}', ${maxCompletions})">
+                        Complete
+                      </button>
+                      <button class="btn-qm-kick" onclick="qmKickUserFromQuest('${aq.id}', '${(uName).replace(/'/g, "\\'")}', '${(q.title || '').replace(/'/g, "\\'")}')">
+                        Kick
+                      </button>
+                    </div>
+                  </div>
+                `;
+              }).join('') : '<p class="empty-roster-msg">No players currently on this quest.</p>'}
             </div>
           </div>
-          <span class="badge ${q.is_active ? 'badge-active' : 'badge-draft'}" style="white-space:nowrap;">
-            ${q.is_active ? '🟢 Open on Field' : '🔴 Catalog Draft'}
-          </span>
-        </div>
 
-        <p style="margin-top:6px; color:#cbd5e1; font-size:13px;">${q.description || 'No public description.'}</p>
-
-        <!-- Active Questers on Field (QM Verification System) -->
-        <div class="qm-questers-box">
-          <div class="qm-questers-header">
-            <span style="font-weight:700; font-size:12px; color:var(--primary); text-transform:uppercase; letter-spacing:0.5px;">
-              🎯 Active Questers on Field (${activeCount}${maxActive > 0 ? ` / ${maxActive}` : ''})
-            </span>
-            <span style="font-size:11px; color:#94a3b8;">
-              ${verificationMethod === 'Quest Master' ? '👑 QM Verification' : '🤝 Honor System'}
-            </span>
-          </div>
-          <div class="qm-questers-list">
-            ${activeList.length > 0 ? activeList.map(aq => {
-              const uName = aq.profiles?.username || 'Adventurer';
-              const abs = Array.isArray(aq.profiles?.quest_abilities) ? aq.profiles.quest_abilities : [];
-              const absBadges = abs.map(a => `<span class="ability-pill">${a}</span>`).join('');
-              return `
-                <div class="qm-quester-item">
-                  <div class="qm-quester-info">
-                    <span class="qm-quester-name">👤 ${uName}</span>
-                    ${absBadges}
-                  </div>
-                  <div class="qm-quester-actions">
-                    <button class="btn-qm-verify" onclick="qmVerifyCompleteQuest('${aq.id}', '${aq.user_id}', '${q.id}', ${q.reward_gold}, '${(q.title || '').replace(/'/g, "\\'")}', ${maxCompletions})">
-                      ✅ Complete Quest
-                    </button>
-                    <button class="btn-qm-kick" onclick="qmKickUserFromQuest('${aq.id}', '${(uName).replace(/'/g, "\\'")}', '${(q.title || '').replace(/'/g, "\\'")}')">
-                      🚫 Kick
-                    </button>
-                  </div>
-                </div>
-              `;
-            }).join('') : '<p class="empty-roster-msg">No players currently on this quest.</p>'}
+          <!-- 4. BOTTOM ACTIONS -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; gap:8px;">
+            ${q.is_active ? `
+              <button class="btn-leave" style="flex:1; min-height:40px; font-size:13px; font-weight:bold; border-radius:6px;" onclick="toggleQuestDeployment('${q.id}', true)">
+                Close
+              </button>
+            ` : `
+              <button class="btn-battle-action btn-battle-hero" style="flex:1; min-height:40px; font-size:13px; font-weight:bold; border-radius:6px; text-transform:none;" onclick="toggleQuestDeployment('${q.id}', false)">
+                Open
+              </button>
+            `}
+            <button class="btn-delete" style="min-height:40px; padding:8px 14px; font-size:13px; font-weight:bold; justify-content:center; border-radius:6px;" onclick="qmDeleteQuest('${q.id}', '${(q.title || '').replace(/'/g, "\\'")}')" title="Delete quest from catalog">
+              🗑️ Delete
+            </button>
           </div>
         </div>
-
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; gap:8px;">
-          <button class="${q.is_active ? 'btn-toggle-draft' : 'btn-toggle-active'}" 
-            onclick="toggleQuestDeployment('${q.id}', ${q.is_active})">
-            ${q.is_active ? '🔴 Close Field Openings' : '🚀 Open Quest on Field'}
-          </button>
-          <button class="btn-delete" onclick="qmDeleteQuest('${q.id}', '${(q.title || '').replace(/'/g, "\\'")}')" title="Delete quest from catalog">
-            🗑️ Delete
-          </button>
-        </div>
-      </div>
+      </details>
     `;
   }).join('');
   } catch (err) {
