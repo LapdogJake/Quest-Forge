@@ -16,16 +16,9 @@
     <!-- 1. PROFILE TAB -->
     <section id="tab-profile" class="tab-view">
       <div class="card card-profile">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span id="user-display" style="font-weight: bold; color: var(--primary); font-size: 20px;">Loading...</span>
-            <span id="role-badge" class="badge badge-type" style="display:none;">Questmaster</span>
-          </div>
-          <div style="display:flex; align-items:center; gap:5px; font-weight:bold; font-size:16px; color:var(--gold);">
-            <span>🪙</span>
-            <span id="profile-gold">0</span>
-            <span style="font-size:12px; color:var(--text-muted); font-weight:normal;">Gold</span>
-          </div>
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+          <span id="user-display" style="font-weight: bold; color: var(--primary); font-size: 20px;">Loading...</span>
+          <span id="role-badge" class="badge badge-type" style="display:none;">Questmaster</span>
         </div>
 
         <!-- Email Confirmation Status -->
@@ -34,22 +27,22 @@
         <!-- Active Group Affiliation Banner (Stacked Layout) -->
         <div id="profile-group-banner" class="profile-group-banner">
           <div class="group-banner-row">
-            <small>🏰 Kingdom</small>
+            <span>Kingdom</span>
             <span id="display-profile-kingdom" class="group-val">The Freeholds of Amtgard</span>
           </div>
           <div class="group-banner-row">
-            <small>📍 Active Park</small>
+            <span>Active Park</span>
             <span id="display-profile-park" class="group-val">Delver's Rest</span>
           </div>
           <div class="group-banner-row">
-            <small>👑 Questmaster</small>
-            <span id="display-profile-qm" class="group-val" style="color:var(--gold);">👑 Default</span>
+            <span>Questmaster</span>
+            <span id="display-profile-qm" class="group-val">Default</span>
           </div>
         </div>
 
-        <!-- Collapsible Kingdom / Park / QM Selector Accordion -->
+        <!-- Collapsible Transfer Realm Accordion -->
         <div class="accordion-header" onclick="toggleParkSelectorAccordion()">
-          <span>Kingdom / Park / QM</span>
+          <span>Transfer Realm</span>
           <span id="park-selector-chevron">▼</span>
         </div>
         <div id="park-selector-accordion-body" class="accordion-content hidden">
@@ -64,7 +57,7 @@
             </select>
           </div>
           <div class="form-group" style="margin-bottom: 8px;">
-            <label for="profile-qm-select">3. Questmaster (Reign)</label>
+            <label for="profile-qm-select">3. Questmaster</label>
             <select id="profile-qm-select" class="form-control">
             </select>
           </div>
@@ -81,17 +74,16 @@
           </div>
         </div>
 
-        <!-- Collapsible Quest Abilities (Amtgard ROP) Accordion -->
+        <!-- Collapsible Quest Abilities Accordion -->
         <div class="accordion-header" onclick="toggleQuestAbilitiesAccordion()">
-          <span>⚡ Quest Ability (ROP) <small id="profile-abilities-count" style="color:var(--text-muted); font-weight:normal;">(0 active)</small></span>
+          <span>Quest Ability <small id="profile-abilities-count" style="color:var(--text-muted); font-weight:normal;">(0 active)</small></span>
           <span id="abilities-chevron">▼</span>
         </div>
         <div id="abilities-accordion-body" class="accordion-content hidden">
-          <p style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
-            Select 1 monster/quest ability. When <em>Monsters are NPCs</em> is active in battle, this will appear next to your name!
-          </p>
-          <div id="abilities-chip-container" class="abilities-chip-grid">
-            <!-- Dynamic ability chips rendered via JS -->
+          <div class="form-group" style="margin-bottom:8px;">
+            <select id="profile-ability-select" class="form-control" onchange="handleAbilitySelectChange()">
+              <option value="">-- No Ability Selected --</option>
+            </select>
           </div>
           <button class="btn btn-primary" style="margin-top:10px; font-size:13px;" onclick="saveQuestAbilities()">
             Save Ability
@@ -105,7 +97,7 @@
     <!-- 2. BATTLES TAB (COMBAT & MONSTER LINES) -->
     <section id="tab-battles" class="tab-view hidden">
       <div class="card card-heroes card-battles">
-        <div id="available-combat-quests">
+        <div id="available-combat-quests" class="store-catalog-list">
           <p class="empty-state">Loading active battles...</p>
         </div>
       </div>

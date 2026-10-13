@@ -628,7 +628,7 @@ function updateGroupBannerDisplays() {
 
   if (kingdomEl) kingdomEl.innerText = activeKingdom;
   if (parkEl) parkEl.innerText = activePark;
-  if (qmEl) qmEl.innerText = `👑 ${activeQM}`;
+  if (qmEl) qmEl.innerText = activeQM;
   if (qmPanelParkEl) qmPanelParkEl.innerText = `${activePark} (${activeQM})`;
 }
 
@@ -649,7 +649,7 @@ function getActiveQMUsername() {
 }
 
 // ------------------------------------------------------------------------------
-// Quest Abilities (Amtgard ROP) Management
+// Quest Abilities Management
 // ------------------------------------------------------------------------------
 
 let selectedQuestAbilities = [];
@@ -670,9 +670,8 @@ function toggleQuestAbilitiesAccordion() {
 }
 
 function initQuestAbilitiesUI() {
-  const container = document.getElementById('abilities-chip-container');
+  const selectEl = document.getElementById('profile-ability-select');
   const countEl = document.getElementById('profile-abilities-count');
-  if (!container) return;
 
   // Resolve user's stored abilities
   const rawAbs = currentParkProfile?.quest_abilities || currentProfile?.quest_abilities || [];
@@ -686,36 +685,36 @@ function initQuestAbilitiesUI() {
   }
 
   // Ensure at most one ability is selected
-  if (selectedQuestAbilities.length > 1) {
-    selectedQuestAbilities = [selectedQuestAbilities[0]];
+  const activeAbility = selectedQuestAbilities[0] || "";
+  selectedQuestAbilities = activeAbility ? [activeAbility] : [];
+
+  if (countEl) countEl.innerText = activeAbility ? `(1 active)` : `(0 active)`;
+
+  if (selectEl) {
+    const list = (typeof AMTGARD_ROP_QUEST_ABILITIES !== 'undefined') ? AMTGARD_ROP_QUEST_ABILITIES : [];
+    selectEl.innerHTML = [
+      `<option value="">-- No Ability Selected --</option>`,
+      ...list.map(ab => `<option value="${ab}" ${ab === activeAbility ? 'selected' : ''}>${ab}</option>`)
+    ].join('');
   }
-
-  if (countEl) countEl.innerText = `(${selectedQuestAbilities.length} active)`;
-
-  const list = (typeof AMTGARD_ROP_QUEST_ABILITIES !== 'undefined') ? AMTGARD_ROP_QUEST_ABILITIES : [];
-  const details = (typeof AMTGARD_ROP_QUEST_ABILITY_DETAILS !== 'undefined') ? AMTGARD_ROP_QUEST_ABILITY_DETAILS : {};
-  container.innerHTML = list.map(ab => {
-    const isSel = selectedQuestAbilities.includes(ab);
-    const desc = (details[ab] || ab).replace(/"/g, '&quot;');
-    return `<div class="ability-chip ${isSel ? 'selected' : ''}" title="${desc}" onclick="toggleAbilityChip('${ab.replace(/'/g, "\\'")}')">${ab}</div>`;
-  }).join('');
 }
 
-function toggleAbilityChip(abilityName) {
-  if (selectedQuestAbilities.includes(abilityName)) {
-    selectedQuestAbilities = [];
-  } else {
-    // Only allow one ability to be selected at a time
-    selectedQuestAbilities = [abilityName];
-  }
-  initQuestAbilitiesUI();
+function handleAbilitySelectChange() {
+  const selectEl = document.getElementById('profile-ability-select');
+  const countEl = document.getElementById('profile-abilities-count');
+  if (!selectEl) return;
+  const val = selectEl.value;
+  selectedQuestAbilities = val ? [val] : [];
+  if (countEl) countEl.innerText = val ? `(1 active)` : `(0 active)`;
 }
 
 async function saveQuestAbilities() {
   if (!currentUser) return;
 
-  if (selectedQuestAbilities.length > 1) {
-    selectedQuestAbilities = [selectedQuestAbilities[0]];
+  const selectEl = document.getElementById('profile-ability-select');
+  if (selectEl) {
+    const val = selectEl.value;
+    selectedQuestAbilities = val ? [val] : [];
   }
 
   if (currentParkProfile) currentParkProfile.quest_abilities = selectedQuestAbilities;
@@ -733,7 +732,7 @@ async function saveQuestAbilities() {
       .update({ quest_abilities: selectedQuestAbilities })
       .eq('id', currentUser.id);
 
-    alert("⚡ Quest ability saved!");
+    alert("Quest ability saved!");
     if (typeof fetchQuests === 'function') fetchQuests();
     if (typeof fetchMonsterEncounters === 'function') fetchMonsterEncounters();
   } catch (err) {

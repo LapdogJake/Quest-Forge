@@ -181,8 +181,14 @@ async function fetchQuests() {
   }
 
   if (combatContainer) {
+    const openCardIds = new Set(
+      Array.from(combatContainer.querySelectorAll('details.battle-card[open]'))
+        .map(el => el.getAttribute('data-quest-id'))
+        .filter(Boolean)
+    );
+
     combatContainer.innerHTML = combatQuests.length > 0
-      ? combatQuests.map(q => renderAvailableQuestCard(q, 'combat', joinedQueueMap.get(q.id), queueRosterByQuest.get(q.id))).join('')
+      ? combatQuests.map(q => renderAvailableQuestCard(q, 'combat', joinedQueueMap.get(q.id), queueRosterByQuest.get(q.id), null, openCardIds.has(q.id))).join('')
       : `<p class="empty-state">No Active Battles in ${activePark} (${activeQMName}).</p>`;
   }
 
@@ -330,7 +336,7 @@ function renderGroupQueueCard(q, queue, members) {
   `;
 }
 
-function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = null, questUsage = null) {
+function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = null, questUsage = null, isCardOpen = false) {
   const isCombat = type === 'combat';
   const isAdventure = type === 'larpie';
   const isSlotLocked = isCombat ? (!!activeBattleQuest || !!activeMonsterClaim) : !!activeLarpieQuest;
@@ -352,180 +358,184 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
 
     const isHighStakes = rules.defeatPenalty === 'items_lost' || rules.defeatPenalty === 'total_ruin';
     const highStakesBorder = rules.defeatPenalty === 'total_ruin' ? '#ef4444' : '#b91c1c';
-    const cardBorder = isLive ? '#dc2626' : (isJoinedHero || isJoinedMonster ? 'var(--gold)' : (isHighStakes ? highStakesBorder : 'rgba(255,255,255,0.12)'));
+    const cardBorder = isLive ? '#dc2626' : (isJoinedHero || isJoinedMonster ? 'var(--gold)' : (isHighStakes ? highStakesBorder : 'var(--border)'));
+    const isOpen = Boolean(isCardOpen);
 
     return `
-      <div class="quest-card battle-card" style="border: 2px solid ${cardBorder}; margin-bottom:16px;">
+      <details class="store-category battle-card" data-quest-id="${q.id}" style="border: 2px solid ${cardBorder}; margin-bottom:14px; border-radius:10px; overflow:hidden;" ${isOpen ? 'open' : ''}>
         <!-- Header Row: Title & Line Status across from each other -->
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:6px;">
-          <h4 style="margin:0; font-size:17px; font-weight:800; letter-spacing:0.3px; word-break:break-word;">⚔️ ${q.title}</h4>
-          <div style="flex-shrink:0; white-space:nowrap;">
-            ${isLive 
-              ? '<span class="badge badge-active" style="background:#dc2626; color:white; border-color:#ef4444; font-size:12px; padding:4px 8px; font-weight:800; animation: pulse 2s infinite; white-space:nowrap;">⚔️ LIVE BATTLE</span>'
-              : (isJoinedHero || isJoinedMonster 
-                ? '<span class="badge badge-active" style="font-size:12px; padding:4px 8px; background:var(--primary); color:white; white-space:nowrap;">⏳ IN QUEUE</span>' 
-                : '<span class="badge badge-draft" style="font-size:12px; padding:4px 8px; white-space:nowrap;">⏳ OPEN LINE</span>')}
-          </div>
-        </div>
-
-        <!-- Tag Container / Badges Row (Full width) -->
-        <div class="tag-container" style="margin-bottom:8px;">
-          <span class="badge badge-type" style="color:var(--gold); border-color:var(--gold); font-weight:bold;">🏆 +${victoryGold}g Win</span>
-          <span class="badge badge-type" style="color:#94a3b8; border-color:#64748b;">💀 +${defeatGold}g Loss</span>
-          ${rules.durabilityWear === 0 
-            ? '<span class="badge badge-active">🛡️ No Gear Wear</span>' 
-            : (rules.durabilityWear === 2 
-              ? '<span class="badge badge-threat-loot">🔥 2x Gear Wear</span>' 
-              : (rules.durabilityWear >= 3 
-                ? `<span class="badge badge-threat-loot">💥 ${rules.durabilityWear}x Gear Wear</span>` 
-                : ''))}
-          ${rules.defeatPenalty === 'items_lost' 
-            ? '<span class="badge badge-monster" style="background:#b91c1c; color:white; font-weight:bold;">💀 Items Lost</span>' 
-            : (rules.defeatPenalty === 'total_ruin' 
-              ? '<span class="badge badge-monster" style="background:#7f1d1d; border:1px solid #ef4444; color:white; font-weight:bold;">☠️ Total Ruin</span>' 
-              : '')}
-          ${rules.monstersAreNpc 
-            ? '<span class="badge badge-monster" title="Monster queue does not lose durability">👹 Monsters are NPCs</span>' 
-            : ''}
-          ${rules.allowMidJoin 
-            ? '<span class="badge badge-active" style="background:#0284c7; color:white; border-color:#38bdf8;">🔄 Mid-Battle Joining</span>' 
-            : ''}
-          ${rules.allowedTypes.length === 3 
-            ? '<span class="badge badge-active">✨ All Items Active</span>' 
-            : (rules.allowedTypes.length === 0 
-              ? '<span class="badge badge-threat-loot">🚫 No Magic Items</span>' 
-              : `<span class="badge badge-type">✨ ${rules.allowedTypes.join(', ')}</span>`)}
-          ${q.repeatable ? '<span class="badge badge-quest">🔁 Repeatable</span>' : ''}
-          ${rules.rngLootDrops ? '<span class="badge badge-threat-loot" style="background:#7c3aed; color:white; border-color:#a855f7;">🎲 RNG Loot</span>' : ''}
-        </div>
-
-        ${q.description ? `<p style="font-size:13px; color:#cbd5e1; margin:6px 0 10px 0; line-height:1.45;">${q.description}</p>` : ''}
-
-        <!-- Side-by-Side Dual Queue Roster Grid (Mobile 50/50) -->
-        <div class="dual-queue-grid">
-          <!-- HEROES COLUMN (Left) -->
-          <div class="queue-box hero-box ${isJoinedHero ? 'joined-active' : ''}">
-            <div>
-              <div class="queue-header-row">
-                <h5 class="queue-header-title" style="color:#38bdf8;">⚔️ Heroes</h5>
-                <span class="queue-count-pill" style="color:#38bdf8; border:1px solid rgba(56,189,248,0.3);">${heroPlayers.length}</span>
-              </div>
-              <div class="queue-roster-list">
-                ${heroPlayers.length > 0 
-                  ? heroPlayers.map(p => {
-                      const name = typeof p === 'object' ? p.username : p;
-                      const abs = (typeof p === 'object' && Array.isArray(p.abilities)) ? p.abilities : [];
-                      const isMe = currentUser && (name === currentProfile?.username || name === currentUser.username);
-                      const absBadge = (rules.monstersAreNpc && abs.length > 0)
-                        ? abs.map(a => `<span class="ability-pill">${a}</span>`).join('')
-                        : '';
-                      return `<span class="party-member-tag ${isMe ? 'is-current-user' : ''}">👤 ${name}${absBadge}</span>`;
-                    }).join('')
-                  : '<p style="font-size:11px; color:#64748b; margin:6px 0; font-style:italic; text-align:center;">Line is empty.</p>'}
-              </div>
-            </div>
-
-            <!-- Big Fat-Finger Hero Button -->
-            <div>
-              ${isLive ? (
-                isJoinedHero ? `
-                  <button class="btn-battle-action btn-battle-hero" disabled style="opacity:0.95; cursor:default;">
-                    ⚔️ IN COMBAT (HERO)
-                  </button>
-                ` : (rules.allowMidJoin ? (isSlotLocked ? `
-                  <button class="btn-battle-action btn-battle-disabled" disabled>
-                    ${isJoinedMonster ? '👹 IN MONSTERS' : 'SLOT FULL'}
-                  </button>
-                ` : `
-                  <button class="btn-battle-action btn-battle-hero" onclick="joinOrCreateGroupQueue('${q.id}')">
-                    ⚔️ JOIN HEROES (LIVE)
-                  </button>
-                `) : `
-                  <button class="btn-battle-action btn-battle-disabled" disabled>
-                    🔒 BATTLE LIVE
-                  </button>
-                `)
-              ) : (
-                isJoinedHero ? `
-                  <button class="btn-battle-action btn-battle-leave" onclick="leaveQueue('${joinedHeroQueueId}')">
-                    🚪 LEAVE HEROES
-                  </button>
-                ` : (isSlotLocked ? `
-                  <button class="btn-battle-action btn-battle-disabled" disabled>
-                    ${isJoinedMonster ? '👹 IN MONSTERS' : 'SLOT FULL'}
-                  </button>
-                ` : `
-                  <button class="btn-battle-action btn-battle-hero" onclick="joinOrCreateGroupQueue('${q.id}')">
-                    ⚔️ JOIN HEROES
-                  </button>
-                `)
-              )}
+        <summary class="store-category-summary">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex:1; margin-right:10px;">
+            <h4 style="margin:0; font-size:16px; font-weight:800; color:var(--text); word-break:break-word;">${q.title}</h4>
+            <div style="flex-shrink:0; white-space:nowrap;">
+              ${isLive 
+                ? '<span class="badge badge-active" style="background:#dc2626; color:white; border-color:#ef4444; font-size:12px; padding:4px 8px; font-weight:800; animation: pulse 2s infinite; white-space:nowrap;">LIVE BATTLE</span>'
+                : (isJoinedHero || isJoinedMonster 
+                  ? '<span class="badge badge-active" style="font-size:12px; padding:4px 8px; background:var(--primary); color:white; white-space:nowrap;">IN QUEUE</span>' 
+                  : '<span class="badge badge-draft" style="font-size:12px; padding:4px 8px; white-space:nowrap;">OPEN LINE</span>')}
             </div>
           </div>
+        </summary>
 
-          <!-- MONSTERS COLUMN (Right) -->
-          <div class="queue-box monster-box ${isJoinedMonster ? 'joined-active' : ''}">
-            <div>
-              <div class="queue-header-row">
-                <h5 class="queue-header-title" style="color:#f43f5e;">👹 Monsters</h5>
-                <span class="queue-count-pill" style="color:#f43f5e; border:1px solid rgba(244,63,94,0.3);">${monsterPlayers.length}</span>
+        <div class="store-category-items battle-card-body" style="padding:14px;">
+          <!-- Tag Container / Badges Row (Text only, no icons, on top) -->
+          <div class="tag-container" style="margin-bottom:12px;">
+            <span class="badge badge-type" style="color:var(--gold); border-color:var(--gold); font-weight:bold;">+${victoryGold}g Win</span>
+            <span class="badge badge-type" style="color:#94a3b8; border-color:#64748b;">+${defeatGold}g Loss</span>
+            ${rules.durabilityWear === 0 
+              ? '<span class="badge badge-active">No Gear Wear</span>' 
+              : (rules.durabilityWear === 2 
+                ? '<span class="badge badge-threat-loot">2x Gear Wear</span>' 
+                : (rules.durabilityWear >= 3 
+                  ? `<span class="badge badge-threat-loot">${rules.durabilityWear}x Gear Wear</span>` 
+                  : ''))}
+            ${rules.defeatPenalty === 'items_lost' 
+              ? '<span class="badge badge-monster" style="background:#b91c1c; color:white; font-weight:bold;">Items Lost</span>' 
+              : (rules.defeatPenalty === 'total_ruin' 
+                ? '<span class="badge badge-monster" style="background:#7f1d1d; border:1px solid #ef4444; color:white; font-weight:bold;">Total Ruin</span>' 
+                : '')}
+            ${rules.monstersAreNpc 
+              ? '<span class="badge badge-monster" title="Monster queue does not lose durability">Monsters are NPCs</span>' 
+              : ''}
+            ${rules.allowMidJoin 
+              ? '<span class="badge badge-active" style="background:#0284c7; color:white; border-color:#38bdf8;">Mid-Battle Joining</span>' 
+              : ''}
+            ${rules.allowedTypes.length === 3 
+              ? '<span class="badge badge-active">All Items Active</span>' 
+              : (rules.allowedTypes.length === 0 
+                ? '<span class="badge badge-threat-loot">No Magic Items</span>' 
+                : `<span class="badge badge-type">${rules.allowedTypes.join(', ')}</span>`)}
+            ${q.repeatable ? '<span class="badge badge-quest">Repeatable</span>' : ''}
+            ${rules.rngLootDrops ? '<span class="badge badge-threat-loot" style="background:#7c3aed; color:white; border-color:#a855f7;">RNG Loot</span>' : ''}
+          </div>
+
+          <!-- Side-by-Side Dual Queue Roster Grid (Mobile 50/50) -->
+          <div class="dual-queue-grid">
+            <!-- HEROES COLUMN (Left) -->
+            <div class="queue-box hero-box ${isJoinedHero ? 'joined-active' : ''}">
+              <div>
+                <div class="queue-header-row">
+                  <h5 class="queue-header-title" style="color:#38bdf8;">Heroes</h5>
+                  <span class="queue-count-pill" style="color:#38bdf8; border:1px solid rgba(56,189,248,0.3);">${heroPlayers.length}</span>
+                </div>
+                <div class="queue-roster-list">
+                  ${heroPlayers.length > 0 
+                    ? heroPlayers.map(p => {
+                        const name = typeof p === 'object' ? p.username : p;
+                        const abs = (typeof p === 'object' && Array.isArray(p.abilities)) ? p.abilities : [];
+                        const isMe = currentUser && (name === currentProfile?.username || name === currentUser.username);
+                        const absBadge = (rules.monstersAreNpc && abs.length > 0)
+                          ? abs.map(a => `<span class="ability-pill">${a}</span>`).join('')
+                          : '';
+                        return `<span class="party-member-tag ${isMe ? 'is-current-user' : ''}">👤 ${name}${absBadge}</span>`;
+                      }).join('')
+                    : '<p style="font-size:11px; color:#64748b; margin:6px 0; font-style:italic; text-align:center;">Line is empty.</p>'}
+                </div>
               </div>
-              <div class="queue-roster-list">
-                ${monsterPlayers.length > 0 
-                  ? monsterPlayers.map(p => {
-                      const name = typeof p === 'object' ? p.username : p;
-                      const abs = (typeof p === 'object' && Array.isArray(p.abilities)) ? p.abilities : [];
-                      const isMe = currentUser && (name === currentProfile?.username || name === currentUser.username);
-                      const absBadge = (rules.monstersAreNpc && abs.length > 0)
-                        ? abs.map(a => `<span class="ability-pill" style="border-color:rgba(244,63,94,0.4); color:#fda4af; background:rgba(244,63,94,0.15);">${a}</span>`).join('')
-                        : '';
-                      return `<span class="party-member-tag ${isMe ? 'is-current-user' : ''}" style="border-color:rgba(244,63,94,0.3);">👹 ${name}${absBadge}</span>`;
-                    }).join('')
-                  : '<p style="font-size:11px; color:#64748b; margin:6px 0; font-style:italic; text-align:center;">Line is empty.</p>'}
+
+              <!-- Big Fat-Finger Hero Button -->
+              <div>
+                ${isLive ? (
+                  isJoinedHero ? `
+                    <button class="btn-battle-action btn-battle-hero" disabled style="opacity:0.95; cursor:default;">
+                      IN COMBAT (HERO)
+                    </button>
+                  ` : (rules.allowMidJoin ? (isSlotLocked ? `
+                    <button class="btn-battle-action btn-battle-disabled" disabled>
+                      ${isJoinedMonster ? 'IN MONSTERS' : 'SLOT FULL'}
+                    </button>
+                  ` : `
+                    <button class="btn-battle-action btn-battle-hero" onclick="joinOrCreateGroupQueue('${q.id}')">
+                      JOIN HEROES (LIVE)
+                    </button>
+                  `) : `
+                    <button class="btn-battle-action btn-battle-disabled" disabled>
+                      BATTLE LIVE
+                    </button>
+                  `)
+                ) : (
+                  isJoinedHero ? `
+                    <button class="btn-battle-action btn-battle-leave" onclick="leaveQueue('${joinedHeroQueueId}')">
+                      LEAVE HEROES
+                    </button>
+                  ` : (isSlotLocked ? `
+                    <button class="btn-battle-action btn-battle-disabled" disabled>
+                      ${isJoinedMonster ? 'IN MONSTERS' : 'SLOT FULL'}
+                    </button>
+                  ` : `
+                    <button class="btn-battle-action btn-battle-hero" onclick="joinOrCreateGroupQueue('${q.id}')">
+                      JOIN HEROES
+                    </button>
+                  `)
+                )}
               </div>
             </div>
 
-            <!-- Big Fat-Finger Monster Button -->
-            <div>
-              ${isLive ? (
-                isJoinedMonster ? `
-                  <button class="btn-battle-action btn-battle-monster" disabled style="opacity:0.95; cursor:default;">
-                    👹 IN COMBAT (MONSTER)
-                  </button>
-                ` : (rules.allowMidJoin ? (isSlotLocked ? `
-                  <button class="btn-battle-action btn-battle-disabled" disabled>
-                    ${isJoinedHero ? '⚔️ IN HEROES' : 'SLOT FULL'}
-                  </button>
-                ` : `
-                  <button class="btn-battle-action btn-battle-monster" onclick="claimMonsterRole('${q.id}', 'Standard Monster')">
-                    👹 JOIN MONSTERS (LIVE)
-                  </button>
-                `) : `
-                  <button class="btn-battle-action btn-battle-disabled" disabled>
-                    🔒 BATTLE LIVE
-                  </button>
-                `)
-              ) : (
-                isJoinedMonster ? `
-                  <button class="btn-battle-action btn-battle-leave" onclick="abandonMonsterRole('${joinedMonsterClaimId}')">
-                    🚪 LEAVE MONSTERS
-                  </button>
-                ` : (isSlotLocked ? `
-                  <button class="btn-battle-action btn-battle-disabled" disabled>
-                    ${isJoinedHero ? '⚔️ IN HEROES' : 'SLOT FULL'}
-                  </button>
-                ` : `
-                  <button class="btn-battle-action btn-battle-monster" onclick="claimMonsterRole('${q.id}', 'Standard Monster')">
-                    👹 JOIN MONSTERS
-                  </button>
-                `)
-              )}
+            <!-- MONSTERS COLUMN (Right) -->
+            <div class="queue-box monster-box ${isJoinedMonster ? 'joined-active' : ''}">
+              <div>
+                <div class="queue-header-row">
+                  <h5 class="queue-header-title" style="color:#f43f5e;">Monsters</h5>
+                  <span class="queue-count-pill" style="color:#f43f5e; border:1px solid rgba(244,63,94,0.3);">${monsterPlayers.length}</span>
+                </div>
+                <div class="queue-roster-list">
+                  ${monsterPlayers.length > 0 
+                    ? monsterPlayers.map(p => {
+                        const name = typeof p === 'object' ? p.username : p;
+                        const abs = (typeof p === 'object' && Array.isArray(p.abilities)) ? p.abilities : [];
+                        const isMe = currentUser && (name === currentProfile?.username || name === currentUser.username);
+                        const absBadge = (rules.monstersAreNpc && abs.length > 0)
+                          ? abs.map(a => `<span class="ability-pill" style="border-color:rgba(244,63,94,0.4); color:#fda4af; background:rgba(244,63,94,0.15);">${a}</span>`).join('')
+                          : '';
+                        return `<span class="party-member-tag ${isMe ? 'is-current-user' : ''}" style="border-color:rgba(244,63,94,0.3);">👤 ${name}${absBadge}</span>`;
+                      }).join('')
+                    : '<p style="font-size:11px; color:#64748b; margin:6px 0; font-style:italic; text-align:center;">Line is empty.</p>'}
+                </div>
+              </div>
+
+              <!-- Big Fat-Finger Monster Button -->
+              <div>
+                ${isLive ? (
+                  isJoinedMonster ? `
+                    <button class="btn-battle-action btn-battle-monster" disabled style="opacity:0.95; cursor:default;">
+                      IN COMBAT (MONSTER)
+                    </button>
+                  ` : (rules.allowMidJoin ? (isSlotLocked ? `
+                    <button class="btn-battle-action btn-battle-disabled" disabled>
+                      ${isJoinedHero ? 'IN HEROES' : 'SLOT FULL'}
+                    </button>
+                  ` : `
+                    <button class="btn-battle-action btn-battle-monster" onclick="claimMonsterRole('${q.id}', 'Standard Monster')">
+                      JOIN MONSTERS (LIVE)
+                    </button>
+                  `) : `
+                    <button class="btn-battle-action btn-battle-disabled" disabled>
+                      BATTLE LIVE
+                    </button>
+                  `)
+                ) : (
+                  isJoinedMonster ? `
+                    <button class="btn-battle-action btn-battle-leave" onclick="abandonMonsterRole('${joinedMonsterClaimId}')">
+                      LEAVE MONSTERS
+                    </button>
+                  ` : (isSlotLocked ? `
+                    <button class="btn-battle-action btn-battle-disabled" disabled>
+                      ${isJoinedHero ? 'IN HEROES' : 'SLOT FULL'}
+                    </button>
+                  ` : `
+                    <button class="btn-battle-action btn-battle-monster" onclick="claimMonsterRole('${q.id}', 'Standard Monster')">
+                      JOIN MONSTERS
+                    </button>
+                  `)
+                )}
+              </div>
             </div>
           </div>
+
+          <!-- Description of the Battle below the Queue Line -->
+          ${q.description ? `<p style="font-size:13px; color:#cbd5e1; margin:12px 0 2px 0; line-height:1.45;">${q.description}</p>` : ''}
         </div>
-
-
-      </div>
+      </details>
     `;
   }
 
