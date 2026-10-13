@@ -168,21 +168,29 @@
           <h2 style="margin:0;">Library</h2>
         </div>
 
-        <div class="qm-subnav" style="margin-bottom:14px;">
+        <div class="qm-subnav library-subnav" style="margin-bottom:14px; display:grid; grid-template-columns:repeat(3, 1fr); gap:6px;">
           <button id="library-subnav-items" class="qm-subnav-btn active" onclick="switchLibrarySubTab('items')">Items</button>
+          <button id="library-subnav-abilities" class="qm-subnav-btn" onclick="switchLibrarySubTab('abilities')">Abilities</button>
           <button id="library-subnav-monsters" class="qm-subnav-btn" onclick="switchLibrarySubTab('monsters')">Monsters</button>
         </div>
 
         <!-- SUB-TAB 1: ITEMS -->
         <div id="library-subtab-items">
-          <div id="library-content-container">
+          <div id="library-content-container" class="store-catalog-list">
             <p class="empty-state">Loading Items...</p>
           </div>
         </div>
 
-        <!-- SUB-TAB 2: MONSTERS -->
+        <!-- SUB-TAB 2: ABILITIES -->
+        <div id="library-subtab-abilities" class="hidden">
+          <div id="library-abilities-container" class="store-catalog-list">
+            <p class="empty-state">Loading Abilities...</p>
+          </div>
+        </div>
+
+        <!-- SUB-TAB 3: MONSTERS -->
         <div id="library-subtab-monsters" class="hidden">
-          <div id="library-monsters-container">
+          <div id="library-monsters-container" class="store-catalog-list">
             <p class="empty-state">Select a monster section or guide.</p>
           </div>
         </div>

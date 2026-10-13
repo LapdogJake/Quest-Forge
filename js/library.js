@@ -6,7 +6,6 @@ const LIBRARY_DATA = [
   {
     id: 'trinkets-rop',
     title: 'Trinkets',
-    subtitle: 'Potions, scrolls & one-use magical items',
     content: `
       <div class="library-section-body">
         <div style="display:flex; flex-direction:column; gap:10px;">
@@ -131,7 +130,6 @@ const LIBRARY_DATA = [
   {
     id: 'talismans-rop',
     title: 'Talismans',
-    subtitle: 'Amulets, bracelets & multi-charge wands',
     content: `
       <div class="library-section-body">
         <div style="display:flex; flex-direction:column; gap:10px;">
@@ -252,7 +250,6 @@ const LIBRARY_DATA = [
   {
     id: 'artifacts-rop',
     title: 'Artifacts',
-    subtitle: 'Unique kingdom-tier legendary relics & weapons',
     content: `
       <div class="library-section-body">
         <div style="display:flex; flex-direction:column; gap:10px;">
@@ -357,7 +354,6 @@ const LIBRARY_DATA = [
   {
     id: 'magic-item-rules',
     title: 'Magic Item Rules',
-    subtitle: 'Official 13-Point Magic Item Rules',
     content: `
       <div class="library-section-body">
         <ol style="margin: 4px 0 8px 20px; padding: 0; font-size: 13px; line-height: 1.6; color: var(--text);">
@@ -381,7 +377,6 @@ const LIBRARY_DATA = [
   {
     id: 'battlegaming-magic-items',
     title: 'Battlegaming With Magic Items',
-    subtitle: 'Reeve authority, game sizes & player item limits',
     content: `
       <div class="library-section-body">
         <p style="margin: 0 0 10px 0; color: var(--text-muted); font-size: 13px; line-height: 1.5;">
@@ -401,46 +396,149 @@ const LIBRARY_DATA = [
   }
 ];
 
-// Render the Library Tab content
+// Render the Library Tab content (matches the items tab category box format)
 function renderLibrary() {
   const container = document.getElementById('library-content-container');
   if (!container) return;
 
   container.innerHTML = LIBRARY_DATA.map((section) => {
     return `
-      <div class="library-card" id="library-section-${section.id}" style="margin-bottom:12px; background:var(--card-bg, #18181b); border:1px solid var(--border, #27272a); border-radius:8px; overflow:hidden;">
-        <div class="accordion-header" onclick="toggleLibraryAccordion('${section.id}')" style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; cursor:pointer; background:rgba(255,255,255,0.02); user-select:none;">
-          <div>
-            <div style="font-weight:bold; font-size:14px; color:var(--text, #f4f4f5);">${section.title}</div>
-            <small style="color:var(--text-muted, #a1a1aa); font-size:11px;">${section.subtitle}</small>
-          </div>
-          <span id="library-chevron-${section.id}" style="font-size:12px; color:var(--text-muted);">▼</span>
-        </div>
-        <div id="library-body-${section.id}" class="accordion-content hidden" style="padding:14px; border-top:1px solid var(--border, #27272a); font-size:13px; line-height:1.5;">
+      <details class="store-category" id="library-section-${section.id}">
+        <summary class="store-category-summary">${section.title}</summary>
+        <div class="store-category-items">
           ${section.content}
         </div>
-      </div>
+      </details>
     `;
   }).join('');
 }
 
-// Sub-tab switching between Items and Monsters
+const ABILITIES_DATA = [
+  {
+    id: 'quest-abilities',
+    title: 'Quest Abilities',
+    items: [
+      {
+        name: 'Affinity for Nature',
+        description: 'Player is in tune with nature, and the beings who live in harmony with nature. This player will generally be considered a friend by such monsters and NPCs. They will also have knowledge about animals and natural locations.'
+      },
+      {
+        name: 'Calm',
+        description: 'Player gives off an aura of calm. This player will have an advantage when negotiating or dealing with non-hostile monsters and NPCs.'
+      },
+      {
+        name: 'Charm',
+        description: 'Player can initiate a performance that entrances a monster or NPC. The monster will not attack anybody for the duration of the performance or until they feel threatened. The performance must be either a song, a joke, a dance, or a story and may last no longer than 2 minutes. 1/Game.'
+      },
+      {
+        name: 'Court Knowledge',
+        description: 'Player is familiar with the customs and behaviors of the royal court. The player will have an advantage when dealing with politicians and nobles.'
+      },
+      {
+        name: 'Disarm Traps',
+        description: 'Player has an affinity for mechanical traps. If this player fails to disarm a trap they fare better than other players.'
+      },
+      {
+        name: 'Hallowed Ground',
+        description: 'Player creates a fixed 20\' radius area where no offensive actions can occur for 2 minutes. Actions that are initiated outside the 20\' radius may still affect individuals in the area. 1/Game.'
+      },
+      {
+        name: 'Magical Knowledge',
+        description: 'Player has experience with reading magical auras. They can detect and identify magical locks and traps. They also have background information about magical beings and locations.'
+      },
+      {
+        name: 'Menace',
+        description: 'Player gives off an aura of menace that can be sensed by hostile monsters and will have an advantage when attempting to intimidate hostile monsters.'
+      },
+      {
+        name: 'Persuasion',
+        description: 'Intelligent monsters and NPCs find the players arguments more convincing than they otherwise would and are more likely to be influenced by the player.'
+      },
+      {
+        name: 'Pick Locks',
+        description: 'Player has an affinity for mechanical locks. If this player fails an attempt to pick a lock they fare better than other players.'
+      },
+      {
+        name: 'Presence',
+        description: 'Player may converse safely with a group of players, monsters, or NPCs so long as the player takes no hostile action towards them. Monsters and NPCs that are not capable of intelligent thought (animals, slimes, mindless undead, etc) are not affected. Players may choose not to converse but may still not harm the player. May not last longer than 3 minutes. May not be used for scouting or reconnaissance. 1/Game.'
+      },
+      {
+        name: 'Talk to Dead',
+        description: 'Dead players, intelligent monsters, and intelligent NPCs can be asked one yes or no question, and must answer truthfully to the best of their ability. May only be used once per target.'
+      },
+      {
+        name: 'Tracker',
+        description: 'Player is an experienced tracker in almost any environment. Player will often be able to determine more information about the kind of monsters and NPCs in the area as well as possible locations of game objectives.'
+      },
+      {
+        name: 'Tribal Knowledge',
+        description: 'Player is familiar with the tribal and clan customs of many cultures. This player will have an edge understanding and negotiating with monsters and NPCs who live in a clan or tribe.'
+      },
+      {
+        name: 'Turn Undead',
+        description: 'Monster and NPC undead (including monsters and NPCs affected by Undead Minion, Vampirism, etc) must stay 50\' away from the player and may not initiate any hostile actions towards them. Any undead that is targeted by a hostile action is no longer affected by Turn Undead and may act normally. Lasts for 2 minutes. 1/Game.'
+      },
+      {
+        name: 'Prepared',
+        description: 'Player is an experienced campaigner and is aware before a Quest starts of any special equipment or circumstances that may be encountered. The reeve in charge of the Quest should privately give the player a brief overview of the monsters and challenges they are likely to encounter.'
+      }
+    ]
+  }
+];
+
+// Render the Abilities Library content (matches the items tab category box format)
+function renderAbilitiesLibrary() {
+  const container = document.getElementById('library-abilities-container');
+  if (!container) return;
+
+  container.innerHTML = ABILITIES_DATA.map((section) => {
+    return `
+      <details class="store-category" id="library-section-${section.id}">
+        <summary class="store-category-summary">${section.title}</summary>
+        <div class="store-category-items">
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            ${section.items.map(item => `
+              <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+                <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">${item.name}</div>
+                <div style="font-size:12px; line-height:1.6; color:var(--text);">
+                  ${item.description}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </details>
+    `;
+  }).join('');
+}
+
+// Sub-tab switching between Items, Abilities, and Monsters
 function switchLibrarySubTab(subTab) {
   const isItems = subTab === 'items';
+  const isAbilities = subTab === 'abilities';
+  const isMonsters = subTab === 'monsters';
+
   const itemsContainer = document.getElementById('library-subtab-items');
+  const abilitiesContainer = document.getElementById('library-subtab-abilities');
   const monstersContainer = document.getElementById('library-subtab-monsters');
+
   const btnItems = document.getElementById('library-subnav-items');
+  const btnAbilities = document.getElementById('library-subnav-abilities');
   const btnMonsters = document.getElementById('library-subnav-monsters');
 
   if (itemsContainer) itemsContainer.classList.toggle('hidden', !isItems);
-  if (monstersContainer) monstersContainer.classList.toggle('hidden', isItems);
+  if (abilitiesContainer) abilitiesContainer.classList.toggle('hidden', !isAbilities);
+  if (monstersContainer) monstersContainer.classList.toggle('hidden', !isMonsters);
 
   if (btnItems) btnItems.classList.toggle('active', isItems);
-  if (btnMonsters) btnMonsters.classList.toggle('active', !isItems);
+  if (btnAbilities) btnAbilities.classList.toggle('active', isAbilities);
+  if (btnMonsters) btnMonsters.classList.toggle('active', isMonsters);
 
   if (isItems) {
     renderLibrary();
-  } else {
+  } else if (isAbilities) {
+    renderAbilitiesLibrary();
+  } else if (isMonsters) {
     renderMonstersLibrary();
   }
 }
@@ -458,24 +556,23 @@ function renderMonstersLibrary() {
 
   container.innerHTML = MONSTERS_DATA.map((section) => {
     return `
-      <div class="library-card" id="library-section-${section.id}" style="margin-bottom:12px; background:var(--card-bg, #18181b); border:1px solid var(--border, #27272a); border-radius:8px; overflow:hidden;">
-        <div class="accordion-header" onclick="toggleLibraryAccordion('${section.id}')" style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; cursor:pointer; background:rgba(255,255,255,0.02); user-select:none;">
-          <div>
-            <div style="font-weight:bold; font-size:14px; color:var(--text, #f4f4f5);">${section.title}</div>
-            <small style="color:var(--text-muted, #a1a1aa); font-size:11px;">${section.subtitle || ''}</small>
-          </div>
-          <span id="library-chevron-${section.id}" style="font-size:12px; color:var(--text-muted);">▼</span>
-        </div>
-        <div id="library-body-${section.id}" class="accordion-content hidden" style="padding:14px; border-top:1px solid var(--border, #27272a); font-size:13px; line-height:1.5;">
+      <details class="store-category" id="library-section-${section.id}">
+        <summary class="store-category-summary">${section.title}</summary>
+        <div class="store-category-items">
           ${section.content}
         </div>
-      </div>
+      </details>
     `;
   }).join('');
 }
 
-// Toggle individual accordion sections
+// Toggle individual accordion sections (supports both details and legacy accordion)
 function toggleLibraryAccordion(sectionId) {
+  const detailsEl = document.getElementById(`library-section-${sectionId}`);
+  if (detailsEl && detailsEl.tagName === 'DETAILS') {
+    detailsEl.open = !detailsEl.open;
+    return;
+  }
   const body = document.getElementById(`library-body-${sectionId}`);
   const chevron = document.getElementById(`library-chevron-${sectionId}`);
   if (!body) return;

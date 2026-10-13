@@ -899,13 +899,15 @@ button:focus-visible, select:focus-visible {
   color: white;
 }
 
-.items-subnav {
+.items-subnav,
+.library-subnav {
   display: grid !important;
   grid-template-columns: repeat(3, 1fr) !important;
   gap: 6px;
 }
 
-.items-subnav .qm-subnav-btn {
+.items-subnav .qm-subnav-btn,
+.library-subnav .qm-subnav-btn {
   flex: none;
   width: 100%;
   padding: 9px 4px;
