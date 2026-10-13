@@ -168,10 +168,9 @@
           <h2 style="margin:0;">Library</h2>
         </div>
 
-        <div class="qm-subnav library-subnav" style="margin-bottom:14px; display:grid; grid-template-columns:repeat(4, 1fr); gap:6px;">
+        <div class="qm-subnav library-subnav" style="margin-bottom:14px; display:grid; grid-template-columns:repeat(3, 1fr); gap:6px;">
           <button id="library-subnav-items" class="qm-subnav-btn active" onclick="switchLibrarySubTab('items')">Items</button>
           <button id="library-subnav-abilities" class="qm-subnav-btn" onclick="switchLibrarySubTab('abilities')">Abilities</button>
-          <button id="library-subnav-durability" class="qm-subnav-btn" onclick="switchLibrarySubTab('durability')">Durability</button>
           <button id="library-subnav-misc" class="qm-subnav-btn" onclick="switchLibrarySubTab('misc')">Misc</button>
         </div>
 
@@ -189,17 +188,10 @@
           </div>
         </div>
 
-        <!-- SUB-TAB 3: DURABILITY -->
-        <div id="library-subtab-durability" class="hidden">
-          <div id="library-durability-container" class="store-catalog-list">
-            <p class="empty-state">Loading Durability...</p>
-          </div>
-        </div>
-
-        <!-- SUB-TAB 4: MISC -->
+        <!-- SUB-TAB 3: MISC -->
         <div id="library-subtab-misc" class="hidden">
           <div id="library-misc-container" class="store-catalog-list">
-            <p class="empty-state">No miscellaneous entries loaded yet.</p>
+            <p class="empty-state">Loading Misc...</p>
           </div>
         </div>
 
@@ -437,11 +429,11 @@
   <!-- Modular Scripts -->
   <script src="js/config.js?v=28"></script>
   <script src="js/state.js?v=28"></script>
-  <script src="js/utils.js?v=28"></script>
+  <script src="js/utils.js?v=40"></script>
   <script src="js/reigns.js?v=28"></script>
   <script src="js/inventory.js?v=28"></script>
   <script src="js/store.js?v=28"></script>
-  <script src="js/library.js?v=35"></script>
+  <script src="js/library.js?v=40"></script>
   <script src="js/encounters.js?v=28"></script>
   <script src="js/quests.js?v=28"></script>
   <script src="js/app.js?v=28"></script>
