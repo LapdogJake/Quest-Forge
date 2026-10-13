@@ -84,12 +84,11 @@ async function fetchUserInventory() {
         return `<div class="item-card">
           <div class="item-info">
             <h4>${itemName}</h4>
-            <small style="color:var(--gold);">Value: ${sellGoldValue}g</small>
             <small style="color:var(--text-muted);">Durability: ${normalizedCurrent}/${durabilityMax}</small>
           </div>
           <div class="item-actions">
             <button class="btn-transfer" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="transferItemStorage('${item.id}', 'bank')">
-              ${isCombatLocked ? '🔒 Locked' : '📦 To Inventory'}
+              ${isCombatLocked ? '🔒 Locked' : 'Inventory ↳'}
             </button>
           </div>
         </div>`;
@@ -124,12 +123,11 @@ async function fetchUserInventory() {
         return `<div class="item-card">
           <div class="item-info">
             <h4>${itemName}</h4>
-            <small style="color:var(--gold);">Value: ${sellGoldValue}g</small>
             <small style="color:var(--text-muted);">Durability: ${normalizedCurrent}/${durabilityMax}</small>
           </div>
           <div class="item-actions">
             <button class="btn-transfer" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="transferItemStorage('${item.id}', 'pouch')">
-              ${isCombatLocked ? '🔒 Locked' : '🎒 To Pouch'}
+              ${isCombatLocked ? '🔒 Locked' : '↰ Pouch'}
             </button>
             <button class="btn-sell" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="sellItem('${item.id}', ${sellGoldValue}, '${itemName}')">
               Sell (${sellGoldValue}g)

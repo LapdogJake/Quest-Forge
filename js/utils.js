@@ -27,6 +27,7 @@ function switchTab(tabName) {
     if (typeof fetchQuests === 'function') fetchQuests();
     if (typeof fetchMonsterEncounters === 'function') fetchMonsterEncounters();
   } else if (isQuestTab) {
+    activeBtn.classList.add('active');
     activeBtn.classList.add('active-quest');
     if (typeof fetchQuests === 'function') fetchQuests();
   } else if (tabName === 'profile') {

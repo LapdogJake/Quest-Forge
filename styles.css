@@ -63,27 +63,16 @@ button:focus-visible, select:focus-visible {
   margin-bottom: 16px;
 }
 
-.card-profile {
-  border-top: 4px solid var(--profile);
-}
-
+.card-profile,
 .card-heroes,
-.card-battles {
-  border-top: 4px solid var(--heroes);
-}
-
+.card-battles,
 .card-adventure,
-.card-quest {
-  border-top: 4px solid var(--quest);
-}
-
-.card-monsters {
-  border-top: 4px solid var(--monster);
-}
-
+.card-quest,
+.card-monsters,
 .card-store,
-.card-items {
-  border-top: 4px solid var(--store);
+.card-items,
+.card-library {
+  border-top: 4px solid #3f3f46;
 }
 
 /* Active Group Affiliation Banner (Stacked Layout) */
@@ -299,8 +288,9 @@ button:focus-visible, select:focus-visible {
 .store-catalog-list details.store-category summary.store-category-summary {
   cursor: pointer;
   padding: 12px 14px;
-  font-weight: 800;
-  color: var(--gold);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
   background: #1e1e22;
   list-style: none;
   user-select: none;
@@ -1263,33 +1253,57 @@ button:focus-visible, select:focus-visible {
 }
 
 .nav-btn.active {
-  color: #ffffff;
   font-weight: 700;
 }
 
-.nav-btn.active .nav-icon {
-  stroke: #ffffff;
-  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.4));
+#nav-profile.active {
+  color: #3B82F6;
+}
+#nav-profile.active .nav-icon {
+  stroke: #3B82F6;
+  filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.55));
 }
 
-.nav-btn.active-adventure,
-.nav-btn.active-quest {
-  color: #34d399;
+#nav-battles.active {
+  color: #C2413B;
+}
+#nav-battles.active .nav-icon {
+  stroke: #C2413B;
+  filter: drop-shadow(0 0 6px rgba(194, 65, 59, 0.55));
 }
 
-.nav-btn.active-adventure .nav-icon,
-.nav-btn.active-quest .nav-icon {
-  stroke: #34d399;
-  filter: drop-shadow(0 0 6px rgba(52, 211, 153, 0.4));
+#nav-adventure.active,
+#nav-adventure.active-quest {
+  color: #D4A72C;
+}
+#nav-adventure.active .nav-icon,
+#nav-adventure.active-quest .nav-icon {
+  stroke: #D4A72C;
+  filter: drop-shadow(0 0 6px rgba(212, 167, 44, 0.55));
 }
 
-.nav-btn.active-monster {
-  color: #f87171;
+#nav-items.active {
+  color: #168568;
+}
+#nav-items.active .nav-icon {
+  stroke: #168568;
+  filter: drop-shadow(0 0 6px rgba(22, 133, 104, 0.55));
 }
 
-.nav-btn.active-monster .nav-icon {
-  stroke: #f87171;
-  filter: drop-shadow(0 0 6px rgba(248, 113, 113, 0.4));
+#nav-library.active {
+  color: #7C5CC4;
+}
+#nav-library.active .nav-icon {
+  stroke: #7C5CC4;
+  filter: drop-shadow(0 0 6px rgba(124, 92, 196, 0.55));
+}
+
+#nav-admin.active {
+  color: #64748B;
+}
+#nav-admin.active .nav-icon {
+  stroke: #64748B;
+  filter: drop-shadow(0 0 6px rgba(100, 116, 139, 0.55));
 }
 
 .hidden {
@@ -1312,9 +1326,6 @@ button:focus-visible, select:focus-visible {
 }
 
 /* Library Compendium Styles */
-.card-library {
-  border-top: 4px solid #38bdf8;
-}
 
 .library-filter-btn {
   background: #1e1e22;

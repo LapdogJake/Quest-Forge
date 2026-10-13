@@ -65,7 +65,6 @@ function renderStoreCatalog() {
           return `<div class="item-card">
             <div class="item-info">
               <h4>${item.item_name}</h4>
-              <small style="color:var(--gold);">Value: ${item.base_cost}g</small>
               <small style="color:var(--text-muted);">Durability: ${maxDur}/${maxDur}</small>
             </div>
             <button class="btn-buy" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="buyItem('${item.item_name}', ${item.base_cost})">
