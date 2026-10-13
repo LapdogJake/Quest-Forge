@@ -116,7 +116,6 @@ const AMTGARD_ROP_QUEST_ABILITY_DETAILS = {
 // Official magic item catalog seed used by the store UI with explicit per-item unique durability
 const STORE_CATALOG = [
   // Trinkets (Durability: 1)
-  { id: 'magic-werewolf-fang', item_name: 'Werewolf Fang', category: 'Trinket', durability_max: 1, base_cost: 4 },
   { id: 'magic-potion-barkskin', item_name: 'Potion of Barkskin', category: 'Trinket', durability_max: 1, base_cost: 3 },
   { id: 'magic-potion-refreshment', item_name: 'Potion of Refreshment', category: 'Trinket', durability_max: 1, base_cost: 3 },
   { id: 'magic-scroll-harden', item_name: 'Scroll of Harden', category: 'Trinket', durability_max: 1, base_cost: 3 },
@@ -127,10 +126,8 @@ const STORE_CATALOG = [
   { id: 'magic-scroll-mend', item_name: 'Scroll of Mend', category: 'Trinket', durability_max: 1, base_cost: 2 },
   { id: 'magic-potion-healing', item_name: 'Potion of Healing', category: 'Trinket', durability_max: 1, base_cost: 1 },
   { id: 'magic-potion-true-death', item_name: 'Potion of True Death', category: 'Trinket', durability_max: 1, base_cost: 1 },
-  { id: 'magic-spooky-doll', item_name: 'Spooky Doll', category: 'Trinket', durability_max: 1, base_cost: 2 },
 
   // Talismans (Durability: 5)
-  { id: 'magic-accursed-blade', item_name: 'The Accursed Blade', category: 'Talismans', durability_max: 5, base_cost: 74 },
   { id: 'magic-bracelet-stoneskin', item_name: 'Bracelet of Stoneskin', category: 'Talismans', durability_max: 5, base_cost: 16 },
   { id: 'magic-bracelet-anti-magic', item_name: 'Bracelet of Anti-Magic', category: 'Talismans', durability_max: 5, base_cost: 16 },
   { id: 'magic-wand-mending', item_name: 'Wand of Mending', category: 'Talismans', durability_max: 5, base_cost: 16 },
@@ -141,19 +138,15 @@ const STORE_CATALOG = [
   { id: 'magic-wand-healing', item_name: 'Wand of Healing', category: 'Talismans', durability_max: 5, base_cost: 10 },
   { id: 'magic-amulet-force', item_name: 'Amulet of Force', category: 'Talismans', durability_max: 5, base_cost: 8 },
   { id: 'magic-bracelet-solidity', item_name: 'Bracelet of Solidity', category: 'Talismans', durability_max: 5, base_cost: 6 },
-  { id: 'magic-forge-mittens', item_name: 'Forge Mittens', category: 'Talismans', durability_max: 5, base_cost: 12 },
 
   // Artifacts (Durability: 20)
   { id: 'magic-michaels-hammer', item_name: "Michael's Hammer", category: 'Artifacts', durability_max: 20, base_cost: 400 },
   { id: 'magic-phase-blade', item_name: 'Phase Blade', category: 'Artifacts', durability_max: 20, base_cost: 360 },
   { id: 'magic-shield-chosen', item_name: 'Shield of the Chosen', category: 'Artifacts', durability_max: 20, base_cost: 280 },
   { id: 'magic-sword-flame', item_name: 'Sword of Flame', category: 'Artifacts', durability_max: 20, base_cost: 240 },
-  { id: 'magic-dagger-infinite-penetration', item_name: 'Dagger of Infinite Penetration', category: 'Artifacts', durability_max: 20, base_cost: 200 },
   { id: 'magic-andalsas-lament', item_name: "Andalsa's Lament", category: 'Artifacts', durability_max: 20, base_cost: 200 },
   { id: 'magic-homestone', item_name: 'Homestone', category: 'Artifacts', durability_max: 20, base_cost: 180 },
   { id: 'magic-nuntius-staff', item_name: 'Nuntius Staff', category: 'Artifacts', durability_max: 20, base_cost: 160 },
   { id: 'magic-cloak-enigmas', item_name: 'Cloak of Enigmas', category: 'Artifacts', durability_max: 20, base_cost: 140 },
-  { id: 'magic-ankh-ran', item_name: 'Ankh of Ran', category: 'Artifacts', durability_max: 20, base_cost: 120 },
-  { id: 'magic-ring-power', item_name: 'Ring of Power', category: 'Artifacts', durability_max: 20, base_cost: 120 },
-  { id: 'magic-horn-resurrection', item_name: 'Horn of Resurrection', category: 'Artifacts', durability_max: 20, base_cost: 100 }
+  { id: 'magic-ankh-ran', item_name: 'Ankh of Ran', category: 'Artifacts', durability_max: 20, base_cost: 120 }
 ];

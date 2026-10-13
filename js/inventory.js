@@ -71,33 +71,31 @@ async function fetchUserInventory() {
       const curCount = pouchCounts[category] || 0;
       const maxCount = (STORAGE_LIMITS.pouch && STORAGE_LIMITS.pouch[category]) || 1;
 
-      const itemsHtml = catItems.length === 0
-        ? `<p class="empty-state" style="padding:12px; margin:0; font-size:13px;">No ${category}s in pouch.</p>`
-        : catItems.map(item => {
-            const itemName = item?.item_name || 'Item';
-            const durabilityMax = getItemDurabilityMax(itemName) || Number(item?.durability_max) || 1;
-            const durabilityCurrent = Number(item?.durability_current !== undefined && item?.durability_current !== null ? item.durability_current : durabilityMax);
-            const normalizedCurrent = Math.max(0, durabilityCurrent);
-            const buyStorePrice = (typeof getItemStorePrice === 'function')
-              ? getItemStorePrice(itemName, item?.base_cost)
-              : Math.max(1, Number(item?.base_cost || 1));
-            const sellGoldValue = calcFn(buyStorePrice, normalizedCurrent, durabilityMax);
+      const itemsHtml = catItems.map(item => {
+        const itemName = item?.item_name || 'Item';
+        const durabilityMax = getItemDurabilityMax(itemName) || Number(item?.durability_max) || 1;
+        const durabilityCurrent = Number(item?.durability_current !== undefined && item?.durability_current !== null ? item.durability_current : durabilityMax);
+        const normalizedCurrent = Math.max(0, durabilityCurrent);
+        const buyStorePrice = (typeof getItemStorePrice === 'function')
+          ? getItemStorePrice(itemName, item?.base_cost)
+          : Math.max(1, Number(item?.base_cost || 1));
+        const sellGoldValue = calcFn(buyStorePrice, normalizedCurrent, durabilityMax);
 
-            return `<div class="item-card">
-              <div class="item-info">
-                <h4>${itemName}</h4>
-                <small style="color:var(--gold);">Value: ${sellGoldValue}g</small>
-                <small style="color:var(--text-muted);">Durability: ${normalizedCurrent}/${durabilityMax}</small>
-              </div>
-              <div class="item-actions">
-                <button class="btn-transfer" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="transferItemStorage('${item.id}', 'bank')">
-                  ${isCombatLocked ? '🔒 Locked' : '📦 To Inventory'}
-                </button>
-              </div>
-            </div>`;
-          }).join('');
+        return `<div class="item-card">
+          <div class="item-info">
+            <h4>${itemName}</h4>
+            <small style="color:var(--gold);">Value: ${sellGoldValue}g</small>
+            <small style="color:var(--text-muted);">Durability: ${normalizedCurrent}/${durabilityMax}</small>
+          </div>
+          <div class="item-actions">
+            <button class="btn-transfer" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="transferItemStorage('${item.id}', 'bank')">
+              ${isCombatLocked ? '🔒 Locked' : '📦 To Inventory'}
+            </button>
+          </div>
+        </div>`;
+      }).join('');
 
-      return `<details class="store-category" open>
+      return `<details class="store-category" ${catItems.length > 0 ? 'open' : ''}>
         <summary class="store-category-summary">${category} (${curCount}/${maxCount})</summary>
         <div class="item-grid store-category-items">
           ${itemsHtml}
@@ -113,36 +111,34 @@ async function fetchUserInventory() {
       const curCount = bankCounts[category] || 0;
       const maxCount = (STORAGE_LIMITS.bank && STORAGE_LIMITS.bank[category]) || 1;
 
-      const itemsHtml = catItems.length === 0
-        ? `<p class="empty-state" style="padding:12px; margin:0; font-size:13px;">No ${category}s in inventory.</p>`
-        : catItems.map(item => {
-            const itemName = item?.item_name || 'Item';
-            const durabilityMax = getItemDurabilityMax(itemName) || Number(item?.durability_max) || 1;
-            const durabilityCurrent = Number(item?.durability_current !== undefined && item?.durability_current !== null ? item.durability_current : durabilityMax);
-            const normalizedCurrent = Math.max(0, durabilityCurrent);
-            const buyStorePrice = (typeof getItemStorePrice === 'function')
-              ? getItemStorePrice(itemName, item?.base_cost)
-              : Math.max(1, Number(item?.base_cost || 1));
-            const sellGoldValue = calcFn(buyStorePrice, normalizedCurrent, durabilityMax);
+      const itemsHtml = catItems.map(item => {
+        const itemName = item?.item_name || 'Item';
+        const durabilityMax = getItemDurabilityMax(itemName) || Number(item?.durability_max) || 1;
+        const durabilityCurrent = Number(item?.durability_current !== undefined && item?.durability_current !== null ? item.durability_current : durabilityMax);
+        const normalizedCurrent = Math.max(0, durabilityCurrent);
+        const buyStorePrice = (typeof getItemStorePrice === 'function')
+          ? getItemStorePrice(itemName, item?.base_cost)
+          : Math.max(1, Number(item?.base_cost || 1));
+        const sellGoldValue = calcFn(buyStorePrice, normalizedCurrent, durabilityMax);
 
-            return `<div class="item-card">
-              <div class="item-info">
-                <h4>${itemName}</h4>
-                <small style="color:var(--gold);">Value: ${sellGoldValue}g</small>
-                <small style="color:var(--text-muted);">Durability: ${normalizedCurrent}/${durabilityMax}</small>
-              </div>
-              <div class="item-actions">
-                <button class="btn-transfer" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="transferItemStorage('${item.id}', 'pouch')">
-                  ${isCombatLocked ? '🔒 Locked' : '🎒 To Pouch'}
-                </button>
-                <button class="btn-sell" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="sellItem('${item.id}', ${sellGoldValue}, '${itemName}')">
-                  Sell (${sellGoldValue}g)
-                </button>
-              </div>
-            </div>`;
-          }).join('');
+        return `<div class="item-card">
+          <div class="item-info">
+            <h4>${itemName}</h4>
+            <small style="color:var(--gold);">Value: ${sellGoldValue}g</small>
+            <small style="color:var(--text-muted);">Durability: ${normalizedCurrent}/${durabilityMax}</small>
+          </div>
+          <div class="item-actions">
+            <button class="btn-transfer" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="transferItemStorage('${item.id}', 'pouch')">
+              ${isCombatLocked ? '🔒 Locked' : '🎒 To Pouch'}
+            </button>
+            <button class="btn-sell" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="sellItem('${item.id}', ${sellGoldValue}, '${itemName}')">
+              Sell (${sellGoldValue}g)
+            </button>
+          </div>
+        </div>`;
+      }).join('');
 
-      return `<details class="store-category" open>
+      return `<details class="store-category" ${catItems.length > 0 ? 'open' : ''}>
         <summary class="store-category-summary">${category} (${curCount}/${maxCount})</summary>
         <div class="item-grid store-category-items">
           ${itemsHtml}
@@ -234,8 +230,6 @@ async function transferItemStorage(itemId, targetLocation) {
     }
   }
 
-  const destTitle = targetLocation === 'pouch' ? '🎒 Pouch' : '🏦 Bank';
-  alert(`📦 Moved "${targetItem.item_name}" to your ${destTitle}!`);
   await fetchUserInventory();
 }
 
