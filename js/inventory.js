@@ -50,11 +50,19 @@ async function fetchUserInventory() {
   const pouchCounts = getStorageSlotCounts(pouchItems);
   const bankCounts = getStorageSlotCounts(bankItems);
 
+  const pouchTrinketMax = (STORAGE_LIMITS.pouch && STORAGE_LIMITS.pouch.Trinket) || 3;
+  const pouchTalismanMax = (STORAGE_LIMITS.pouch && STORAGE_LIMITS.pouch.Talismans) || 2;
+  const pouchArtifactMax = (STORAGE_LIMITS.pouch && STORAGE_LIMITS.pouch.Artifacts) || 1;
+
+  const bankTrinketMax = (STORAGE_LIMITS.bank && STORAGE_LIMITS.bank.Trinket) || 6;
+  const bankTalismanMax = (STORAGE_LIMITS.bank && STORAGE_LIMITS.bank.Talismans) || 4;
+  const bankArtifactMax = (STORAGE_LIMITS.bank && STORAGE_LIMITS.bank.Artifacts) || 2;
+
   if (pouchCapLabel) {
-    pouchCapLabel.innerText = `Trinkets: ${pouchCounts.Trinket}/3 | Talismans: ${pouchCounts.Talismans}/2 | Artifact: ${pouchCounts.Artifacts}/1`;
+    pouchCapLabel.innerText = `Trinkets: ${pouchCounts.Trinket}/${pouchTrinketMax} | Talismans: ${pouchCounts.Talismans}/${pouchTalismanMax} | Artifact: ${pouchCounts.Artifacts}/${pouchArtifactMax}`;
   }
   if (bankCapLabel) {
-    bankCapLabel.innerText = `Trinkets: ${bankCounts.Trinket}/3 | Talismans: ${bankCounts.Talismans}/2 | Artifact: ${bankCounts.Artifacts}/1`;
+    bankCapLabel.innerText = `Trinkets: ${bankCounts.Trinket}/${bankTrinketMax} | Talismans: ${bankCounts.Talismans}/${bankTalismanMax} | Artifact: ${bankCounts.Artifacts}/${bankArtifactMax}`;
   }
 
 
@@ -67,7 +75,7 @@ async function fetchUserInventory() {
   // Render Pouch List
   if (pouchList) {
     if (pouchItems.length === 0) {
-      pouchList.innerHTML = `<p class="empty-state">Your combat pouch is empty. Buy items from the Store or move them from your Bank vault!</p>`;
+      pouchList.innerHTML = `<p class="empty-state">Your combat pouch is empty. Buy items from the Store or move them from your Inventory!</p>`;
     } else {
       pouchList.innerHTML = pouchItems.map(item => {
         const itemName = item?.item_name || 'Item';
@@ -89,7 +97,7 @@ async function fetchUserInventory() {
           </div>
           <div class="item-actions">
             <button class="btn-transfer" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="transferItemStorage('${item.id}', 'bank')">
-              ${isCombatLocked ? '🔒 Locked' : '🏦 To Bank'}
+              ${isCombatLocked ? '🔒 Locked' : '📦 To Inventory'}
             </button>
           </div>
         </div>`;
@@ -100,7 +108,7 @@ async function fetchUserInventory() {
   // Render Bank List
   if (bankList) {
     if (bankItems.length === 0) {
-      bankList.innerHTML = `<p class="empty-state">Your bank vault is empty. Move items from your pouch to protect them safely!</p>`;
+      bankList.innerHTML = `<p class="empty-state">Your inventory is empty. Move items from your pouch to protect them safely!</p>`;
     } else {
       bankList.innerHTML = bankItems.map(item => {
         const itemName = item?.item_name || 'Item';
@@ -117,7 +125,7 @@ async function fetchUserInventory() {
             <h4>${itemName}</h4>
             <small style="color:var(--gold);">Value: ${sellGoldValue}g</small>
             <small style="color:var(--text-muted);">
-              Durability: ${normalizedCurrent}/${durabilityMax} (Safe in Vault)
+              Durability: ${normalizedCurrent}/${durabilityMax} (Safe in Inventory)
             </small>
           </div>
           <div class="item-actions">
@@ -192,7 +200,7 @@ async function transferItemStorage(itemId, targetLocation) {
   });
 
   if (existingInTarget.length >= targetLimit) {
-    const destName = targetLocation === 'pouch' ? 'Pouch' : 'Bank Vault';
+    const destName = targetLocation === 'pouch' ? 'Pouch' : 'Inventory';
     alert(`⚠️ Your ${destName} already contains ${existingInTarget.length}/${targetLimit} ${normalizedCategory}s.\n\nPlease move or sell an item before transferring!`);
     return;
   }

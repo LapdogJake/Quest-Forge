@@ -132,10 +132,10 @@
           </div>
         </div>
 
-        <!-- Subnavigation: Pouch, Bank, Store (Single Line) -->
+        <!-- Subnavigation: Pouch, Inventory, Store (Single Line) -->
         <div class="qm-subnav items-subnav" style="margin-bottom:14px; display:grid; grid-template-columns:repeat(3, 1fr); gap:6px;">
           <button id="items-subnav-pouch" class="qm-subnav-btn active" onclick="switchItemsSubTab('pouch')">🎒 Pouch</button>
-          <button id="items-subnav-bank" class="qm-subnav-btn" onclick="switchItemsSubTab('bank')">🏦 Bank</button>
+          <button id="items-subnav-bank" class="qm-subnav-btn" onclick="switchItemsSubTab('bank')">📦 Inventory</button>
           <button id="items-subnav-store" class="qm-subnav-btn" onclick="switchItemsSubTab('store')">🛒 Store</button>
         </div>
 
@@ -149,21 +149,18 @@
           </div>
         </div>
 
-        <!-- SUB-TAB 2: BANK (Safe Vault Storage) -->
+        <!-- SUB-TAB 2: INVENTORY (Safe Vault Storage) -->
         <div id="items-subtab-bank" class="hidden">
           <div class="storage-capacity-bar" id="bank-capacity-bar">
-            <span id="bank-capacity-summary">Trinkets: 0/3 | Talismans: 0/2 | Artifact: 0/1</span>
+            <span id="bank-capacity-summary">Trinkets: 0/6 | Talismans: 0/4 | Artifact: 0/2</span>
           </div>
           <div id="bank-items-list" class="item-grid" style="margin-top:10px;">
-            <p class="empty-state">Your bank vault is empty.</p>
+            <p class="empty-state">Your inventory is empty.</p>
           </div>
         </div>
 
-        <!-- SUB-TAB 3: STORE (Buy) -->
+        <!-- SUB-TAB 3: STORE -->
         <div id="items-subtab-store" class="hidden">
-          <div class="qm-subnav" style="margin-top:0; margin-bottom:12px; display:flex;">
-            <button id="store-subnav-buy" class="qm-subnav-btn active" style="flex:1; cursor:default;">Buy</button>
-          </div>
 
           <!-- BUY CATALOG -->
           <div id="store-subtab-buy">

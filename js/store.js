@@ -65,7 +65,6 @@ function renderStoreCatalog() {
           return `<div class="item-card">
             <div class="item-info">
               <h4>${item.item_name} <span style="font-size:12px; color:var(--text-muted); font-weight:normal;">(${maxDur} dur)</span></h4>
-              <small style="color:var(--text-muted);">${item.description || ''}</small>
             </div>
             <button class="btn-buy" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="buyItem('${item.item_name}', ${item.base_cost})">
               ${isCombatLocked ? '🔒 In Battle' : `Buy (${item.base_cost}g)`}
@@ -147,7 +146,7 @@ async function buyItem(itemName, cost) {
   } else if (bankCount < bankLimit) {
     destLocation = 'bank';
   } else {
-    alert(`⚠️ Both your Pouch and Bank are full of ${normalizedCategory}s!\n(Pouch: ${pouchCount}/${pouchLimit}, Bank: ${bankCount}/${bankLimit})\n\nPlease sell an item before purchasing more.`);
+    alert(`⚠️ Both your Pouch and Inventory are full of ${normalizedCategory}s!\n(Pouch: ${pouchCount}/${pouchLimit}, Inventory: ${bankCount}/${bankLimit})\n\nPlease sell an item before purchasing more.`);
     return;
   }
 
