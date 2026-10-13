@@ -63,7 +63,7 @@ function syncGoldDisplays(goldAmt) {
 
 // Questmaster Panel sub-navigation
 function switchQMSubTab(subTabName) {
-  const tabs = ['battle', 'quest', 'library', 'queues'];
+  const tabs = ['battle', 'queues', 'items', 'quest', 'library', 'economy'];
   tabs.forEach(tab => {
     const el = document.getElementById(`qm-subtab-${tab}`) || (tab === 'battle' ? document.getElementById('qm-subtab-create') : null);
     if (el) el.classList.add('hidden');

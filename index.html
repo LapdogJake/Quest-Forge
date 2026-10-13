@@ -202,14 +202,13 @@
       <div class="card">
         <h2>👑 Questmaster Panel</h2>
 
-        <div class="qm-subnav">
-          <button id="qm-subnav-battle" class="qm-subnav-btn active" onclick="switchQMSubTab('battle')">⚔️ Forge
-            Battle</button>
+        <div class="qm-subnav qm-subnav-grid">
+          <button id="qm-subnav-battle" class="qm-subnav-btn active" onclick="switchQMSubTab('battle')">⚔️ Forge Battle</button>
+          <button id="qm-subnav-queues" class="qm-subnav-btn" onclick="switchQMSubTab('queues')">⚔️ Battle Catalog</button>
+          <button id="qm-subnav-items" class="qm-subnav-btn" onclick="switchQMSubTab('items')">📦 Items</button>
           <button id="qm-subnav-quest" class="qm-subnav-btn" onclick="switchQMSubTab('quest')">📜 Forge Quest</button>
-          <button id="qm-subnav-queues" class="qm-subnav-btn" onclick="switchQMSubTab('queues')">⚔️ Battle
-            Catalog</button>
-          <button id="qm-subnav-library" class="qm-subnav-btn" onclick="switchQMSubTab('library')">📜 Quest
-            Catalog</button>
+          <button id="qm-subnav-library" class="qm-subnav-btn" onclick="switchQMSubTab('library')">📜 Quest Catalog</button>
+          <button id="qm-subnav-economy" class="qm-subnav-btn" onclick="switchQMSubTab('economy')">🪙 Economy</button>
         </div>
 
         <div
@@ -398,6 +397,24 @@
           <h3 class="section-title" style="color:var(--gold);">⚔️ Battle Catalog</h3>
           <div id="qm-queue-list">
             <p class="empty-state">Loading Battle Catalog...</p>
+          </div>
+        </div>
+
+        <!-- SUB-TAB 5: QM ITEMS -->
+        <div id="qm-subtab-items" class="hidden">
+          <h3 class="section-title" style="color:#a855f7;">📦 QM Item Management</h3>
+          <div class="card" style="background:#18181b; border:1px solid var(--border); padding:16px; border-radius:8px;">
+            <p style="color:var(--text); margin-top:0; font-weight:600;">Magic Items & Inventory Controls</p>
+            <p class="empty-state" style="margin:0;">Configure realm item drops, stock, and durability rules for your active park campaign.</p>
+          </div>
+        </div>
+
+        <!-- SUB-TAB 6: QM ECONOMY -->
+        <div id="qm-subtab-economy" class="hidden">
+          <h3 class="section-title" style="color:var(--gold);">🪙 Realm Economy</h3>
+          <div class="card" style="background:#18181b; border:1px solid var(--border); padding:16px; border-radius:8px;">
+            <p style="color:var(--text); margin-top:0; font-weight:600;">Gold & Reward Treasury</p>
+            <p class="empty-state" style="margin:0;">Manage player gold rewards, treasury balances, and merchant pricing rules for your reign.</p>
           </div>
         </div>
 

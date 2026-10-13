@@ -896,6 +896,25 @@ button:focus-visible, select:focus-visible {
   padding: 9px 4px;
 }
 
+.qm-subnav-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 6px;
+}
+
+.qm-subnav-grid .qm-subnav-btn {
+  flex: none;
+  width: 100%;
+  padding: 8px 4px;
+  font-size: 11px;
+  white-space: normal;
+  line-height: 1.25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+}
+
 /* Form Styling */
 .form-group {
   margin-bottom: 12px;
