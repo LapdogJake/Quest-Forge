@@ -4,7 +4,12 @@
 
 async function initDashboard() {
   try {
-    // 0. Safeguard: If landing on dashboard with password recovery tokens, forward to reset-password.html
+    // 0. Safeguard: If landing on dashboard with password recovery tokens, activate recovery view
+    if (window.__IS_RECOVERY) {
+      activateRecoveryView();
+      return;
+    }
+
     const hash = window.location.hash ? window.location.hash.substring(1) : '';
     const hashParams = new URLSearchParams(hash);
     const searchParams = new URLSearchParams(window.location.search);
@@ -13,7 +18,8 @@ async function initDashboard() {
       searchParams.get('type') === 'recovery' || 
       window.location.hash.includes('type=recovery')
     ) {
-      window.location.replace("reset-password.html" + window.location.search + window.location.hash);
+      window.__IS_RECOVERY = true;
+      activateRecoveryView();
       return;
     }
 
@@ -182,10 +188,124 @@ async function handleSignOut() {
   window.location.href = "login.html";
 }
 
-// Forward recovery auth events to reset-password.html
+// Password Recovery Handlers & View Management
+function togglePasswordVisibility(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.innerText = '🙈';
+  } else {
+    input.type = 'password';
+    btn.innerText = '👁️';
+  }
+}
+
+function activateRecoveryView() {
+  document.documentElement.classList.add('recovery-mode');
+  const mainCont = document.querySelector('main.container');
+  const bottomNav = document.querySelector('nav.bottom-nav');
+  const recView = document.getElementById('recovery-view');
+  if (mainCont) mainCont.classList.add('hidden');
+  if (bottomNav) bottomNav.classList.add('hidden');
+  if (recView) recView.classList.remove('hidden');
+
+  // Check for error parameters in URL (e.g., expired or invalid token)
+  const hash = window.location.hash ? window.location.hash.substring(1) : '';
+  const hashParams = new URLSearchParams(hash);
+  const searchParams = new URLSearchParams(window.location.search);
+  const urlError = hashParams.get('error_description') ||
+                   searchParams.get('error_description') ||
+                   hashParams.get('error') ||
+                   searchParams.get('error');
+
+  const errSection = document.getElementById('recovery-error-section');
+  const errText = document.getElementById('recovery-error-text');
+  const form = document.getElementById('recovery-form');
+
+  if (urlError) {
+    if (form) form.classList.add('hidden');
+    if (errSection) errSection.classList.remove('hidden');
+    if (errText) errText.innerText = "⚠️ " + decodeURIComponent(urlError.replace(/\+/g, ' '));
+  } else {
+    if (form) form.classList.remove('hidden');
+    if (errSection) errSection.classList.add('hidden');
+  }
+}
+
+async function handleRecoverySubmit(e) {
+  if (e) e.preventDefault();
+  const pass = document.getElementById('recovery-pass')?.value;
+  const confirmPass = document.getElementById('recovery-confirm-pass')?.value;
+  const statusEl = document.getElementById('recovery-status');
+  const btn = document.getElementById('btn-recovery-submit');
+
+  if (!pass || !confirmPass) {
+    if (statusEl) {
+      statusEl.style.color = "#f87171";
+      statusEl.innerText = "Please fill out both password fields.";
+    }
+    return;
+  }
+
+  if (pass.length < 6) {
+    if (statusEl) {
+      statusEl.style.color = "#f87171";
+      statusEl.innerText = "Password must be at least 6 characters long.";
+    }
+    return;
+  }
+
+  if (pass !== confirmPass) {
+    if (statusEl) {
+      statusEl.style.color = "#f87171";
+      statusEl.innerText = "Passwords do not match.";
+    }
+    return;
+  }
+
+  if (btn) btn.disabled = true;
+  if (statusEl) {
+    statusEl.style.color = "#c084fc";
+    statusEl.innerText = "Updating password...";
+  }
+
+  try {
+    const { data, error } = await supabaseClient.auth.updateUser({ password: pass });
+    if (error) {
+      if (statusEl) {
+        statusEl.style.color = "#f87171";
+        statusEl.innerText = error.message;
+      }
+      if (btn) btn.disabled = false;
+    } else {
+      if (statusEl) {
+        statusEl.style.color = "#86efac";
+        statusEl.innerText = "✨ Password successfully updated! Redirecting to Realm...";
+      }
+      setTimeout(() => {
+        // Clean URL from hash tokens and load clean dashboard
+        window.location.href = window.location.origin + window.location.pathname;
+      }, 1500);
+    }
+  } catch (err) {
+    if (statusEl) {
+      statusEl.style.color = "#f87171";
+      statusEl.innerText = err.message || "Failed to update password.";
+    }
+    if (btn) btn.disabled = false;
+  }
+}
+
+window.togglePasswordVisibility = togglePasswordVisibility;
+window.activateRecoveryView = activateRecoveryView;
+window.handleRecoverySubmit = handleRecoverySubmit;
+
+// Listen for recovery auth events
 supabaseClient.auth.onAuthStateChange((event) => {
   if (event === 'PASSWORD_RECOVERY') {
-    window.location.replace("reset-password.html" + window.location.search + window.location.hash);
+    window.__IS_RECOVERY = true;
+    activateRecoveryView();
   }
 });
 

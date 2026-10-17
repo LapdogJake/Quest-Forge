@@ -38,6 +38,32 @@ async function fetchUserInventory() {
     return;
   }
 
+  // Detect newly awarded mystery loot for the logged-in player
+  try {
+    const lastSeenKey = 'qf_last_inventory_seen_' + currentUser.id;
+    const lastSeen = localStorage.getItem(lastSeenKey);
+    const nowIso = new Date().toISOString();
+
+    if (!lastSeen) {
+      // First visit: initialize baseline timestamp so we don't alert on historic items
+      localStorage.setItem(lastSeenKey, nowIso);
+    } else {
+      const lastSeenTime = new Date(lastSeen).getTime();
+      const newMysteryItems = (allParkItems || []).filter(item => {
+        if (!item.created_at) return false;
+        return new Date(item.created_at).getTime() > lastSeenTime;
+      });
+
+      if (newMysteryItems.length > 0) {
+        localStorage.setItem(lastSeenKey, nowIso);
+        const itemLines = newMysteryItems.map(i => `• ${i.item_name} (${i.storage_location === 'bank' ? '🏦 Bank' : '🎒 Pouch'})`).join('\n');
+        alert(`🎲 NEW MYSTERY LOOT RECEIVED!\n\nA Quest Master awarded you loot:\n${itemLines}`);
+      }
+    }
+  } catch (notifErr) {
+    console.warn("Could not check for new inventory notifications", notifErr);
+  }
+
   const parkInventory = (allParkItems || []).filter(item => !item.qm_id || !activeQMId || item.qm_id === activeQMId);
 
   // Normalize storage_location (default to 'pouch' if null or missing)

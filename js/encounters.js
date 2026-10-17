@@ -702,9 +702,16 @@ async function qmFinishBattle(queueId, questId, victoryGold, defeatGold, explici
     ? pcUserIds 
     : (rules.monstersAreNpc ? [] : monsterUserIds);
 
-  const lootDropPromise = (rules.rngLootDrops && winningUserIds.length > 0)
-    ? rollItemLootDrops(winningUserIds, true)
-    : Promise.resolve();
+  let lootNotice = '';
+  if (rules.rngLootDrops && winningUserIds.length > 0 && typeof rollItemLootDrops === 'function') {
+    const battleDrops = await rollItemLootDrops(winningUserIds, true, questData?.qm_id, questData?.park, questData?.kingdom);
+    if (battleDrops && battleDrops.length > 0) {
+      const dropDetails = battleDrops.map(d => `• ${d.username}: ${d.items.join(', ')}`).join('\n');
+      lootNotice = `\n\n🎲 MYSTERY LOOT DROPS:\n${dropDetails}`;
+    } else {
+      lootNotice = `\n\n🎲 Mystery Loot: Rolls were cast for ${winningUserIds.length} winner(s), but no items dropped.`;
+    }
+  }
 
   // 7. Mark queues completed and close battle quest
   const queueUpdates = [];
@@ -716,18 +723,18 @@ async function qmFinishBattle(queueId, questId, victoryGold, defeatGold, explici
     queueUpdates.push(supabaseClient.from('quests').update({ is_active: false }).eq('id', questId));
   }
 
-  await Promise.allSettled([...heroPayouts, ...monsterPayouts, ...heroDurabilityWear, ...monsterDurabilityWear, ...defeatPenaltyPromises, lootDropPromise, ...queueUpdates]);
+  await Promise.allSettled([...heroPayouts, ...monsterPayouts, ...heroDurabilityWear, ...monsterDurabilityWear, ...defeatPenaltyPromises, ...queueUpdates]);
 
-  alert(`🎉 Battle finished! ${victorName} victorious!\nRewards distributed and combat results processed.`);
+  alert(`🎉 Battle finished! ${victorName} victorious!\nRewards distributed and combat results processed.${lootNotice}`);
   initDashboard();
 }
 
 // Roll Mystery Item Loot Drops for winning adventurers
-async function rollItemLootDrops(winnerUserIds, isBattle = true) {
-  if (!Array.isArray(winnerUserIds) || winnerUserIds.length === 0) return;
-  const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
-  const activeKingdom = typeof getActiveKingdom === 'function' ? getActiveKingdom() : (typeof getActiveKingdom === 'function' ? getActiveKingdom() : "The Freeholds of Amtgard");
-  const activeQMId = currentQMId || null;
+async function rollItemLootDrops(winnerUserIds, isBattle = true, customQMId = null, customPark = null, customKingdom = null) {
+  if (!Array.isArray(winnerUserIds) || winnerUserIds.length === 0) return [];
+  const activePark = customPark || (typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest"));
+  const activeKingdom = customKingdom || (typeof getActiveKingdom === 'function' ? getActiveKingdom() : "The Freeholds of Amtgard");
+  const activeQMId = (customQMId !== undefined && customQMId !== null) ? customQMId : (currentQMId || null);
 
   const trinketItems = STORE_CATALOG.filter(i => i.category === 'Trinket' || i.category === 'Trinkets');
   const talismanItems = STORE_CATALOG.filter(i => i.category === 'Talisman' || i.category === 'Talismans');
@@ -736,6 +743,23 @@ async function rollItemLootDrops(winnerUserIds, isBattle = true) {
   const trinketConfig = (typeof RNG_LOOT_DROP_RATES !== 'undefined' && RNG_LOOT_DROP_RATES.trinket) || { rolls: 3, chance: 0.25 };
   const talismanConfig = (typeof RNG_LOOT_DROP_RATES !== 'undefined' && RNG_LOOT_DROP_RATES.talisman) || { rolls: 2, chance: 0.05 };
   const artifactConfig = (typeof RNG_LOOT_DROP_RATES !== 'undefined' && RNG_LOOT_DROP_RATES.artifact) || { rolls: 1, chance: 1 / 250 };
+
+  // Fetch usernames so we can report drops clearly to the QM & UI
+  let usernameMap = new Map();
+  try {
+    const { data: userProfiles } = await supabaseClient
+      .from('profiles')
+      .select('id, username')
+      .in('id', winnerUserIds);
+
+    (userProfiles || []).forEach(p => {
+      if (p && p.id) usernameMap.set(p.id, p.username || 'Adventurer');
+    });
+  } catch (err) {
+    console.warn("Could not fetch user profiles for loot drop report", err);
+  }
+
+  const allAwardedDrops = [];
 
   for (const uid of winnerUserIds) {
     const wonItems = [];
@@ -767,11 +791,15 @@ async function rollItemLootDrops(winnerUserIds, isBattle = true) {
     if (wonItems.length === 0) continue;
 
     // Fetch user inventory to check capacity
-    const { data: userItems } = await supabaseClient
+    const { data: userItems, error: invFetchErr } = await supabaseClient
       .from('user_inventory')
       .select('*')
       .eq('user_id', uid)
       .eq('park', activePark);
+
+    if (invFetchErr) {
+      console.error(`Error fetching inventory for user ${uid} during loot roll:`, invFetchErr);
+    }
 
     const parkItems = (userItems || []).filter(item => !item.qm_id || !activeQMId || item.qm_id === activeQMId);
     let runningPouch = parkItems.filter(item => !item.storage_location || item.storage_location === 'pouch');
@@ -786,8 +814,8 @@ async function rollItemLootDrops(winnerUserIds, isBattle = true) {
       if (normCat === 'Artifact' || normCat === 'Legendary') normCat = 'Artifacts';
       if (normCat === 'Trinkets') normCat = 'Trinket';
 
-      const pouchLimit = (STORAGE_LIMITS.pouch && STORAGE_LIMITS.pouch[normCat]) || 1;
-      const bankLimit = (STORAGE_LIMITS.bank && STORAGE_LIMITS.bank[normCat]) || 1;
+      const pouchLimit = (STORAGE_LIMITS.pouch && (STORAGE_LIMITS.pouch[normCat] || STORAGE_LIMITS.pouch[cat])) || 1;
+      const bankLimit = (STORAGE_LIMITS.bank && (STORAGE_LIMITS.bank[normCat] || STORAGE_LIMITS.bank[cat])) || 1;
 
       const pouchCount = runningPouch.filter(i => {
         let c = getCategoryForItemName(i.item_name);
@@ -813,7 +841,7 @@ async function rollItemLootDrops(winnerUserIds, isBattle = true) {
       }
 
       if (!destLocation) {
-        // Drop cannot be stored because both pouch and bank are full
+        console.warn(`Loot drop: User ${uid} has full pouch and bank for ${normCat}. Item "${item.item_name}" could not be stored.`);
         continue;
       }
 
@@ -832,18 +860,45 @@ async function rollItemLootDrops(winnerUserIds, isBattle = true) {
         qm_id: activeQMId
       };
 
-      const { error: insErr } = await supabaseClient.from('user_inventory').insert(payload);
-      if (!insErr) {
+      let insPayload = { ...payload };
+      let { error: insErr } = await supabaseClient.from('user_inventory').insert(insPayload);
+      if (insErr && insErr.message && insErr.message.includes('qm_id')) {
+        delete insPayload.qm_id;
+        const retry = await supabaseClient.from('user_inventory').insert(insPayload);
+        insErr = retry.error;
+      }
+      if (insErr && insErr.message && insErr.message.includes('storage_location')) {
+        delete insPayload.storage_location;
+        const retry = await supabaseClient.from('user_inventory').insert(insPayload);
+        insErr = retry.error;
+      }
+
+      if (insErr) {
+        console.error(`Failed to insert loot drop item "${item.item_name}" for user ${uid}:`, insErr);
+      } else {
         awardedNames.push(`${item.item_name} (${destLocation === 'pouch' ? '🎒 Pouch' : '🏦 Bank'})`);
         if (destLocation === 'pouch') runningPouch.push(payload);
         else runningBank.push(payload);
       }
     }
 
-    if (currentUser && currentUser.id === uid && awardedNames.length > 0) {
-      alert(`🎲 MYSTERY LOOT DROP!\n\nYou discovered:\n• ${awardedNames.join('\n• ')}`);
+    if (awardedNames.length > 0) {
+      allAwardedDrops.push({
+        userId: uid,
+        username: usernameMap.get(uid) || 'Adventurer',
+        items: awardedNames
+      });
+
+      if (currentUser && currentUser.id === uid) {
+        alert(`🎲 MYSTERY LOOT DROP!\n\nYou discovered:\n• ${awardedNames.join('\n• ')}`);
+        try {
+          localStorage.setItem('qf_last_inventory_seen_' + currentUser.id, new Date().toISOString());
+        } catch (e) {}
+      }
     }
   }
+
+  return allAwardedDrops;
 }
 
 async function executeDefeatPenalty(userId, penalty) {

@@ -5,8 +5,36 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Dashboard</title>
+  <script>
+    // Immediate recovery detection before Supabase-js or any client scripts touch URL tokens
+    (function () {
+      var hash = window.location.hash || '';
+      var search = window.location.search || '';
+      var params = new URLSearchParams(hash.startsWith('#') ? hash.substring(1) : hash);
+      var sParams = new URLSearchParams(search);
+      var isRecovery = params.get('type') === 'recovery' ||
+                       sParams.get('type') === 'recovery' ||
+                       hash.includes('type=recovery') ||
+                       search.includes('type=recovery');
+      var isError = params.get('error') || sParams.get('error') ||
+                    params.get('error_description') || sParams.get('error_description');
+      if (isRecovery || (isError && (hash.includes('type=recovery') || search.includes('type=recovery')))) {
+        window.__IS_RECOVERY = true;
+        document.documentElement.classList.add('recovery-mode');
+      }
+    })();
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="styles.css?v=23">
+  <style>
+    html.recovery-mode main.container,
+    html.recovery-mode nav.bottom-nav {
+      display: none !important;
+    }
+    html.recovery-mode #recovery-view {
+      display: block !important;
+    }
+  </style>
 </head>
 
 <body>
@@ -397,6 +425,65 @@
     </section>
 
   </main>
+
+  <!-- Dedicated Recovery / Reset Password View -->
+  <div id="recovery-view" class="container hidden" style="max-width: 440px; margin: 40px auto; padding: 16px;">
+    <div class="card" style="padding: 24px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); box-shadow: 0 4px 24px rgba(0,0,0,0.45);">
+      
+      <!-- Header -->
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h1 style="font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #c084fc 0%, #a855f7 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 6px;">
+          Choose New Password
+        </h1>
+        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4;">
+          Please enter and confirm your new password below.
+        </p>
+      </div>
+
+      <!-- Error State (e.g. Expired Link) -->
+      <div id="recovery-error-section" class="hidden" style="margin-bottom: 16px;">
+        <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid #ef4444; border-radius: 8px; padding: 12px; color: #fca5a5; font-size: 13px; line-height: 1.4;" id="recovery-error-text">
+          ⚠️ This password reset link has expired or is invalid.
+        </div>
+        <a href="login.html?forgot=1" class="btn btn-primary" style="display: block; width: 100%; text-align: center; padding: 12px; font-size: 14px; font-weight: bold; border-radius: 8px; margin-top: 12px; text-decoration: none;">
+          Request New Reset Link
+        </a>
+        <div style="text-align: center; margin-top: 12px;">
+          <a href="login.html" style="font-size: 13px; color: #c084fc; text-decoration: none; font-weight: 600;">Back to Log In</a>
+        </div>
+      </div>
+
+      <!-- Form State -->
+      <form id="recovery-form" onsubmit="handleRecoverySubmit(event)">
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label for="recovery-pass" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; letter-spacing: 0.5px;">New Password</label>
+          <div style="position: relative; display: flex; align-items: center;">
+            <input type="password" id="recovery-pass" placeholder="••••••••" autocomplete="new-password" style="width: 100%; padding: 12px; padding-right: 42px; border-radius: 8px; border: 1px solid #3f3f46; background: #27272a; color: white; font-size: 15px;" required minlength="6">
+            <button type="button" onclick="togglePasswordVisibility('recovery-pass', this)" style="position: absolute; right: 10px; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; width: auto; padding: 4px;" title="Show/hide password">👁️</button>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label for="recovery-confirm-pass" style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; letter-spacing: 0.5px;">Confirm New Password</label>
+          <div style="position: relative; display: flex; align-items: center;">
+            <input type="password" id="recovery-confirm-pass" placeholder="••••••••" autocomplete="new-password" style="width: 100%; padding: 12px; padding-right: 42px; border-radius: 8px; border: 1px solid #3f3f46; background: #27272a; color: white; font-size: 15px;" required minlength="6">
+            <button type="button" onclick="togglePasswordVisibility('recovery-confirm-pass', this)" style="position: absolute; right: 10px; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; width: auto; padding: 4px;" title="Show/hide password">👁️</button>
+          </div>
+        </div>
+
+        <button type="submit" id="btn-recovery-submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 15px; font-weight: bold; border-radius: 8px;">
+          Update Password
+        </button>
+
+        <div id="recovery-status" style="margin-top: 12px; font-size: 13px; text-align: center; line-height: 1.4;"></div>
+
+        <div style="margin-top: 16px; text-align: center; font-size: 13px; color: var(--text-muted);">
+          <a href="login.html" style="color: #c084fc; font-weight: bold; text-decoration: none;">Back to Log In</a>
+        </div>
+      </form>
+
+    </div>
+  </div>
 
   <!-- Bottom Navigation -->
   <nav class="bottom-nav">

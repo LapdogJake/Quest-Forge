@@ -905,8 +905,15 @@ async function qmVerifyCompleteQuest(userQuestId, userId, questId, rewardGold, q
     // 3. Trigger RNG Loot Drops if quest has them enabled
     const { data: qData } = await supabaseClient.from('quests').select('*').eq('id', questId).maybeSingle();
     const rules = typeof getQuestDurabilityRules === 'function' ? getQuestDurabilityRules(qData) : { rngLootDrops: false };
+    let lootNotice = '';
     if (rules.rngLootDrops && typeof rollItemLootDrops === 'function') {
-      await rollItemLootDrops([userId], false);
+      const dropResults = await rollItemLootDrops([userId], false, qData?.qm_id, qData?.park, qData?.kingdom);
+      if (dropResults && dropResults.length > 0 && dropResults[0].items && dropResults[0].items.length > 0) {
+        const drop = dropResults[0];
+        lootNotice = `\n\n🎲 MYSTERY LOOT DROPPED!\n${drop.username} received:\n• ${drop.items.join('\n• ')}`;
+      } else {
+        lootNotice = `\n\n🎲 Mystery Loot: Roll cast, but no items dropped.`;
+      }
     }
 
     // 4. Check if max completions reached
@@ -921,12 +928,12 @@ async function qmVerifyCompleteQuest(userQuestId, userId, questId, rewardGold, q
       if (totalCompleted >= maxCompletions) {
         // Auto close field openings
         await supabaseClient.from('quests').update({ is_active: false }).eq('id', questId);
-        alert(`🏆 Quest "${questTitle}" finished! Max completions (${maxCompletions}/${maxCompletions}) reached. Quest is now closed on the field.`);
+        alert(`🏆 Quest "${questTitle}" finished! Max completions (${maxCompletions}/${maxCompletions}) reached. Quest is now closed on the field.${lootNotice}`);
       } else {
-        alert(`✨ Quest verified! +${rewardGold}g awarded to player (${totalCompleted}/${maxCompletions} completed).`);
+        alert(`✨ Quest verified! +${rewardGold}g awarded to player (${totalCompleted}/${maxCompletions} completed).${lootNotice}`);
       }
     } else {
-      alert(`✨ Quest verified! +${rewardGold}g awarded to player.`);
+      alert(`✨ Quest verified! +${rewardGold}g awarded to player.${lootNotice}`);
     }
 
     await fetchQMQuests();
@@ -1364,7 +1371,7 @@ async function completeQuest(userQuestId, rewardGold) {
 
   // Roll Mystery Item Loot Drops if enabled on quest
   if (rules.rngLootDrops && typeof rollItemLootDrops === 'function') {
-    await rollItemLootDrops([currentUser.id], isCombat);
+    await rollItemLootDrops([currentUser.id], isCombat, uq?.quests?.qm_id, uq?.quests?.park, uq?.quests?.kingdom);
   }
 
   initDashboard();

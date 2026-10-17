@@ -194,6 +194,12 @@ async function buyItem(itemName, cost) {
 
   const destName = destLocation === 'pouch' ? '🎒 Pouch' : '🏦 Bank Vault';
   alert(`🛒 Purchased ${itemName} for ${cost} Gold!\n(Placed in ${destName})`);
+
+  try {
+    if (currentUser && currentUser.id) {
+      localStorage.setItem('qf_last_inventory_seen_' + currentUser.id, new Date().toISOString());
+    }
+  } catch (e) {}
   
   if (typeof fetchUserInventory === 'function') {
     await fetchUserInventory();
