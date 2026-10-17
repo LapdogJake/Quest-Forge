@@ -13,6 +13,7 @@ async function initDashboard() {
     const hash = window.location.hash ? window.location.hash.substring(1) : '';
     const hashParams = new URLSearchParams(hash);
     const searchParams = new URLSearchParams(window.location.search);
+
     if (
       hashParams.get('type') === 'recovery' || 
       searchParams.get('type') === 'recovery' || 
@@ -24,9 +25,6 @@ async function initDashboard() {
     }
 
     // Check for incoming email verification redirects
-    const hash = window.location.hash ? window.location.hash.substring(1) : '';
-    const hashParams = new URLSearchParams(hash);
-    const searchParams = new URLSearchParams(window.location.search);
     const authType = hashParams.get('type') || searchParams.get('type');
     const isVerificationRedirect = authType === 'signup' || authType === 'email_change' || authType === 'magiclink';
 
