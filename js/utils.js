@@ -2,6 +2,26 @@
 // Quest-Forge: Core Navigation & Utility Functions
 // ==============================================================================
 
+// Determine whether a user has explicitly verified their email address via confirmation link / OTP
+function isUserEmailVerified(user) {
+  if (!user) return false;
+  
+  // 1. Explicitly verified in user metadata via verification link / OTP
+  if (user.user_metadata?.email_verified === true) return true;
+
+  // 2. Verified via OAuth provider (e.g. Google, Discord pre-verifies email)
+  if (user.app_metadata?.provider && user.app_metadata.provider !== 'email') return true;
+
+  // 3. User authenticated or verified via email OTP / magic link
+  if (Array.isArray(user.amr)) {
+    const hasOtpVerification = user.amr.some(entry => entry.method === 'otp' || entry.method === 'magiclink');
+    if (hasOtpVerification) return true;
+  }
+
+  return false;
+}
+window.isUserEmailVerified = isUserEmailVerified;
+
 // Main Navigation Tab Switching
 function switchTab(tabName) {
   document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));

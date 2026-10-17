@@ -30,6 +30,15 @@ async function initDashboard() {
 
     if (isVerificationRedirect) {
       window.history.replaceState(null, '', window.location.pathname);
+      try {
+        await supabaseClient.auth.updateUser({ data: { email_verified: true } });
+        if (currentUser) {
+          if (!currentUser.user_metadata) currentUser.user_metadata = {};
+          currentUser.user_metadata.email_verified = true;
+        }
+      } catch (e) {
+        console.warn("Could not set email_verified in user_metadata:", e);
+      }
       alert("🎉 Email verified successfully! Your account is now confirmed, and you are eligible to become a Questmaster.");
     }
 
@@ -151,7 +160,9 @@ function renderEmailVerificationStatus() {
   const container = document.getElementById('profile-email-status');
   if (!container || !currentUser) return;
 
-  const isConfirmed = Boolean(currentUser.email_confirmed_at || currentUser.confirmed_at || currentUser.user_metadata?.email_verified);
+  const isConfirmed = typeof isUserEmailVerified === 'function' 
+    ? isUserEmailVerified(currentUser) 
+    : Boolean(currentUser.user_metadata?.email_verified);
 
   if (isConfirmed) {
     container.innerHTML = `
@@ -195,35 +206,13 @@ async function handleResendVerificationEmail() {
   try {
     const redirectUrl = new URL('index.html', window.location.href).href;
 
-    // First try resend for signup confirmation
-    let { error } = await supabaseClient.auth.resend({
-      type: 'signup',
+    // Send a secure verification link to the user's email address
+    const { error } = await supabaseClient.auth.signInWithOtp({
       email: currentUser.email,
       options: {
         emailRedirectTo: redirectUrl
       }
     });
-
-    if (error && error.message && error.message.toLowerCase().includes('already confirmed')) {
-      const { data: fresh } = await supabaseClient.auth.getUser();
-      if (fresh?.user) {
-        currentUser = fresh.user;
-        renderEmailVerificationStatus();
-      }
-      alert("✅ Your email is already confirmed and verified!");
-      return;
-    }
-
-    if (error) {
-      // Fallback to signInWithOtp if signup resend fails (e.g. if provider type requires magic link)
-      const otpRes = await supabaseClient.auth.signInWithOtp({
-        email: currentUser.email,
-        options: {
-          emailRedirectTo: redirectUrl
-        }
-      });
-      error = otpRes.error;
-    }
 
     if (error) {
       alert("⚠️ Could not send verification email: " + error.message);

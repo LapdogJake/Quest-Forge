@@ -344,13 +344,18 @@ async function handleBecomeQM() {
     return;
   }
 
-  let isEmailConfirmed = Boolean(currentUser.email_confirmed_at || currentUser.confirmed_at || currentUser.user_metadata?.email_verified);
+  let isEmailConfirmed = typeof isUserEmailVerified === 'function' 
+    ? isUserEmailVerified(currentUser) 
+    : Boolean(currentUser.user_metadata?.email_verified);
+
   if (!isEmailConfirmed) {
     try {
       const { data: freshUser } = await supabaseClient.auth.getUser();
       if (freshUser?.user) {
         currentUser = freshUser.user;
-        isEmailConfirmed = Boolean(currentUser.email_confirmed_at || currentUser.confirmed_at || currentUser.user_metadata?.email_verified);
+        isEmailConfirmed = typeof isUserEmailVerified === 'function' 
+          ? isUserEmailVerified(currentUser) 
+          : Boolean(currentUser.user_metadata?.email_verified);
       }
     } catch (e) {}
   }
