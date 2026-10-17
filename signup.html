@@ -233,6 +233,7 @@
         email: email,
         password: password,
         options: { 
+          emailRedirectTo: new URL('index.html', window.location.href).href,
           data: { 
             username: username,
             kingdom: kingdom,

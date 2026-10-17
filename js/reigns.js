@@ -344,9 +344,23 @@ async function handleBecomeQM() {
     return;
   }
 
-  const isEmailConfirmed = Boolean(currentUser.email_confirmed_at || currentUser.confirmed_at);
+  let isEmailConfirmed = Boolean(currentUser.email_confirmed_at || currentUser.confirmed_at || currentUser.user_metadata?.email_verified);
   if (!isEmailConfirmed) {
-    alert("⚠️ Email Verification Required:\n\nOnly confirmed email accounts can become Questmasters!\n\nPlease check your email for the confirmation link, or click 'Resend Link' under your Profile tab.");
+    try {
+      const { data: freshUser } = await supabaseClient.auth.getUser();
+      if (freshUser?.user) {
+        currentUser = freshUser.user;
+        isEmailConfirmed = Boolean(currentUser.email_confirmed_at || currentUser.confirmed_at || currentUser.user_metadata?.email_verified);
+      }
+    } catch (e) {}
+  }
+
+  if (!isEmailConfirmed) {
+    alert(
+      "⚠️ Email Verification Required:\n\n" +
+      "Only players with a confirmed email address can become a Questmaster!\n\n" +
+      "Please click 'Confirm Email' under your Profile tab to receive a verification link, then verify your email before registering as a Questmaster."
+    );
     return;
   }
 

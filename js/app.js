@@ -23,13 +23,31 @@ async function initDashboard() {
       return;
     }
 
+    // Check for incoming email verification redirects
+    const hash = window.location.hash ? window.location.hash.substring(1) : '';
+    const hashParams = new URLSearchParams(hash);
+    const searchParams = new URLSearchParams(window.location.search);
+    const authType = hashParams.get('type') || searchParams.get('type');
+    const isVerificationRedirect = authType === 'signup' || authType === 'email_change' || authType === 'magiclink';
+
+    if (isVerificationRedirect) {
+      window.history.replaceState(null, '', window.location.pathname);
+      alert("🎉 Email verified successfully! Your account is now confirmed, and you are eligible to become a Questmaster.");
+    }
+
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (!session) {
       window.location.href = "login.html";
       return;
     }
 
-    currentUser = session.user;
+    // Always fetch fresh user record from Supabase Auth to guarantee up-to-date verification status
+    try {
+      const { data: freshUser } = await supabaseClient.auth.getUser();
+      currentUser = freshUser?.user || session.user;
+    } catch (e) {
+      currentUser = session.user;
+    }
 
     const { data: profile } = await supabaseClient
       .from('profiles')
@@ -135,10 +153,14 @@ function renderEmailVerificationStatus() {
   const container = document.getElementById('profile-email-status');
   if (!container || !currentUser) return;
 
-  const isConfirmed = Boolean(currentUser.email_confirmed_at || currentUser.confirmed_at);
+  const isConfirmed = Boolean(currentUser.email_confirmed_at || currentUser.confirmed_at || currentUser.user_metadata?.email_verified);
 
   if (isConfirmed) {
-    container.innerHTML = '';
+    container.innerHTML = `
+      <div style="margin-bottom:8px; display:flex; align-items:center; gap:8px;">
+        <span class="badge badge-verified" style="font-size:11px; padding:4px 10px;">🛡️ Email Confirmed</span>
+      </div>
+    `;
   } else {
     container.innerHTML = `
       <div class="email-verify-box" style="margin-bottom:8px;">
@@ -146,11 +168,21 @@ function renderEmailVerificationStatus() {
           <span style="font-weight:bold; color:#fca5a5; font-size:12px;">⚠️ Email Not Confirmed</span>
           <small style="display:block; color:var(--text-muted); font-size:11px;">Verification is required to become a Questmaster</small>
         </div>
-        <button id="btn-resend-verify" class="btn-secondary" style="padding:5px 10px; font-size:11px; margin:0;" onclick="handleResendVerificationEmail()">
-          Resend Link
+        <button id="btn-resend-verify" class="btn-secondary" style="padding:6px 12px; font-size:11px; margin:0; font-weight:600;" onclick="handleResendVerificationEmail()">
+          Confirm Email
         </button>
       </div>
     `;
+  }
+
+  // Update Questmaster button hint based on confirmation status
+  const becomeQmBtn = document.getElementById('btn-become-qm');
+  if (becomeQmBtn) {
+    if (!isConfirmed) {
+      becomeQmBtn.title = "Email verification required to become a Questmaster";
+    } else {
+      becomeQmBtn.title = "Register as Questmaster for this park";
+    }
   }
 }
 
@@ -163,22 +195,49 @@ async function handleResendVerificationEmail() {
   }
 
   try {
-    const { error } = await supabaseClient.auth.resend({
+    const redirectUrl = new URL('index.html', window.location.href).href;
+
+    // First try resend for signup confirmation
+    let { error } = await supabaseClient.auth.resend({
       type: 'signup',
-      email: currentUser.email
+      email: currentUser.email,
+      options: {
+        emailRedirectTo: redirectUrl
+      }
     });
 
+    if (error && error.message && error.message.toLowerCase().includes('already confirmed')) {
+      const { data: fresh } = await supabaseClient.auth.getUser();
+      if (fresh?.user) {
+        currentUser = fresh.user;
+        renderEmailVerificationStatus();
+      }
+      alert("✅ Your email is already confirmed and verified!");
+      return;
+    }
+
     if (error) {
-      alert("⚠️ Could not resend verification email: " + error.message);
+      // Fallback to signInWithOtp if signup resend fails (e.g. if provider type requires magic link)
+      const otpRes = await supabaseClient.auth.signInWithOtp({
+        email: currentUser.email,
+        options: {
+          emailRedirectTo: redirectUrl
+        }
+      });
+      error = otpRes.error;
+    }
+
+    if (error) {
+      alert("⚠️ Could not send verification email: " + error.message);
     } else {
-      alert(`📧 Verification email sent to ${currentUser.email}!\n\nPlease check your inbox and spam folders.`);
+      alert(`📧 Verification link sent to ${currentUser.email}!\n\nPlease check your inbox and spam folder, then click the link to confirm your account.`);
     }
   } catch (err) {
-    alert("Error: " + err.message);
+    alert("Error sending verification email: " + (err.message || err));
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerText = "Resend Link";
+      btn.innerText = "Confirm Email";
     }
   }
 }
@@ -297,15 +356,22 @@ async function handleRecoverySubmit(e) {
   }
 }
 
+window.handleResendVerificationEmail = handleResendVerificationEmail;
+window.renderEmailVerificationStatus = renderEmailVerificationStatus;
 window.togglePasswordVisibility = togglePasswordVisibility;
 window.activateRecoveryView = activateRecoveryView;
 window.handleRecoverySubmit = handleRecoverySubmit;
 
-// Listen for recovery auth events
-supabaseClient.auth.onAuthStateChange((event) => {
+// Listen for recovery & confirmation auth events
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
   if (event === 'PASSWORD_RECOVERY') {
     window.__IS_RECOVERY = true;
     activateRecoveryView();
+  } else if (event === 'USER_UPDATED' || event === 'SIGNED_IN') {
+    if (session?.user) {
+      currentUser = session.user;
+      renderEmailVerificationStatus();
+    }
   }
 });
 
