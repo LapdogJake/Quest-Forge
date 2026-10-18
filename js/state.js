@@ -11,6 +11,7 @@ let currentQMId = null;
 let currentQMUsername = null;
 let parkQMsList = [];
 let activeBattleQuest = null;
-let activeLarpieQuest = null;
+let activeAdventureQuest = null;
+let activeLarpieQuest = null; // Legacy alias for activeAdventureQuest
 let activeMonsterClaim = null;
 

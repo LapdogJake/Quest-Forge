@@ -520,11 +520,11 @@ function switchLibrarySubTab(subTab) {
 
   const itemsContainer = document.getElementById('library-subtab-items');
   const abilitiesContainer = document.getElementById('library-subtab-abilities');
-  const miscContainer = document.getElementById('library-subtab-misc') || document.getElementById('library-subtab-monsters');
+  const miscContainer = document.getElementById('library-subtab-misc');
 
   const btnItems = document.getElementById('library-subnav-items');
   const btnAbilities = document.getElementById('library-subnav-abilities');
-  const btnMisc = document.getElementById('library-subnav-misc') || document.getElementById('library-subnav-monsters');
+  const btnMisc = document.getElementById('library-subnav-misc');
 
   if (itemsContainer) itemsContainer.classList.toggle('hidden', !isItems);
   if (abilitiesContainer) abilitiesContainer.classList.toggle('hidden', !isAbilities);
@@ -624,7 +624,7 @@ const MISC_DATA = [
 const MONSTERS_DATA = MISC_DATA;
 
 function renderMiscLibrary() {
-  const container = document.getElementById('library-misc-container') || document.getElementById('library-monsters-container');
+  const container = document.getElementById('library-misc-container');
   if (!container) return;
 
   if (!MISC_DATA || MISC_DATA.length === 0) {

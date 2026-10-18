@@ -640,7 +640,6 @@ function updateGroupBannerDisplays() {
   const parkEl = document.getElementById('display-profile-park');
   const qmEl = document.getElementById('display-profile-qm');
   const abilityEl = document.getElementById('display-profile-ability');
-  const qmPanelParkEl = document.getElementById('display-qm-park');
 
   const activeKingdom = currentKingdom || "The Freeholds of Amtgard";
   const activePark = currentPark || "Delver's Rest";
@@ -653,7 +652,6 @@ function updateGroupBannerDisplays() {
     const rawAbs = (selectedQuestAbilities && selectedQuestAbilities[0]) || (currentParkProfile?.quest_abilities?.[0]) || (currentProfile?.quest_abilities?.[0]) || "";
     abilityEl.innerText = rawAbs || "None";
   }
-  if (qmPanelParkEl) qmPanelParkEl.innerText = `${activePark} (${activeQM})`;
 }
 
 function getActivePark() {

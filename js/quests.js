@@ -67,7 +67,7 @@ async function fetchUserSlotState() {
   });
 
   activeBattleQuest = activeSoloBattle || activeGroupBattle;
-  activeLarpieQuest = userQuests?.find(uq => {
+  activeAdventureQuest = userQuests?.find(uq => {
     const q = uq.quests;
     if (!q?.is_active) return false;
     const normQPark = typeof normalizeParkName === 'function' ? normalizeParkName(q.park) : (q.park || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
@@ -75,39 +75,14 @@ async function fetchUserSlotState() {
     const isMyQuest = Boolean(myUserId && q.qm_id === myUserId);
     const qmMatches = !q.qm_id || !activeQMId || (q.qm_id === activeQMId) || isMyQuest;
     return parkMatches && qmMatches && (q.category === 'Adventure' || (q.category !== 'Battle' && q.category !== 'Combat'));
-  });
-
-  const battleStatusEl = document.getElementById('slot-battle-status');
-  const larpieStatusEl = document.getElementById('slot-larpie-status');
-
-  if (battleStatusEl) {
-    if (activeMonsterClaim) {
-      battleStatusEl.innerText = "Monster";
-      battleStatusEl.className = "slot-status slot-occupied";
-    } else if (activeBattleQuest) {
-      battleStatusEl.innerText = "Hero";
-      battleStatusEl.className = "slot-status slot-occupied";
-    } else {
-      battleStatusEl.innerText = "🟢 Available";
-      battleStatusEl.className = "slot-status slot-free";
-    }
-  }
-
-  if (larpieStatusEl) {
-    if (activeLarpieQuest) {
-      larpieStatusEl.innerText = activeLarpieQuest.quests?.title || 'Quest Active';
-      larpieStatusEl.className = "slot-status slot-occupied";
-    } else {
-      larpieStatusEl.innerText = "🟢 Available";
-      larpieStatusEl.className = "slot-status slot-free";
-    }
-  }
+  }) || null;
+  activeLarpieQuest = activeAdventureQuest; // Backward-compatible alias
 }
 
-// Fetch Public Board Quests for Heroes and Adventure Tabs
+// Fetch Public Board Quests for Battle and Quest/Adventure Tabs
 async function fetchQuests() {
   const combatContainer = document.getElementById('available-combat-quests');
-  const larpieContainer = document.getElementById('available-larpie-quests');
+  const adventureContainer = document.getElementById('available-adventure-quests') || document.getElementById('available-larpie-quests');
 
   if (!currentUser) return;
 
@@ -159,9 +134,9 @@ async function fetchQuests() {
 
   if (!parkQuests || parkQuests.length === 0) {
     if (combatContainer) combatContainer.innerHTML = `<p class="empty-state">No Active Battle in ${activePark} (${activeQMName}).</p>`;
-    if (larpieContainer) {
+    if (adventureContainer) {
       const activeAdvHtml = activeAdventureQuests.map(uq => renderActiveAdventureQuestCard(uq)).join('');
-      larpieContainer.innerHTML = activeAdvHtml.length > 0 ? activeAdvHtml : `<p class="empty-state">No Active Quests in ${activePark} (${activeQMName}).</p>`;
+      adventureContainer.innerHTML = activeAdvHtml.length > 0 ? activeAdvHtml : `<p class="empty-state">No Active Quests in ${activePark} (${activeQMName}).</p>`;
     }
     return;
   }
@@ -169,10 +144,10 @@ async function fetchQuests() {
   const available = parkQuests.filter(q => !activeQuestIds.includes(q.id) && (q.repeatable || !completedQuestIds.includes(q.id)));
 
   const combatQuests = available.filter(q => q.category === 'Battle' || q.category === 'Combat');
-  const larpieQuests = available.filter(q => q.category === 'Adventure' || q.category === 'Quest' || (q.category !== 'Battle' && q.category !== 'Combat'));
+  const adventureQuests = available.filter(q => q.category === 'Adventure' || q.category === 'Quest' || (q.category !== 'Battle' && q.category !== 'Combat'));
 
   // Sort adventure quests by Discipline first, then by title
-  larpieQuests.sort((a, b) => {
+  adventureQuests.sort((a, b) => {
     const discA = typeof getQuestDiscipline === 'function' ? getQuestDiscipline(a) : 'Service';
     const discB = typeof getQuestDiscipline === 'function' ? getQuestDiscipline(b) : 'Service';
     const idxA = (typeof DISCIPLINE_ORDER !== 'undefined') ? DISCIPLINE_ORDER.indexOf(discA) : -1;
@@ -229,11 +204,6 @@ async function fetchQuests() {
     });
   }
 
-  const combatHeading = document.getElementById('available-combat-heading');
-  if (combatHeading) {
-    combatHeading.classList.toggle('hidden', combatQuests.length === 0);
-  }
-
   if (combatContainer) {
     const openCardIds = new Set(
       Array.from(combatContainer.querySelectorAll('details.battle-accordion[open], details.battle-card[open]'))
@@ -246,15 +216,15 @@ async function fetchQuests() {
       : `<p class="empty-state">No Active Battle in ${activePark} (${activeQMName}).</p>`;
   }
 
-  if (larpieContainer) {
-    const larpieQuestIds = larpieQuests.map(q => q.id);
+  if (adventureContainer) {
+    const adventureQuestIds = adventureQuests.map(q => q.id);
     const questUsageMap = new Map();
 
-    if (larpieQuestIds.length > 0) {
+    if (adventureQuestIds.length > 0) {
       const { data: usageData } = await supabaseClient
         .from('user_quests')
         .select('quest_id, status')
-        .in('quest_id', larpieQuestIds)
+        .in('quest_id', adventureQuestIds)
         .in('status', ['accepted', 'completed']);
 
       (usageData || []).forEach(u => {
@@ -279,10 +249,10 @@ async function fetchQuests() {
     });
 
     const activeAdvHtml = activeAdventureQuests.map(uq => renderActiveAdventureQuestCard(uq)).join('');
-    const availAdvHtml = larpieQuests.map(q => renderAvailableQuestCard(q, 'larpie', null, null, questUsageMap.get(q.id))).join('');
+    const availAdvHtml = adventureQuests.map(q => renderAvailableQuestCard(q, 'adventure', null, null, questUsageMap.get(q.id))).join('');
     const totalAdvHtml = activeAdvHtml + availAdvHtml;
 
-    larpieContainer.innerHTML = totalAdvHtml.length > 0
+    adventureContainer.innerHTML = totalAdvHtml.length > 0
       ? totalAdvHtml
       : `<p class="empty-state">No Active Quests.</p>`;
   }
@@ -334,63 +304,10 @@ function renderActiveAdventureQuestCard(uq) {
   `;
 }
 
-function renderSoloQuestCard(q, isActive, userQuestId) {
-  if (!q) return '';
-  const isBattle = q.category === 'Battle' || q.category === 'Combat';
-  const rewardGold = q.reward_gold || 0;
-  const groupType = q.participation_type || 'Solo';
-
-  return `
-    <div class="quest-card" style="border-left: 4px solid var(--quest);">
-      <div class="tag-container">
-        <span class="badge ${isBattle ? 'badge-battle' : 'badge-quest'}">${isBattle ? 'Battle' : 'Quest'}</span>
-        <span class="badge badge-type">${groupType}</span>
-        <span class="badge badge-active">Active</span>
-      </div>
-      <h4>${q.title}</h4>
-      ${q.requirements ? `<p style="color:var(--warning); font-size:12px; margin-bottom:4px;"><strong>Req:</strong> ${q.requirements}</p>` : ''}
-      <p>${q.description || ''}</p>
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
-        <div class="quest-rewards">
-          <span class="reward-gold">🪙 +${rewardGold} Gold</span>
-        </div>
-        <button class="btn-complete" onclick="completeQuest('${userQuestId}', ${rewardGold})">Complete</button>
-      </div>
-    </div>
-  `;
-}
-
-function renderGroupQueueCard(q, queue, members) {
-  const isStatusActive = queue.status === 'active';
-  return `
-    <div class="quest-card" style="border:1px solid var(--primary);">
-      <div class="tag-container">
-        <span class="badge badge-battle">Battle</span>
-        <span class="badge badge-type">Group</span>
-        <span class="badge ${isStatusActive ? 'badge-active' : 'badge-threat-loot'}">
-          ${isStatusActive ? '⚔️ Encounter Live!' : '⏳ Waiting in Queue'}
-        </span>
-      </div>
-      <h4>${q.title}</h4>
-      <p>${q.description || ''}</p>
-      <div class="queue-box" style="margin-top:10px;">
-        <h5>Registered PC Squad (${members.length}):</h5>
-        <div>${members.map(m => `<span class="party-member-tag">👤 ${m}</span>`).join('')}</div>
-      </div>
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
-        <div class="quest-rewards">
-          <span class="reward-gold">🪙 +${q.reward_gold} Gold</span>
-        </div>
-        <button class="btn-secondary" onclick="leaveQueue('${queue.id}')">Leave Line</button>
-      </div>
-    </div>
-  `;
-}
-
 function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = null, questUsage = null, isCardOpen = false) {
   const isCombat = type === 'combat';
-  const isAdventure = type === 'larpie';
-  const isSlotLocked = isCombat ? (!!activeBattleQuest || !!activeMonsterClaim) : !!activeLarpieQuest;
+  const isAdventure = type === 'adventure' || type === 'larpie';
+  const isSlotLocked = isCombat ? (!!activeBattleQuest || !!activeMonsterClaim) : (!!activeAdventureQuest || !!activeLarpieQuest);
 
   if (isCombat) {
     const rules = typeof getQuestDurabilityRules === 'function' ? getQuestDurabilityRules(q) : { allowedTypes: ['Trinket', 'Talisman', 'Artifact'], monstersAreNpc: false, defeatGold: 0 };
@@ -1043,23 +960,22 @@ async function toggleQuestDeployment(questId, currentActiveState) {
 }
 
 async function createBattle() {
-  const title = (document.getElementById('qm-battle-title') || document.getElementById('qm-title'))?.value.trim();
+  const title = document.getElementById('qm-battle-title')?.value.trim();
   const category = 'Battle';
   const participation_type = 'Group';
   const threat_level = 'Safe';
   const verification_method = 'Quest Master';
 
-  const victoryInput = document.getElementById('qm-battle-gold-victory') || document.getElementById('qm-gold-victory') || document.getElementById('qm-gold');
-  const defeatInput = document.getElementById('qm-battle-gold-defeat') || document.getElementById('qm-gold-defeat');
+  const victoryInput = document.getElementById('qm-battle-gold-victory');
+  const defeatInput = document.getElementById('qm-battle-gold-defeat');
   const reward_gold_victory = victoryInput ? (parseInt(victoryInput.value) || 0) : 0;
   const reward_gold_defeat = defeatInput ? (parseInt(defeatInput.value) || 0) : 0;
 
-  const description = (document.getElementById('qm-battle-description') || document.getElementById('qm-description'))?.value.trim() || '';
-  const repeatable = Boolean((document.getElementById('qm-battle-repeatable') || document.getElementById('qm-repeatable'))?.checked);
+  const description = document.getElementById('qm-battle-description')?.value.trim() || '';
+  const repeatable = true; // Battles on the public board are repeatable encounters by default
   
-  const npcInput = document.getElementById('qm-battle-monsters-are-npc') || document.getElementById('qm-battle-monsters-npc') || document.getElementById('qm-monsters-are-npc');
-  const legacyDurabilityInput = document.getElementById('qm-battle-monster-durability');
-  const monsters_are_npc = npcInput ? Boolean(npcInput.checked) : (legacyDurabilityInput ? !legacyDurabilityInput.checked : false);
+  const npcInput = document.getElementById('qm-battle-monsters-are-npc');
+  const monsters_are_npc = Boolean(npcInput?.checked);
 
   const durabilityWearInput = document.getElementById('qm-battle-durability-wear');
   const durability_wear = durabilityWearInput ? Number(durabilityWearInput.value) : 1;
@@ -1067,8 +983,8 @@ async function createBattle() {
   const defeatPenaltyInput = document.getElementById('qm-battle-defeat-penalty');
   const defeat_penalty = defeatPenaltyInput ? defeatPenaltyInput.value : 'none';
 
-  const allow_mid_join = Boolean((document.getElementById('qm-battle-allow-mid-join'))?.checked);
-  const rng_loot_drops = Boolean((document.getElementById('qm-battle-rng-loot'))?.checked);
+  const allow_mid_join = Boolean(document.getElementById('qm-battle-allow-mid-join')?.checked);
+  const rng_loot_drops = Boolean(document.getElementById('qm-battle-rng-loot')?.checked);
 
   const allowTrinket = document.getElementById('qm-item-trinket') ? document.getElementById('qm-item-trinket').checked : true;
   const allowTalisman = document.getElementById('qm-item-talisman') ? document.getElementById('qm-item-talisman').checked : true;
@@ -1149,18 +1065,11 @@ async function createBattle() {
   alert(`⚔️ Battle "${title}" saved and opened on field!`);
 
   if (document.getElementById('qm-battle-title')) document.getElementById('qm-battle-title').value = '';
-  if (document.getElementById('qm-title')) document.getElementById('qm-title').value = '';
   if (document.getElementById('qm-battle-description')) document.getElementById('qm-battle-description').value = '';
-  if (document.getElementById('qm-description')) document.getElementById('qm-description').value = '';
 
   if (victoryInput) victoryInput.value = '15';
   if (defeatInput) defeatInput.value = '10';
   if (document.getElementById('qm-battle-monsters-are-npc')) document.getElementById('qm-battle-monsters-are-npc').checked = false;
-  if (document.getElementById('qm-battle-monsters-npc')) document.getElementById('qm-battle-monsters-npc').checked = false;
-  if (document.getElementById('qm-monsters-are-npc')) document.getElementById('qm-monsters-are-npc').checked = false;
-  if (document.getElementById('qm-battle-monster-durability')) document.getElementById('qm-battle-monster-durability').checked = true;
-  if (document.getElementById('qm-battle-repeatable')) document.getElementById('qm-battle-repeatable').checked = false;
-  if (document.getElementById('qm-repeatable')) document.getElementById('qm-repeatable').checked = false;
   if (document.getElementById('qm-battle-allow-mid-join')) document.getElementById('qm-battle-allow-mid-join').checked = false;
   if (document.getElementById('qm-battle-rng-loot')) document.getElementById('qm-battle-rng-loot').checked = false;
   if (document.getElementById('qm-battle-durability-wear')) document.getElementById('qm-battle-durability-wear').value = '1';
@@ -1176,13 +1085,13 @@ async function createBattle() {
 }
 
 async function createAdventureQuest() {
-  const title = (document.getElementById('qm-quest-title') || document.getElementById('qm-title'))?.value.trim();
+  const title = document.getElementById('qm-quest-title')?.value.trim();
   const discipline = document.getElementById('qm-quest-discipline')?.value || 'Service';
   const category = 'Quest';
-  const goldInput = document.getElementById('qm-quest-gold') || document.getElementById('qm-gold-victory') || document.getElementById('qm-gold');
+  const goldInput = document.getElementById('qm-quest-gold');
   const reward_gold = goldInput ? (parseInt(goldInput.value) || 0) : 0;
-  const description = (document.getElementById('qm-quest-description') || document.getElementById('qm-description'))?.value.trim() || '';
-  const repeatable = Boolean((document.getElementById('qm-quest-repeatable') || document.getElementById('qm-repeatable'))?.checked);
+  const description = document.getElementById('qm-quest-description')?.value.trim() || '';
+  const repeatable = Boolean(document.getElementById('qm-quest-repeatable')?.checked);
 
   const verification_method = document.getElementById('qm-quest-verification')?.value || 'Quest Master';
 
@@ -1268,13 +1177,10 @@ async function createAdventureQuest() {
   alert(`📜 Quest "${title}" published to catalog!`);
 
   if (document.getElementById('qm-quest-title')) document.getElementById('qm-quest-title').value = '';
-  if (document.getElementById('qm-title')) document.getElementById('qm-title').value = '';
   if (document.getElementById('qm-quest-discipline')) document.getElementById('qm-quest-discipline').value = 'Service';
   if (document.getElementById('qm-quest-description')) document.getElementById('qm-quest-description').value = '';
-  if (document.getElementById('qm-description')) document.getElementById('qm-description').value = '';
   if (goldInput) goldInput.value = '5';
   if (document.getElementById('qm-quest-repeatable')) document.getElementById('qm-quest-repeatable').checked = false;
-  if (document.getElementById('qm-repeatable')) document.getElementById('qm-repeatable').checked = false;
   if (document.getElementById('qm-quest-verification')) document.getElementById('qm-quest-verification').value = 'Quest Master';
 
   await fetchUserSlotState();
@@ -1282,15 +1188,6 @@ async function createAdventureQuest() {
   switchQMSubTab('library');
   if (typeof fetchQMQuests === 'function') {
     await fetchQMQuests();
-  }
-}
-
-async function createQuest() {
-  const category = document.getElementById('qm-category')?.value || 'Quest';
-  if (category === 'Battle') {
-    await createBattle();
-  } else {
-    await createAdventureQuest();
   }
 }
 

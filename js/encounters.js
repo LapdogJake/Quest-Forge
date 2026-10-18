@@ -3,68 +3,10 @@
 // ==============================================================================
 
 async function fetchMonsterEncounters() {
-  const availableMonsterContainer = document.getElementById('available-monster-encounters');
-  if (!availableMonsterContainer) return;
-
-  const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
-  const activeQMId = currentQMId;
-  const activeQMName = typeof getActiveQMUsername === 'function' ? getActiveQMUsername() : 'Default Realm';
-
-  const { data: combatQuests } = await supabaseClient
-    .from('quests')
-    .select('*')
-    .eq('is_active', true)
-    .or('category.eq.Battle,category.eq.Combat');
-
-  const parkCombatQuests = (combatQuests || []).filter(q => 
-    (!q.park || q.park === activePark) &&
-    (!q.qm_id || !activeQMId || q.qm_id === activeQMId)
-  );
-
-  if (!parkCombatQuests || parkCombatQuests.length === 0) {
-    availableMonsterContainer.innerHTML = `<p class="empty-state">No Active Battles in ${activePark} (${activeQMName}).</p>`;
-    return;
+  // Delegate directly to fetchQuests() which manages the live unified combat board (#available-combat-quests)
+  if (typeof fetchQuests === 'function') {
+    return await fetchQuests();
   }
-
-  const monsterQuestIds = parkCombatQuests.map(q => q.id);
-  let monsterRosterByQuest = new Map();
-
-  if (monsterQuestIds.length > 0) {
-    const { data: monsterLines } = await supabaseClient
-      .from('quest_queues')
-      .select('id, quest_id, status, queue_members(*, profiles(id, username, quest_abilities)), encounter_monsters(*, profiles(id, username, quest_abilities))')
-      .in('quest_id', monsterQuestIds)
-      .in('status', ['waiting', 'active']);
-
-    (monsterLines || []).forEach(line => {
-      if (!line || !line.quest_id) return;
-      const heroRoster = (line.queue_members || []).map(member => ({
-        username: member.profiles?.username || 'Hero',
-        abilities: member.profiles?.quest_abilities || []
-      })).filter(Boolean);
-      const monsterRoster = (line.encounter_monsters || []).map(member => ({
-        username: member.profiles?.username || 'Monster',
-        abilities: member.profiles?.quest_abilities || []
-      })).filter(Boolean);
-      const userHeroMember = (line.queue_members || []).find(m => m.user_id === currentUser?.id || m.profiles?.id === currentUser?.id);
-      const userMonsterMember = (line.encounter_monsters || []).find(m => m.user_id === currentUser?.id || m.profiles?.id === currentUser?.id);
-
-      monsterRosterByQuest.set(line.quest_id, {
-        queueId: line.id,
-        queueStatus: line.status,
-        heroPlayers: heroRoster,
-        monsterPlayers: monsterRoster,
-        joinedHeroQueueId: userHeroMember ? line.id : null,
-        joinedMonsterClaimId: userMonsterMember ? userMonsterMember.id : null
-      });
-    });
-  }
-
-  availableMonsterContainer.innerHTML = parkCombatQuests.map(q => 
-    typeof renderAvailableQuestCard === 'function'
-      ? renderAvailableQuestCard(q, 'combat', null, monsterRosterByQuest.get(q.id))
-      : renderMonsterQuestCard(q, activeMonsterClaim, monsterRosterByQuest.get(q.id), !!activeBattleQuest)
-  ).join('');
 }
 
 function renderMonsterQuestCard(q, activeMonsterClaim, monsterRoster = null, isBattleLocked = false) {

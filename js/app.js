@@ -111,8 +111,6 @@ async function initDashboard() {
     // 3. User display and UI state
     const displayName = profile?.username || currentUser.user_metadata?.username || currentUser.email;
     const userDisplayEl = document.getElementById('user-display');
-    const goldEl = document.getElementById('profile-gold');
-
     if (userDisplayEl) userDisplayEl.innerText = displayName;
 
     renderEmailVerificationStatus();
@@ -121,8 +119,6 @@ async function initDashboard() {
     currentProfile.gold = activeGold;
     if (typeof syncGoldDisplays === 'function') {
       syncGoldDisplays(activeGold);
-    } else if (goldEl) {
-      goldEl.innerText = activeGold;
     }
 
     // 4. Synchronize role UI (badge & Questmaster panel access)

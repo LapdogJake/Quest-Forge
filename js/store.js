@@ -37,14 +37,6 @@ function switchItemsSubTab(subTab) {
   }
 }
 
-// Merchant Store sub-navigation
-function switchStoreSubTab(subTab) {
-  const buyTab = document.getElementById('store-subtab-buy');
-  const buyNav = document.getElementById('store-subnav-buy');
-
-  if (buyTab) buyTab.classList.remove('hidden');
-  if (buyNav) buyNav.classList.add('active');
-}
 
 // Render the merchant catalog organized by category (Trinket, Talismans, Artifacts)
 function renderStoreCatalog() {

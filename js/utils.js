@@ -31,14 +31,14 @@ function switchTab(tabName) {
   const isQuestTab = tabName === 'adventure' || tabName === 'quest' || tabName === 'quests';
 
   const targetTab = isBattleTab 
-    ? (document.getElementById('tab-battles') || document.getElementById('tab-heroes'))
-    : (isQuestTab ? (document.getElementById('tab-adventure') || document.getElementById('tab-quest')) : document.getElementById(`tab-${tabName}`));
+    ? document.getElementById('tab-battles')
+    : (isQuestTab ? document.getElementById('tab-adventure') : document.getElementById(`tab-${tabName}`));
 
   if (targetTab) targetTab.classList.remove('hidden');
 
   const activeBtn = isBattleTab
-    ? (document.getElementById('nav-battles') || document.getElementById('nav-heroes'))
-    : (isQuestTab ? (document.getElementById('nav-adventure') || document.getElementById('nav-quest')) : document.getElementById(`nav-${tabName}`));
+    ? document.getElementById('nav-battles')
+    : (isQuestTab ? document.getElementById('nav-adventure') : document.getElementById(`nav-${tabName}`));
 
   if (!activeBtn) return;
 
@@ -73,30 +73,27 @@ function switchTab(tabName) {
   }
 }
 
-// Synchronize all on-screen gold counter displays (Profile, Store, Items)
+// Synchronize all on-screen gold counter displays (Pouch/Items & Header)
 function syncGoldDisplays(goldAmt) {
   const amt = Number(goldAmt) || 0;
-  const profileGold = document.getElementById('profile-gold');
-  if (profileGold) profileGold.innerText = amt;
-  const storeGold = document.getElementById('store-player-gold');
-  if (storeGold) storeGold.innerText = amt;
   const itemsGold = document.getElementById('items-player-gold');
   if (itemsGold) itemsGold.innerText = amt;
+  document.querySelectorAll('.player-gold-display').forEach(el => { el.innerText = amt; });
 }
 
 // Questmaster Panel sub-navigation
 function switchQMSubTab(subTabName) {
   const tabs = ['battle', 'queues', 'items', 'quest', 'library', 'economy'];
   tabs.forEach(tab => {
-    const el = document.getElementById(`qm-subtab-${tab}`) || (tab === 'battle' ? document.getElementById('qm-subtab-create') : null);
+    const el = document.getElementById(`qm-subtab-${tab}`);
     if (el) el.classList.add('hidden');
-    const navBtn = document.getElementById(`qm-subnav-${tab}`) || (tab === 'battle' ? document.getElementById('qm-subnav-create') : null);
+    const navBtn = document.getElementById(`qm-subnav-${tab}`);
     if (navBtn) navBtn.classList.remove('active');
   });
 
   const normalized = (subTabName === 'create') ? 'battle' : ((subTabName === 'tools') ? 'economy' : subTabName);
-  const targetTab = document.getElementById(`qm-subtab-${normalized}`) || (normalized === 'battle' ? document.getElementById('qm-subtab-create') : null);
-  const targetNav = document.getElementById(`qm-subnav-${normalized}`) || (normalized === 'battle' ? document.getElementById('qm-subnav-create') : null);
+  const targetTab = document.getElementById(`qm-subtab-${normalized}`);
+  const targetNav = document.getElementById(`qm-subnav-${normalized}`);
 
   if (targetTab) targetTab.classList.remove('hidden');
   if (targetNav) targetNav.classList.add('active');
