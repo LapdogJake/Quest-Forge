@@ -254,13 +254,46 @@
       if (error) {
         status.style.color = "#f87171";
         if (error.message && error.message.toLowerCase().includes("email not confirmed")) {
-          status.innerHTML = "⚠️ Email address has not been confirmed yet. Please check your inbox or spam folder.";
+          const safeEmail = email.replace(/"/g, '&quot;');
+          status.innerHTML = `
+            ⚠️ Email address has not been confirmed yet. Please check your inbox or spam folder.<br>
+            <button type="button" class="btn-secondary" style="margin-top:10px; padding:6px 12px; font-size:12px; font-weight:600;" onclick="resendSignupConfirmation('${safeEmail}')">
+              Resend Confirmation Email
+            </button>
+          `;
         } else {
           status.innerText = error.message;
         }
         if (btn) btn.disabled = false;
       } else {
         window.location.href = "index.html";
+      }
+    }
+
+    async function resendSignupConfirmation(email) {
+      if (!email) return;
+      const status = document.getElementById('status');
+      status.style.color = "white";
+      status.innerText = "Resending confirmation email...";
+      try {
+        const redirectUrl = new URL('index.html', window.location.href).href;
+        const { error } = await supabaseClient.auth.resend({
+          type: 'signup',
+          email: email,
+          options: {
+            emailRedirectTo: redirectUrl
+          }
+        });
+        if (error) {
+          status.style.color = "#f87171";
+          status.innerHTML = `⚠️ Could not resend confirmation email: ${error.message}`;
+        } else {
+          status.style.color = "#86efac";
+          status.innerHTML = `📧 Confirmation email resent to <strong>${email}</strong>! Please check your inbox and spam folder.`;
+        }
+      } catch (err) {
+        status.style.color = "#f87171";
+        status.innerHTML = `⚠️ Error: ${err.message || err}`;
       }
     }
 

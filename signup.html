@@ -250,6 +250,20 @@
           status.innerText = error.message;
         }
         if (btn) btn.disabled = false;
+      } else if (data?.user && (!data.session && !data.user.confirmed_at && !data.user.email_confirmed_at)) {
+        // Supabase requires email confirmation before login
+        status.style.color = "#86efac";
+        status.innerHTML = `
+          <div style="background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.4); padding: 14px; border-radius: 8px; margin-top: 12px; text-align: center;">
+            <p style="margin: 0 0 8px 0; font-weight: bold; font-size: 15px; color: #4ade80;">📧 Confirmation Email Sent!</p>
+            <p style="margin: 0; font-size: 13px; color: #e2e8f0; line-height: 1.5;">
+              A confirmation link has been sent to <strong>${email}</strong>.<br>
+              Please check your inbox (and spam folder) and click the link to confirm your account, then log in.
+            </p>
+            <a href="login.html" class="btn-primary" style="display:inline-block; margin-top: 12px; padding: 8px 16px; text-decoration: none; font-size: 13px; border-radius: 6px; font-weight: bold;">Go to Log In</a>
+          </div>
+        `;
+        if (btn) btn.style.display = "none";
       } else {
         // Auto-login after registration and go to dashboard
         const { data: loginData } = await supabaseClient.auth.signInWithPassword({ email, password });

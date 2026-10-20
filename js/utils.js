@@ -6,13 +6,16 @@
 function isUserEmailVerified(user) {
   if (!user) return false;
   
-  // 1. Explicitly verified in user metadata via verification link / OTP
+  // 1. Supabase native email confirmation timestamp
+  if (user.email_confirmed_at || user.confirmed_at) return true;
+
+  // 2. Explicitly verified in user metadata via verification link / OTP
   if (user.user_metadata?.email_verified === true) return true;
 
-  // 2. Verified via OAuth provider (e.g. Google, Discord pre-verifies email)
+  // 3. Verified via OAuth provider (e.g. Google, Discord pre-verifies email)
   if (user.app_metadata?.provider && user.app_metadata.provider !== 'email') return true;
 
-  // 3. User authenticated or verified via email OTP / magic link
+  // 4. User authenticated or verified via email OTP / magic link
   if (Array.isArray(user.amr)) {
     const hasOtpVerification = user.amr.some(entry => entry.method === 'otp' || entry.method === 'magiclink');
     if (hasOtpVerification) return true;

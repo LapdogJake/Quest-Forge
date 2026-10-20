@@ -16,7 +16,7 @@ const LIBRARY_DATA = [
             <div style="font-size:12px; line-height:1.6; color:var(--text);">
               <div><strong>Use:</strong> One Use &nbsp;|&nbsp; <strong>R:</strong> Self</div>
               <div><strong>I:</strong> &ldquo;I drink a potion of barkskin&rdquo;</div>
-              <div><strong>M:</strong> A bottle measuring at least two cubic inches</div>
+              <div><strong>M:</strong> A bottle measuring at least two cubic inches.</div>
               <div><strong>E:</strong> Player casts Barkskin (m).</div>
             </div>
           </div>
@@ -27,7 +27,7 @@ const LIBRARY_DATA = [
             <div style="font-size:12px; line-height:1.6; color:var(--text);">
               <div><strong>Use:</strong> One Use &nbsp;|&nbsp; <strong>R:</strong> Self</div>
               <div><strong>I:</strong> &ldquo;I drink a potion of refreshment&rdquo;</div>
-              <div><strong>M:</strong> A bottle measuring at least two cubic inches</div>
+              <div><strong>M:</strong> A bottle measuring at least two cubic inches.</div>
               <div><strong>E:</strong> Player casts Confidence (m).</div>
             </div>
           </div>
@@ -38,7 +38,7 @@ const LIBRARY_DATA = [
             <div style="font-size:12px; line-height:1.6; color:var(--text);">
               <div><strong>Use:</strong> One Use &nbsp;|&nbsp; <strong>R:</strong> Self</div>
               <div><strong>I:</strong> &ldquo;I drink a potion of healing&rdquo;</div>
-              <div><strong>M:</strong> A bottle measuring at least two cubic inches</div>
+              <div><strong>M:</strong> A bottle measuring at least two cubic inches.</div>
               <div><strong>E:</strong> Player casts Heal (self).</div>
             </div>
           </div>
@@ -49,7 +49,7 @@ const LIBRARY_DATA = [
             <div style="font-size:12px; line-height:1.6; color:var(--text);">
               <div><strong>Use:</strong> One Use &nbsp;|&nbsp; <strong>R:</strong> Self</div>
               <div><strong>I:</strong> &ldquo;I drink a potion of true death&rdquo;</div>
-              <div><strong>M:</strong> A bottle measuring at least two cubic inches</div>
+              <div><strong>M:</strong> A bottle measuring at least two cubic inches.</div>
               <div><strong>E:</strong> Player may not be the target of Raise Dead, Steal Life Essence, Undead Minion, or Vampirism for the duration of the game.</div>
               <div><strong>N:</strong> This effect is not removed by Release, Greater Release, or Respawn.</div>
             </div>
@@ -61,7 +61,7 @@ const LIBRARY_DATA = [
             <div style="font-size:12px; line-height:1.6; color:var(--text);">
               <div><strong>Use:</strong> One Use &nbsp;|&nbsp; <strong>R:</strong> Self</div>
               <div><strong>I:</strong> &ldquo;I read from a scroll of adaptive blessing&rdquo;</div>
-              <div><strong>M:</strong> A scroll measuring at least fifteen square inches</div>
+              <div><strong>M:</strong> A scroll measuring at least fifteen square inches.</div>
               <div><strong>E:</strong> Player casts Adaptive Blessing (m).</div>
             </div>
           </div>
@@ -72,7 +72,7 @@ const LIBRARY_DATA = [
             <div style="font-size:12px; line-height:1.6; color:var(--text);">
               <div><strong>Use:</strong> One Use &nbsp;|&nbsp; <strong>R:</strong> Self</div>
               <div><strong>I:</strong> &ldquo;I read from a scroll of ambulant&rdquo;</div>
-              <div><strong>M:</strong> A scroll measuring at least fifteen square inches</div>
+              <div><strong>M:</strong> A scroll measuring at least fifteen square inches.</div>
               <div><strong>E:</strong> Player's next magic is affected as per Ambulant.</div>
               <div><strong>L:</strong> May only be used by Magic Users.</div>
             </div>
@@ -84,7 +84,7 @@ const LIBRARY_DATA = [
             <div style="font-size:12px; line-height:1.6; color:var(--text);">
               <div><strong>Use:</strong> One Use &nbsp;|&nbsp; <strong>R:</strong> Self</div>
               <div><strong>I:</strong> &ldquo;I read from a scroll of blessing against wounds&rdquo;</div>
-              <div><strong>M:</strong> A scroll measuring at least fifteen square inches</div>
+              <div><strong>M:</strong> A scroll measuring at least fifteen square inches.</div>
               <div><strong>E:</strong> Player casts Blessing Against Wounds (m).</div>
             </div>
           </div>
@@ -95,7 +95,7 @@ const LIBRARY_DATA = [
             <div style="font-size:12px; line-height:1.6; color:var(--text);">
               <div><strong>Use:</strong> One Use &nbsp;|&nbsp; <strong>R:</strong> Self</div>
               <div><strong>I:</strong> &ldquo;I read from a scroll of extension&rdquo;</div>
-              <div><strong>M:</strong> A scroll measuring at least fifteen square inches</div>
+              <div><strong>M:</strong> A scroll measuring at least fifteen square inches.</div>
               <div><strong>E:</strong> Player's next magic is affected as per Extension.</div>
               <div><strong>L:</strong> May only be used by Magic Users.</div>
             </div>
@@ -107,7 +107,7 @@ const LIBRARY_DATA = [
             <div style="font-size:12px; line-height:1.6; color:var(--text);">
               <div><strong>Use:</strong> One Use &nbsp;|&nbsp; <strong>R:</strong> Self</div>
               <div><strong>I:</strong> &ldquo;I read from a scroll of harden&rdquo;</div>
-              <div><strong>M:</strong> A scroll measuring at least fifteen square inches</div>
+              <div><strong>M:</strong> A scroll measuring at least fifteen square inches.</div>
               <div><strong>E:</strong> Player casts Harden (m).</div>
             </div>
           </div>
@@ -118,7 +118,7 @@ const LIBRARY_DATA = [
             <div style="font-size:12px; line-height:1.6; color:var(--text);">
               <div><strong>Use:</strong> One Use &nbsp;|&nbsp; <strong>R:</strong> Self</div>
               <div><strong>I:</strong> &ldquo;I read from a scroll of mend&rdquo;</div>
-              <div><strong>M:</strong> A scroll measuring at least fifteen square inches</div>
+              <div><strong>M:</strong> A scroll measuring at least fifteen square inches.</div>
               <div><strong>E:</strong> Player casts Mend (m).</div>
             </div>
           </div>
@@ -195,7 +195,7 @@ const LIBRARY_DATA = [
             <div style="font-size:12px; line-height:1.6; color:var(--text);">
               <div><strong>Use:</strong> Always on while worn</div>
               <div><strong>M:</strong> Bracelet measuring at least 1&rdquo; wide worn around the wrist. Must be made of leather or metal and may not be red, yellow, or white.</div>
-              <div><strong>E:</strong> Further Effects which make the player Insubstantial, including effects initiated by the player or beneficial effects, fail as per Planar Grounding. Bearer must announce &ldquo;Immune to insubstantial&rdquo; when this effect is triggered.</div>
+              <div><strong>E:</strong> Further effects which make the player Insubstantial, including effects initiated by the player or beneficial effects, fail as per Planar Grounding. Bearer must announce &ldquo;Immune to insubstantial&rdquo; when this effect is triggered.</div>
             </div>
           </div>
 
@@ -260,7 +260,7 @@ const LIBRARY_DATA = [
             <div style="font-size:12px; line-height:1.6; color:var(--text);">
               <div><strong>Use:</strong> Always on while worn</div>
               <div><strong>M:</strong> A white ankh measuring at least twenty-five square inches prominently displayed on garb/equipment, or worn as an amulet.</div>
-              <div><strong>E:</strong> Bearer gains Terror (20&prime;) Unlimited (ex). Terror may only be cast on players bearing Undead Minion, Vampirism, or Void Touched and will affect those players regardless of immunities.</div>
+              <div><strong>E:</strong> Bearer gains Terror (20&prime;) Unlimited (ex). Terror may only be cast on players bearing Undead Minion, Vampirism, or Void Touched, and will affect those players regardless of immunities.</div>
             </div>
           </div>
 
@@ -290,7 +290,7 @@ const LIBRARY_DATA = [
             <div style="font-weight:bold; color:var(--gold); font-size:14px; margin-bottom:4px;">Homestone</div>
             <div style="font-size:12px; line-height:1.6; color:var(--text);">
               <div><strong>Use:</strong> Always on while carried</div>
-              <div><strong>I:</strong> As per Greater Mend</div>
+              <div><strong>I:</strong> As per Greater Mend.</div>
               <div><strong>M:</strong> A highly polished stone sphere at least 1&rdquo; in diameter.</div>
               <div><strong>E:</strong> Bearer gains Greater Mend 1/Life Charge x3. Does not count as an Enchantment.</div>
             </div>
@@ -311,7 +311,7 @@ const LIBRARY_DATA = [
             <div style="font-weight:bold; color:var(--gold); font-size:14px; margin-bottom:4px;">Nuntius Staff</div>
             <div style="font-size:12px; line-height:1.6; color:var(--text);">
               <div><strong>Use:</strong> Always on</div>
-              <div><strong>M:</strong> A double ended great weapon no longer than 6&prime; or a Magic Staff.</div>
+              <div><strong>M:</strong> A double-ended great weapon no longer than 6&prime; or a Magic Staff.</div>
               <div><strong>E:</strong> May be used by any Magic User at no cost to magic points. Grants an additional two magic points at the user's highest level. Magic points gained are not removed regardless of what happens to the staff. Does not count as an Enchantment.</div>
               <div><strong>L:</strong> May only be used by Magic Users.</div>
             </div>
@@ -322,7 +322,7 @@ const LIBRARY_DATA = [
             <div style="font-weight:bold; color:var(--gold); font-size:14px; margin-bottom:4px;">Phase Blade</div>
             <div style="font-size:12px; line-height:1.6; color:var(--text);">
               <div><strong>Use:</strong> Always on while carried</div>
-              <div><strong>M:</strong> A Short weapon with a gray cover or force themed decorations. Must have a red and a yellow Enchantment strip tied to it.</div>
+              <div><strong>M:</strong> A Short weapon with a gray cover or force-themed decorations. Must have a red and a yellow Enchantment strip tied to it.</div>
               <div><strong>E:</strong> This weapon is Phasing. Does not count as an Enchantment.</div>
             </div>
           </div>
@@ -366,10 +366,10 @@ const LIBRARY_DATA = [
           <li style="margin-bottom: 8px;">All magical items require the player to carry a copy of the write-up in order to function.</li>
           <li style="margin-bottom: 8px;">Enchantments conferred by Magical Items function exactly as normal (m) Enchantments; they count towards your Enchantment limit, may be removed by Dispel Magic, require a strip, etc.</li>
           <li style="margin-bottom: 8px;">Some Magic Items have a material component requirement. These components must be present in order for the Magic Item to be used and must be verified by the reeve prior to the start of the battlegame. Identical material component requirements may all be served by the same physical object. You do not need a unique bottle for each potion.</li>
-          <li style="margin-bottom: 8px;">Magical Items only function at the group level they were awarded and are unique to that group. For instance a player who receives a Magical Item at the park level may only use it at that park, but a player who receives a Magical Item at the kingdom level may use it at any park in that kingdom.</li>
+          <li style="margin-bottom: 8px;">Magical Items only function at the group level where they were awarded and are unique to that group. For instance, a player who receives a Magical Item at the park level may only use it at that park, but a player who receives a Magical Item at the kingdom level may use it at any park in that kingdom.</li>
           <li style="margin-bottom: 8px;">Magical Items may not be used at interkingdom events unless allowed by the host kingdom.</li>
           <li style="margin-bottom: 8px;">Magic items that may be destroyed cease to function in all ways while destroyed.</li>
-          <li style="margin-bottom: 8px;">Uses of abilities granted by a Magic Item are tracked separately from a player's own abilities, and are recharged separately.</li>
+          <li style="margin-bottom: 8px;">Uses of abilities granted by a Magic Item are tracked separately from a player's own abilities and are recharged separately.</li>
         </ol>
       </div>
     `
@@ -384,9 +384,9 @@ const LIBRARY_DATA = [
         </p>
         <ol style="margin: 4px 0 8px 20px; padding: 0; font-size: 13px; line-height: 1.6; color: var(--text);">
           <li style="margin-bottom: 8px;">Magic Items are typically only used in full-class battlegames.</li>
-          <li style="margin-bottom: 8px;">The reeve always has final say over the use or behavior of Magic Items in a battlegame.</li>
+          <li style="margin-bottom: 8px;">The reeve always has the final say over the use or behavior of Magic Items in a battlegame.</li>
           <li style="margin-bottom: 8px;">The reeve for the game has the final say in what Magical Items (if any) are allowed in a battlegame in all situations.</li>
-          <li style="margin-bottom: 8px;">Typically games with less than 14 people are limited to Trinkets, 15 to 30 people may use up to Talismans, and games with more than 30 people may use Artifacts.</li>
+          <li style="margin-bottom: 8px;">Typically, games with fewer than 14 people are limited to Trinkets, games with 15 to 30 people may use up to Talismans, and games with more than 30 people may use Artifacts.</li>
           <li style="margin-bottom: 8px;">A player may use up to one Artifact in a battlegame.</li>
           <li style="margin-bottom: 8px;">A player may use up to two Talismans in a battlegame.</li>
           <li style="margin-bottom: 8px;">A player may use up to three Trinkets in a battlegame.</li>
@@ -420,7 +420,7 @@ const ABILITIES_DATA = [
     items: [
       {
         name: 'Affinity for Nature',
-        description: 'Player is in tune with nature, and the beings who live in harmony with nature. This player will generally be considered a friend by such monsters and NPCs. They will also have knowledge about animals and natural locations.'
+        description: 'Player is in tune with nature and the beings who live in harmony with nature. This player will generally be considered a friend by such monsters and NPCs. They will also have knowledge about animals and natural locations.'
       },
       {
         name: 'Calm',
@@ -436,11 +436,11 @@ const ABILITIES_DATA = [
       },
       {
         name: 'Disarm Traps',
-        description: 'Player has an affinity for mechanical traps. If this player fails to disarm a trap they fare better than other players.'
+        description: 'Player has an affinity for mechanical traps. If this player fails to disarm a trap, they fare better than other players.'
       },
       {
         name: 'Hallowed Ground',
-        description: 'Player creates a fixed 20\' radius area where no offensive actions can occur for 2 minutes. Actions that are initiated outside the 20\' radius may still affect individuals in the area. 1/Game.'
+        description: 'Player creates a fixed 20\'-radius area where no offensive actions can occur for 2 minutes. Actions that are initiated outside the 20\' radius may still affect individuals in the area. 1/Game.'
       },
       {
         name: 'Magical Knowledge',
@@ -448,39 +448,39 @@ const ABILITIES_DATA = [
       },
       {
         name: 'Menace',
-        description: 'Player gives off an aura of menace that can be sensed by hostile monsters and will have an advantage when attempting to intimidate hostile monsters.'
+        description: 'Player gives off an aura of menace that can be sensed by hostile monsters, and will have an advantage when attempting to intimidate hostile monsters.'
       },
       {
         name: 'Persuasion',
-        description: 'Intelligent monsters and NPCs find the players arguments more convincing than they otherwise would and are more likely to be influenced by the player.'
+        description: 'Intelligent monsters and NPCs find the player\'s arguments more convincing than they otherwise would, and are more likely to be influenced by the player.'
       },
       {
         name: 'Pick Locks',
-        description: 'Player has an affinity for mechanical locks. If this player fails an attempt to pick a lock they fare better than other players.'
+        description: 'Player has an affinity for mechanical locks. If this player fails an attempt to pick a lock, they fare better than other players.'
       },
       {
         name: 'Presence',
-        description: 'Player may converse safely with a group of players, monsters, or NPCs so long as the player takes no hostile action towards them. Monsters and NPCs that are not capable of intelligent thought (animals, slimes, mindless undead, etc) are not affected. Players may choose not to converse but may still not harm the player. May not last longer than 3 minutes. May not be used for scouting or reconnaissance. 1/Game.'
+        description: 'Player may converse safely with a group of players, monsters, or NPCs so long as the player takes no hostile action towards them. Monsters and NPCs that are not capable of intelligent thought (animals, slimes, mindless undead, etc.) are not affected. Players may choose not to converse, but may still not harm the player. May not last longer than 3 minutes. May not be used for scouting or reconnaissance. 1/Game.'
       },
       {
         name: 'Talk to Dead',
-        description: 'Dead players, intelligent monsters, and intelligent NPCs can be asked one yes or no question, and must answer truthfully to the best of their ability. May only be used once per target.'
+        description: 'Dead players, intelligent monsters, and intelligent NPCs can be asked one yes-or-no question and must answer truthfully to the best of their ability. May only be used once per target.'
       },
       {
         name: 'Tracker',
-        description: 'Player is an experienced tracker in almost any environment. Player will often be able to determine more information about the kind of monsters and NPCs in the area as well as possible locations of game objectives.'
+        description: 'Player is an experienced tracker in almost any environment. The player will often be able to determine more information about the kinds of monsters and NPCs in the area, as well as possible locations of game objectives.'
       },
       {
         name: 'Tribal Knowledge',
-        description: 'Player is familiar with the tribal and clan customs of many cultures. This player will have an edge understanding and negotiating with monsters and NPCs who live in a clan or tribe.'
+        description: 'Player is familiar with the tribal and clan customs of many cultures. This player will have an edge in understanding and negotiating with monsters and NPCs who live in a clan or tribe.'
       },
       {
         name: 'Turn Undead',
-        description: 'Monster and NPC undead (including monsters and NPCs affected by Undead Minion, Vampirism, etc) must stay 50\' away from the player and may not initiate any hostile actions towards them. Any undead that is targeted by a hostile action is no longer affected by Turn Undead and may act normally. Lasts for 2 minutes. 1/Game.'
+        description: 'Monster and NPC undead (including monsters and NPCs affected by Undead Minion, Vampirism, etc.) must stay 50\' away from the player and may not initiate any hostile actions towards them. Any undead that is targeted by a hostile action is no longer affected by Turn Undead and may act normally. Lasts for 2 minutes. 1/Game.'
       },
       {
         name: 'Prepared',
-        description: 'Player is an experienced campaigner and is aware before a Quest starts of any special equipment or circumstances that may be encountered. The reeve in charge of the Quest should privately give the player a brief overview of the monsters and challenges they are likely to encounter.'
+        description: 'Player is an experienced campaigner and is aware, before a Quest starts, of any special equipment or circumstances that may be encountered. The reeve in charge of the Quest should privately give the player a brief overview of the monsters and challenges they are likely to encounter.'
       }
     ]
   }
@@ -558,8 +558,8 @@ const MISC_DATA = [
           <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
             <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">1. Durability by Category</div>
             <div style="font-size:12px; line-height:1.6; color:var(--text);">
-              <div>• <strong>Trinkets (1 / 1 Durability):</strong> Single-use consumables (potions, scrolls, one-time magical items). Shatters or is consumed upon use / battle resolution.</div>
-              <div>• <strong>Talismans (5 / 5 Durability):</strong> Multi-use enchanted items (wands, amulets, enchanted jewelry). Endures several battles before depleting.</div>
+              <div>• <strong>Trinkets (1 / 1 Durability):</strong> Single-use consumables (potions, scrolls, one-time magical items). Each shatters or is consumed upon use / battle resolution.</div>
+              <div>• <strong>Talismans (5 / 5 Durability):</strong> Multi-use enchanted items (wands, amulets, enchanted jewelry). Endure several battles before depleting.</div>
               <div>• <strong>Artifacts (20 / 20 Durability):</strong> Legendary, kingdom-tier relics and weapons. Built for extended campaign play with high endurance.</div>
             </div>
           </div>
@@ -586,7 +586,7 @@ const MISC_DATA = [
                 <div>• <strong>1x (Standard):</strong> Standard battle. All participating items in your Pouch lose 1 durability.</div>
                 <div>• <strong>2x / 3x (Harsh Environments):</strong> Deadly dungeons or hazardous boss fights where items degrade twice or thrice as fast.</div>
               </div>
-              <div style="margin-top:6px;">• <strong>Allowed Items Filter:</strong> If a battle only permits Trinkets and bans Artifacts, any Artifact in your pouch is automatically spared from taking wear during that match.</div>
+              <div style="margin-top:6px;">• <strong>Allowed Items Filter:</strong> If a battle only permits Trinkets and bans Artifacts, any Artifact in your Pouch is automatically spared from taking wear during that match.</div>
               <div style="margin-top:6px;">• <strong>&ldquo;Monsters are NPCs&rdquo; Rule:</strong> If the QM has this enabled, players fighting on the <strong>Monster team</strong> do not lose gear durability. This encourages players to volunteer as monsters without risking their personal gear. If disabled, monsters risk their gear just like the hero party.</div>
             </div>
           </div>

@@ -346,7 +346,7 @@ async function handleBecomeQM() {
 
   let isEmailConfirmed = typeof isUserEmailVerified === 'function' 
     ? isUserEmailVerified(currentUser) 
-    : Boolean(currentUser.user_metadata?.email_verified);
+    : Boolean(currentUser.email_confirmed_at || currentUser.confirmed_at || currentUser.user_metadata?.email_verified);
 
   if (!isEmailConfirmed) {
     try {
@@ -355,7 +355,7 @@ async function handleBecomeQM() {
         currentUser = freshUser.user;
         isEmailConfirmed = typeof isUserEmailVerified === 'function' 
           ? isUserEmailVerified(currentUser) 
-          : Boolean(currentUser.user_metadata?.email_verified);
+          : Boolean(currentUser.email_confirmed_at || currentUser.confirmed_at || currentUser.user_metadata?.email_verified);
       }
     } catch (e) {}
   }

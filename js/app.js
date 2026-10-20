@@ -24,22 +24,30 @@ async function initDashboard() {
       return;
     }
 
-    // Check for incoming email verification redirects
-    const authType = hashParams.get('type') || searchParams.get('type');
-    const isVerificationRedirect = authType === 'signup' || authType === 'email_change' || authType === 'magiclink';
-
-    if (isVerificationRedirect) {
-      window.history.replaceState(null, '', window.location.pathname);
+    // 1. PKCE code parameter exchange (default for modern Supabase email verification links)
+    const code = searchParams.get('code');
+    let isVerificationRedirect = false;
+    if (code) {
       try {
-        await supabaseClient.auth.updateUser({ data: { email_verified: true } });
-        if (currentUser) {
-          if (!currentUser.user_metadata) currentUser.user_metadata = {};
-          currentUser.user_metadata.email_verified = true;
+        const { data: codeData, error: codeErr } = await supabaseClient.auth.exchangeCodeForSession(code);
+        if (!codeErr && codeData?.session) {
+          isVerificationRedirect = true;
+          try {
+            window.history.replaceState(null, '', window.location.pathname);
+          } catch (_) {}
         }
       } catch (e) {
-        console.warn("Could not set email_verified in user_metadata:", e);
+        console.warn("PKCE code exchange error:", e);
       }
-      alert("🎉 Email verified successfully! Your account is now confirmed, and you are eligible to become a Questmaster.");
+    }
+
+    // 2. Check for incoming implicit email verification redirects (hash/query tokens)
+    const authType = hashParams.get('type') || searchParams.get('type');
+    if (authType === 'signup' || authType === 'email_change' || authType === 'magiclink') {
+      isVerificationRedirect = true;
+      try {
+        window.history.replaceState(null, '', window.location.pathname);
+      } catch (_) {}
     }
 
     const { data: { session } } = await supabaseClient.auth.getSession();
@@ -54,6 +62,18 @@ async function initDashboard() {
       currentUser = freshUser?.user || session.user;
     } catch (e) {
       currentUser = session.user;
+    }
+
+    if (isVerificationRedirect) {
+      try {
+        await supabaseClient.auth.updateUser({ data: { email_verified: true } });
+        if (currentUser && currentUser.user_metadata) {
+          currentUser.user_metadata.email_verified = true;
+        }
+      } catch (e) {
+        console.warn("Could not set email_verified in user_metadata:", e);
+      }
+      alert("Email confirmed.");
     }
 
     const { data: profile } = await supabaseClient
@@ -158,14 +178,10 @@ function renderEmailVerificationStatus() {
 
   const isConfirmed = typeof isUserEmailVerified === 'function' 
     ? isUserEmailVerified(currentUser) 
-    : Boolean(currentUser.user_metadata?.email_verified);
+    : Boolean(currentUser.email_confirmed_at || currentUser.confirmed_at || currentUser.user_metadata?.email_verified);
 
   if (isConfirmed) {
-    container.innerHTML = `
-      <div style="margin-bottom:8px; display:flex; align-items:center; gap:8px;">
-        <span class="badge badge-verified" style="font-size:11px; padding:4px 10px;">🛡️ Email Confirmed</span>
-      </div>
-    `;
+    container.innerHTML = '';
   } else {
     container.innerHTML = `
       <div class="email-verify-box" style="margin-bottom:8px;">
