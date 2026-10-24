@@ -344,31 +344,6 @@ async function handleBecomeQM() {
     return;
   }
 
-  let isEmailConfirmed = typeof isUserEmailVerified === 'function' 
-    ? isUserEmailVerified(currentUser) 
-    : Boolean(currentUser.email_confirmed_at || currentUser.confirmed_at || currentUser.user_metadata?.email_verified);
-
-  if (!isEmailConfirmed) {
-    try {
-      const { data: freshUser } = await supabaseClient.auth.getUser();
-      if (freshUser?.user) {
-        currentUser = freshUser.user;
-        isEmailConfirmed = typeof isUserEmailVerified === 'function' 
-          ? isUserEmailVerified(currentUser) 
-          : Boolean(currentUser.email_confirmed_at || currentUser.confirmed_at || currentUser.user_metadata?.email_verified);
-      }
-    } catch (e) {}
-  }
-
-  if (!isEmailConfirmed) {
-    alert(
-      "⚠️ Email Verification Required:\n\n" +
-      "Only players with a confirmed email address can become a Questmaster!\n\n" +
-      "Please click 'Confirm Email' under your Profile tab to receive a verification link, then verify your email before registering as a Questmaster."
-    );
-    return;
-  }
-
   const park = parkSelect ? parkSelect.value : getActivePark();
   const kingdom = kingdomSelect ? kingdomSelect.value : getActiveKingdom();
   const username = currentProfile?.username || currentUser.email?.split('@')[0] || 'Questmaster';
