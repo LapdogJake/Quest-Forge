@@ -32,11 +32,43 @@ async function initDashboard() {
 
     currentUser = session.user;
 
-    const { data: profile } = await supabaseClient
+    let { data: profile } = await supabaseClient
       .from('profiles')
       .select('*')
       .eq('id', currentUser.id)
-      .single();
+      .maybeSingle();
+
+    if (!profile) {
+      const defaultUsername = currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'Adventurer';
+      const defaultPark = currentUser.user_metadata?.park || "Delver's Rest";
+      const defaultKingdom = currentUser.user_metadata?.kingdom || ((typeof getKingdomForPark === 'function') ? getKingdomForPark(defaultPark) : 'The Freeholds of Amtgard');
+
+      const { data: createdProfile } = await supabaseClient
+        .from('profiles')
+        .upsert({
+          id: currentUser.id,
+          username: defaultUsername,
+          role: 'player',
+          gold: 0,
+          kingdom: defaultKingdom,
+          park: defaultPark,
+          last_active_kingdom: defaultKingdom,
+          last_active_park: defaultPark
+        }, { onConflict: 'id' })
+        .select('*')
+        .maybeSingle();
+
+      profile = createdProfile || {
+        id: currentUser.id,
+        username: defaultUsername,
+        role: 'player',
+        gold: 0,
+        kingdom: defaultKingdom,
+        park: defaultPark,
+        last_active_kingdom: defaultKingdom,
+        last_active_park: defaultPark
+      };
+    }
 
     currentProfile = profile || {};
 

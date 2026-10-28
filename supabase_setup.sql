@@ -27,6 +27,13 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 -- Ensure email column is dropped from public profiles to protect player privacy (emails remain secure in auth.users)
 ALTER TABLE public.profiles DROP COLUMN IF EXISTS email;
 
+-- Drop legacy unique constraint on username so recreated accounts or shared persona names across parks never block profile creation
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_username_key;
+DROP INDEX IF EXISTS public.profiles_username_key;
+
+-- Remove any orphaned profile rows from deleted auth.users accounts
+DELETE FROM public.profiles WHERE id NOT IN (SELECT id FROM auth.users);
+
 ALTER TABLE public.profiles 
   ADD COLUMN IF NOT EXISTS username TEXT,
   ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'player',
@@ -41,18 +48,43 @@ ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now(),
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 
+-- Backfill public.profiles for any existing auth.users missing a profile row
+INSERT INTO public.profiles (id, username, role, gold, kingdom, park, last_active_kingdom, last_active_park)
+SELECT
+  u.id,
+  COALESCE(u.raw_user_meta_data->>'username', split_part(u.email, '@', 1), 'Adventurer'),
+  'player',
+  0,
+  COALESCE(u.raw_user_meta_data->>'kingdom', 'The Freeholds of Amtgard'),
+  COALESCE(u.raw_user_meta_data->>'park', 'Delver''s Rest'),
+  COALESCE(u.raw_user_meta_data->>'kingdom', 'The Freeholds of Amtgard'),
+  COALESCE(u.raw_user_meta_data->>'park', 'Delver''s Rest')
+FROM auth.users u
+ON CONFLICT DO NOTHING;
+
 -- ------------------------------------------------------------------------------
 -- 2. Park Questmasters Directory Table (Reigns)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.park_questmasters (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   username TEXT NOT NULL,
   kingdom TEXT NOT NULL DEFAULT 'The Freeholds of Amtgard',
   park TEXT NOT NULL DEFAULT 'Delver''s Rest',
   created_at TIMESTAMPTZ DEFAULT now(),
   CONSTRAINT park_questmasters_user_park_key UNIQUE (user_id, park)
 );
+
+-- Remove any orphaned questmaster rows from deleted auth.users accounts
+DELETE FROM public.park_questmasters WHERE user_id NOT IN (SELECT id FROM auth.users);
+
+-- Ensure park_questmasters_user_id_fkey references auth.users(id) so QM registration never fails if profile row was delayed
+ALTER TABLE public.park_questmasters
+  DROP CONSTRAINT IF EXISTS park_questmasters_user_id_fkey;
+
+ALTER TABLE public.park_questmasters
+  ADD CONSTRAINT park_questmasters_user_id_fkey
+  FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
 CREATE INDEX IF NOT EXISTS idx_park_questmasters_park ON public.park_questmasters (park);
 CREATE INDEX IF NOT EXISTS idx_park_questmasters_user ON public.park_questmasters (user_id);
@@ -362,6 +394,20 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Backfill public.profiles for any existing auth.users missing a profile row
+INSERT INTO public.profiles (id, username, role, gold, kingdom, park, last_active_kingdom, last_active_park)
+SELECT
+  u.id,
+  COALESCE(u.raw_user_meta_data->>'username', split_part(u.email, '@', 1), 'Adventurer'),
+  'player',
+  0,
+  COALESCE(u.raw_user_meta_data->>'kingdom', 'The Freeholds of Amtgard'),
+  COALESCE(u.raw_user_meta_data->>'park', 'Delver''s Rest'),
+  COALESCE(u.raw_user_meta_data->>'kingdom', 'The Freeholds of Amtgard'),
+  COALESCE(u.raw_user_meta_data->>'park', 'Delver''s Rest')
+FROM auth.users u
+ON CONFLICT DO NOTHING;
 
 -- ------------------------------------------------------------------------------
 -- 12. Atomic Server-Side Durability Degradation Engine

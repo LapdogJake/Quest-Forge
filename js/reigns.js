@@ -350,7 +350,7 @@ async function handleBecomeQM() {
 
   const park = parkSelect ? parkSelect.value : getActivePark();
   const kingdom = kingdomSelect ? kingdomSelect.value : getActiveKingdom();
-  const username = currentProfile?.username || currentUser.email?.split('@')[0] || 'Questmaster';
+  const username = currentProfile?.username || currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'Questmaster';
 
   // Enforce 1-Park QM Limit: check if user already holds a QM reign at another park
   const { data: existingQMs, error: qmCheckErr } = await supabaseClient
@@ -380,6 +380,21 @@ async function handleBecomeQM() {
   }
 
   try {
+    // Ensure a row exists in public.profiles before upserting park_questmasters
+    // to satisfy foreign key constraints (park_questmasters_user_id_fkey)
+    await supabaseClient
+      .from('profiles')
+      .upsert({
+        id: currentUser.id,
+        username: username,
+        kingdom: kingdom,
+        park: park,
+        last_active_kingdom: kingdom,
+        last_active_park: park,
+        role: currentProfile?.role || 'questmaster',
+        gold: Number(currentProfile?.gold) || 0
+      }, { onConflict: 'id' });
+
     const { data, error } = await supabaseClient
       .from('park_questmasters')
       .upsert({
@@ -598,17 +613,19 @@ async function saveActivePark(newPark, kingdom = null, qmId = null, qmUsername =
   // 6. Persist last active location & QM to Supabase profiles
   if (currentUser) {
     try {
+      const resolvedUsername = currentProfile?.username || currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'Adventurer';
       await supabaseClient
         .from('profiles')
-        .update({ 
+        .upsert({ 
+          id: currentUser.id,
+          username: resolvedUsername,
           park: newPark, 
           kingdom: derivedKingdom,
           last_active_park: newPark,
           last_active_kingdom: derivedKingdom,
           last_active_qm_id: targetQMId,
           last_active_qm_username: targetQMUsername
-        })
-        .eq('id', currentUser.id);
+        }, { onConflict: 'id' });
     } catch (e) {
       console.warn('Profile update error:', e);
     }
