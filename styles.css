@@ -899,10 +899,15 @@ button:focus-visible, select:focus-visible {
   color: white;
 }
 
-.items-subnav,
-.library-subnav {
+.items-subnav {
   display: grid !important;
   grid-template-columns: repeat(3, 1fr) !important;
+  gap: 6px;
+}
+
+.library-subnav {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
   gap: 6px;
 }
 

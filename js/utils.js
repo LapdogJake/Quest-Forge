@@ -46,9 +46,10 @@ function switchTab(tabName) {
     if (typeof fetchUserInventory === 'function') fetchUserInventory();
   } else if (tabName === 'library') {
     activeBtn.classList.add('active');
-    if (typeof renderLibrary === 'function') renderLibrary();
-    if (typeof renderAbilitiesLibrary === 'function') renderAbilitiesLibrary();
-    if (typeof renderArchiveLibrary === 'function') renderArchiveLibrary();
+    if (typeof renderRulesLibrary === 'function') renderRulesLibrary();
+    else if (typeof renderLibrary === 'function') renderLibrary();
+    if (typeof renderChroniclesLibrary === 'function') renderChroniclesLibrary();
+    else if (typeof renderArchiveLibrary === 'function') renderArchiveLibrary();
     else if (typeof renderMiscLibrary === 'function') renderMiscLibrary();
   } else {
     activeBtn.classList.add('active');

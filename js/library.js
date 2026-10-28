@@ -2,7 +2,7 @@
 // Quest-Forge: Library Compendium & Static Rulebook
 // ==============================================================================
 
-const LIBRARY_DATA = [
+const RULES_DATA = [
   {
     id: 'trinkets-rop',
     title: 'Trinkets',
@@ -356,7 +356,8 @@ const LIBRARY_DATA = [
     title: 'Magic Item Rules',
     content: `
       <div class="library-section-body">
-        <ol style="margin: 4px 0 8px 20px; padding: 0; font-size: 13px; line-height: 1.6; color: var(--text);">
+        <div style="font-weight:700; color:var(--primary); font-size:13px; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">General Rules</div>
+        <ol style="margin: 4px 0 16px 20px; padding: 0; font-size: 13px; line-height: 1.6; color: var(--text);">
           <li style="margin-bottom: 8px;">Magical Items each have a category corresponding with their level of power from Trinket to Talisman to Artifact.</li>
           <li style="margin-bottom: 8px;">Magical Items are awarded at the discretion of the group officers.</li>
           <li style="margin-bottom: 8px;">The officers of the group are responsible for tracking what Magic Items are owned by whom.</li>
@@ -371,14 +372,8 @@ const LIBRARY_DATA = [
           <li style="margin-bottom: 8px;">Magic items that may be destroyed cease to function in all ways while destroyed.</li>
           <li style="margin-bottom: 8px;">Uses of abilities granted by a Magic Item are tracked separately from a player's own abilities and are recharged separately.</li>
         </ol>
-      </div>
-    `
-  },
-  {
-    id: 'battlegaming-magic-items',
-    title: 'Battlegaming With Magic Items',
-    content: `
-      <div class="library-section-body">
+
+        <div style="font-weight:700; color:var(--primary); font-size:13px; margin-top:16px; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">Battlegaming Guidelines</div>
         <p style="margin: 0 0 10px 0; color: var(--text-muted); font-size: 13px; line-height: 1.5;">
           Here are some basic guidelines for how to use Magic Items in battlegames. These guidelines may be changed or adapted by the battlegame reeve. Reeves are always encouraged to consider game balance when determining what Magic Items are allowed in the game.
         </p>
@@ -393,170 +388,123 @@ const LIBRARY_DATA = [
         </ol>
       </div>
     `
-  }
-];
-
-// Render the Library Tab content (matches the items tab category box format)
-function renderLibrary() {
-  const container = document.getElementById('library-content-container');
-  if (!container) return;
-
-  container.innerHTML = LIBRARY_DATA.map((section) => {
-    return `
-      <details class="store-category" id="library-section-${section.id}">
-        <summary class="store-category-summary">${section.title}</summary>
-        <div class="store-category-items">
-          ${section.content}
-        </div>
-      </details>
-    `;
-  }).join('');
-}
-
-const ABILITIES_DATA = [
+  },
   {
     id: 'quest-abilities',
     title: 'Quest Abilities',
-    items: [
-      {
-        name: 'Affinity for Nature',
-        description: 'Player is in tune with nature and the beings who live in harmony with nature. This player will generally be considered a friend by such monsters and NPCs. They will also have knowledge about animals and natural locations.'
-      },
-      {
-        name: 'Calm',
-        description: 'Player gives off an aura of calm. This player will have an advantage when negotiating or dealing with non-hostile monsters and NPCs.'
-      },
-      {
-        name: 'Charm',
-        description: 'Player can initiate a performance that entrances a monster or NPC. The monster will not attack anybody for the duration of the performance or until they feel threatened. The performance must be either a song, a joke, a dance, or a story and may last no longer than 2 minutes. 1/Game.'
-      },
-      {
-        name: 'Court Knowledge',
-        description: 'Player is familiar with the customs and behaviors of the royal court. The player will have an advantage when dealing with politicians and nobles.'
-      },
-      {
-        name: 'Disarm Traps',
-        description: 'Player has an affinity for mechanical traps. If this player fails to disarm a trap, they fare better than other players.'
-      },
-      {
-        name: 'Hallowed Ground',
-        description: 'Player creates a fixed 20\'-radius area where no offensive actions can occur for 2 minutes. Actions that are initiated outside the 20\' radius may still affect individuals in the area. 1/Game.'
-      },
-      {
-        name: 'Magical Knowledge',
-        description: 'Player has experience with reading magical auras. They can detect and identify magical locks and traps. They also have background information about magical beings and locations.'
-      },
-      {
-        name: 'Menace',
-        description: 'Player gives off an aura of menace that can be sensed by hostile monsters, and will have an advantage when attempting to intimidate hostile monsters.'
-      },
-      {
-        name: 'Persuasion',
-        description: 'Intelligent monsters and NPCs find the player\'s arguments more convincing than they otherwise would, and are more likely to be influenced by the player.'
-      },
-      {
-        name: 'Pick Locks',
-        description: 'Player has an affinity for mechanical locks. If this player fails an attempt to pick a lock, they fare better than other players.'
-      },
-      {
-        name: 'Presence',
-        description: 'Player may converse safely with a group of players, monsters, or NPCs so long as the player takes no hostile action towards them. Monsters and NPCs that are not capable of intelligent thought (animals, slimes, mindless undead, etc.) are not affected. Players may choose not to converse, but may still not harm the player. May not last longer than 3 minutes. May not be used for scouting or reconnaissance. 1/Game.'
-      },
-      {
-        name: 'Talk to Dead',
-        description: 'Dead players, intelligent monsters, and intelligent NPCs can be asked one yes-or-no question and must answer truthfully to the best of their ability. May only be used once per target.'
-      },
-      {
-        name: 'Tracker',
-        description: 'Player is an experienced tracker in almost any environment. The player will often be able to determine more information about the kinds of monsters and NPCs in the area, as well as possible locations of game objectives.'
-      },
-      {
-        name: 'Tribal Knowledge',
-        description: 'Player is familiar with the tribal and clan customs of many cultures. This player will have an edge in understanding and negotiating with monsters and NPCs who live in a clan or tribe.'
-      },
-      {
-        name: 'Turn Undead',
-        description: 'Monster and NPC undead (including monsters and NPCs affected by Undead Minion, Vampirism, etc.) must stay 50\' away from the player and may not initiate any hostile actions towards them. Any undead that is targeted by a hostile action is no longer affected by Turn Undead and may act normally. Lasts for 2 minutes. 1/Game.'
-      },
-      {
-        name: 'Prepared',
-        description: 'Player is an experienced campaigner and is aware, before a Quest starts, of any special equipment or circumstances that may be encountered. The reeve in charge of the Quest should privately give the player a brief overview of the monsters and challenges they are likely to encounter.'
-      }
-    ]
+    content: `
+      <div class="library-section-body">
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Affinity for Nature</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              Player is in tune with nature and the beings who live in harmony with nature. This player will generally be considered a friend by such monsters and NPCs. They will also have knowledge about animals and natural locations.
+            </div>
+          </div>
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Calm</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              Player gives off an aura of calm. This player will have an advantage when negotiating or dealing with non-hostile monsters and NPCs.
+            </div>
+          </div>
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Charm</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              Player can initiate a performance that entrances a monster or NPC. The monster will not attack anybody for the duration of the performance or until they feel threatened. The performance must be either a song, a joke, a dance, or a story and may last no longer than 2 minutes. 1/Game.
+            </div>
+          </div>
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Court Knowledge</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              Player is familiar with the customs and behaviors of the royal court. The player will have an advantage when dealing with politicians and nobles.
+            </div>
+          </div>
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Disarm Traps</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              Player has an affinity for mechanical traps. If this player fails to disarm a trap, they fare better than other players.
+            </div>
+          </div>
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Hallowed Ground</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              Player creates a fixed 20&prime;-radius area where no offensive actions can occur for 2 minutes. Actions that are initiated outside the 20&prime; radius may still affect individuals in the area. 1/Game.
+            </div>
+          </div>
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Magical Knowledge</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              Player has experience with reading magical auras. They can detect and identify magical locks and traps. They also have background information about magical beings and locations.
+            </div>
+          </div>
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Menace</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              Player gives off an aura of menace that can be sensed by hostile monsters, and will have an advantage when attempting to intimidate hostile monsters.
+            </div>
+          </div>
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Persuasion</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              Intelligent monsters and NPCs find the player's arguments more convincing than they otherwise would, and are more likely to be influenced by the player.
+            </div>
+          </div>
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Pick Locks</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              Player has an affinity for mechanical locks. If this player fails an attempt to pick a lock, they fare better than other players.
+            </div>
+          </div>
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Presence</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              Player may converse safely with a group of players, monsters, or NPCs so long as the player takes no hostile action towards them. Monsters and NPCs that are not capable of intelligent thought (animals, slimes, mindless undead, etc.) are not affected. Players may choose not to converse, but may still not harm the player. May not last longer than 3 minutes. May not be used for scouting or reconnaissance. 1/Game.
+            </div>
+          </div>
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Talk to Dead</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              Dead players, intelligent monsters, and intelligent NPCs can be asked one yes-or-no question and must answer truthfully to the best of their ability. May only be used once per target.
+            </div>
+          </div>
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Tracker</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              Player is an experienced tracker in almost any environment. The player will often be able to determine more information about the kinds of monsters and NPCs in the area, as well as possible locations of game objectives.
+            </div>
+          </div>
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Tribal Knowledge</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              Player is familiar with the tribal and clan customs of many cultures. This player will have an edge in understanding and negotiating with monsters and NPCs who live in a clan or tribe.
+            </div>
+          </div>
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Turn Undead</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              Monster and NPC undead (including monsters and NPCs affected by Undead Minion, Vampirism, etc.) must stay 50&prime; away from the player and may not initiate any hostile actions towards them. Any undead that is targeted by a hostile action is no longer affected by Turn Undead and may act normally. Lasts for 2 minutes. 1/Game.
+            </div>
+          </div>
+          <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">Prepared</div>
+            <div style="font-size:12px; line-height:1.6; color:var(--text);">
+              Player is an experienced campaigner and is aware, before a Quest starts, of any special equipment or circumstances that may be encountered. The reeve in charge of the Quest should privately give the player a brief overview of the monsters and challenges they are likely to encounter.
+            </div>
+          </div>
+        </div>
+      </div>
+    `
   }
 ];
 
-// Render the Abilities Library content (matches the items tab category box format)
-function renderAbilitiesLibrary() {
-  const container = document.getElementById('library-abilities-container');
+const LIBRARY_DATA = RULES_DATA;
+
+// Render the Rules Tab content (combining items, magic item rules, and abilities)
+function renderRulesLibrary() {
+  const container = document.getElementById('library-rules-container') || document.getElementById('library-content-container');
   if (!container) return;
 
-  container.innerHTML = ABILITIES_DATA.map((section) => {
-    return `
-      <details class="store-category" id="library-section-${section.id}">
-        <summary class="store-category-summary">${section.title}</summary>
-        <div class="store-category-items">
-          <div style="display:flex; flex-direction:column; gap:10px;">
-            ${section.items.map(item => `
-              <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
-                <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:4px;">${item.name}</div>
-                <div style="font-size:12px; line-height:1.6; color:var(--text);">
-                  ${item.description}
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      </details>
-    `;
-  }).join('');
-}
-
-// Sub-tab switching between Items, Abilities, and Archive
-function switchLibrarySubTab(subTab) {
-  const isItems = subTab === 'items';
-  const isAbilities = subTab === 'abilities';
-  const isArchive = subTab === 'archive' || subTab === 'misc' || subTab === 'monsters' || subTab === 'durability';
-
-  const itemsContainer = document.getElementById('library-subtab-items');
-  const abilitiesContainer = document.getElementById('library-subtab-abilities');
-  const archiveContainer = document.getElementById('library-subtab-archive') || document.getElementById('library-subtab-misc');
-
-  const btnItems = document.getElementById('library-subnav-items');
-  const btnAbilities = document.getElementById('library-subnav-abilities');
-  const btnArchive = document.getElementById('library-subnav-archive') || document.getElementById('library-subnav-misc');
-
-  if (itemsContainer) itemsContainer.classList.toggle('hidden', !isItems);
-  if (abilitiesContainer) abilitiesContainer.classList.toggle('hidden', !isAbilities);
-  if (archiveContainer) archiveContainer.classList.toggle('hidden', !isArchive);
-
-  if (btnItems) btnItems.classList.toggle('active', isItems);
-  if (btnAbilities) btnAbilities.classList.toggle('active', isAbilities);
-  if (btnArchive) btnArchive.classList.toggle('active', isArchive);
-
-  if (isItems) {
-    renderLibrary();
-  } else if (isAbilities) {
-    renderAbilitiesLibrary();
-  } else if (isArchive) {
-    renderArchiveLibrary();
-  }
-}
-
-const ARCHIVE_DATA = [];
-const MISC_DATA = ARCHIVE_DATA;
-const MONSTERS_DATA = ARCHIVE_DATA;
-
-function renderArchiveLibrary() {
-  const container = document.getElementById('library-archive-container') || document.getElementById('library-misc-container');
-  if (!container) return;
-
-  if (!ARCHIVE_DATA || ARCHIVE_DATA.length === 0) {
-    container.innerHTML = `<p class="empty-state">No archive entries loaded yet.</p>`;
-    return;
-  }
-
-  container.innerHTML = ARCHIVE_DATA.map((section) => {
+  container.innerHTML = RULES_DATA.map((section) => {
     return `
       <details class="store-category" id="library-section-${section.id}">
         <summary class="store-category-summary">${section.title}</summary>
@@ -568,9 +516,33 @@ function renderArchiveLibrary() {
   }).join('');
 }
 
-const renderMiscLibrary = renderArchiveLibrary;
-const renderMonstersLibrary = renderArchiveLibrary;
-const renderDurabilityLibrary = renderArchiveLibrary;
+const renderLibrary = renderRulesLibrary;
+const renderAbilitiesLibrary = renderRulesLibrary;
+
+// Sub-tab switching between Rules and Chronicles
+function switchLibrarySubTab(subTab) {
+  const isRules = subTab === 'rules' || subTab === 'items' || subTab === 'abilities';
+  const isChronicles = subTab === 'chronicles' || subTab === 'archive' || subTab === 'misc' || subTab === 'monsters' || subTab === 'durability';
+
+  const rulesContainer = document.getElementById('library-subtab-rules') || document.getElementById('library-subtab-items');
+  const chroniclesContainer = document.getElementById('library-subtab-chronicles') || document.getElementById('library-subtab-archive') || document.getElementById('library-subtab-misc');
+
+  const btnRules = document.getElementById('library-subnav-rules') || document.getElementById('library-subnav-items');
+  const btnChronicles = document.getElementById('library-subnav-chronicles') || document.getElementById('library-subnav-archive') || document.getElementById('library-subnav-misc');
+
+  if (rulesContainer) rulesContainer.classList.toggle('hidden', !isRules);
+  if (chroniclesContainer) chroniclesContainer.classList.toggle('hidden', !isChronicles);
+
+  if (btnRules) btnRules.classList.toggle('active', isRules);
+  if (btnChronicles) btnChronicles.classList.toggle('active', isChronicles);
+
+  if (isRules) {
+    if (typeof renderRulesLibrary === 'function') renderRulesLibrary();
+  } else if (isChronicles) {
+    if (typeof renderChroniclesLibrary === 'function') renderChroniclesLibrary();
+    else if (typeof renderArchiveLibrary === 'function') renderArchiveLibrary();
+  }
+}
 
 // Toggle individual accordion sections (supports both details and legacy accordion)
 function toggleLibraryAccordion(sectionId) {
@@ -593,17 +565,13 @@ function toggleLibraryAccordion(sectionId) {
   }
 }
 
-// Pre-render all library tabs once DOM is ready so contents are immediately accessible
+// Pre-render rules once DOM is ready so contents are immediately accessible
 if (typeof document !== 'undefined') {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      if (typeof renderLibrary === 'function') renderLibrary();
-      if (typeof renderAbilitiesLibrary === 'function') renderAbilitiesLibrary();
-      if (typeof renderArchiveLibrary === 'function') renderArchiveLibrary();
+      if (typeof renderRulesLibrary === 'function') renderRulesLibrary();
     });
   } else {
-    if (typeof renderLibrary === 'function') renderLibrary();
-    if (typeof renderAbilitiesLibrary === 'function') renderAbilitiesLibrary();
-    if (typeof renderArchiveLibrary === 'function') renderArchiveLibrary();
+    if (typeof renderRulesLibrary === 'function') renderRulesLibrary();
   }
 }
