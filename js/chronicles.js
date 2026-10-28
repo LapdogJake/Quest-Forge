@@ -746,38 +746,40 @@ function renderChroniclesLibrary() {
 
         <!-- Expanded Card Details -->
         <div class="store-category-items">
-          <!-- Metadata Pill & Author -->
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:11px; color:var(--text-muted); border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:8px;">
+          <!-- Body with line breaks preserved -->
+          <div class="chronicle-body-content" style="margin-top:4px;">${escapeHTML(entry.body)}</div>
+
+          <!-- Metadata Pill & Author (Underneath Description) -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.06); font-size:11px; color:var(--text-muted);">
             <div style="display:flex; align-items:center; gap:6px;">
               <span class="badge ${badgeClass}">${escapeHTML(rawCategory)}</span>
               ${entry.is_pinned ? '<span class="badge" style="background:#1e3a5f; color:#93c5fd; border:1px solid #3b82f6;">📌 Pinned</span>' : ''}
             </div>
             <div>
-              <span>Penned by </span><strong style="color:var(--text);">${escapeHTML(entry.author_name || 'Questmaster')}</strong>
+              <span>by </span><strong style="color:var(--text);">${escapeHTML(entry.author_name || 'Questmaster')}</strong>
             </div>
           </div>
 
-          <!-- Body with line breaks preserved -->
-          <div class="chronicle-body-content">${escapeHTML(entry.body)}</div>
-
-          <!-- Card Footer (Expiration & Role-Gated Controls) -->
-          <div class="chronicle-card-footer">
-            <div style="font-size:11px; color:var(--text-muted);">
-              ${entry.expires_at ? `<span>⏰ Expires: ${formatChronicleDate(entry.expires_at)}</span>` : ''}
-            </div>
-
-            <!-- In-Card QM Controls: Edit & Delete buttons positioned at bottom-right -->
-            ${isQM ? `
-              <div class="chronicle-qm-actions">
-                <button type="button" class="chronicle-btn-action" onclick="openEditChronicle('${entry.id}')" title="Edit this entry">
-                  ✏️ Edit
-                </button>
-                <button type="button" class="chronicle-btn-action chronicle-btn-delete" onclick="handleDeleteChronicle('${entry.id}')" title="Delete this entry">
-                  🗑️ Delete
-                </button>
+          ${(entry.expires_at || isQM) ? `
+            <!-- Card Footer (Expiration & Role-Gated Controls) -->
+            <div class="chronicle-card-footer">
+              <div style="font-size:11px; color:var(--text-muted);">
+                ${entry.expires_at ? `<span>⏰ Expires: ${formatChronicleDate(entry.expires_at)}</span>` : ''}
               </div>
-            ` : ''}
-          </div>
+
+              <!-- In-Card QM Controls: Edit & Delete buttons positioned at bottom-right -->
+              ${isQM ? `
+                <div class="chronicle-qm-actions">
+                  <button type="button" class="chronicle-btn-action" onclick="openEditChronicle('${entry.id}')" title="Edit this entry">
+                    ✏️ Edit
+                  </button>
+                  <button type="button" class="chronicle-btn-action chronicle-btn-delete" onclick="handleDeleteChronicle('${entry.id}')" title="Delete this entry">
+                    🗑️ Delete
+                  </button>
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
         </div>
       </details>
     `;
