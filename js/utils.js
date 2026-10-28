@@ -48,7 +48,8 @@ function switchTab(tabName) {
     activeBtn.classList.add('active');
     if (typeof renderLibrary === 'function') renderLibrary();
     if (typeof renderAbilitiesLibrary === 'function') renderAbilitiesLibrary();
-    if (typeof renderMiscLibrary === 'function') renderMiscLibrary();
+    if (typeof renderArchiveLibrary === 'function') renderArchiveLibrary();
+    else if (typeof renderMiscLibrary === 'function') renderMiscLibrary();
   } else {
     activeBtn.classList.add('active');
   }

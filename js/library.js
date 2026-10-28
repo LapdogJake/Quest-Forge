@@ -512,60 +512,51 @@ function renderAbilitiesLibrary() {
   }).join('');
 }
 
-// Sub-tab switching between Items, Abilities, and Misc
+// Sub-tab switching between Items, Abilities, and Archive
 function switchLibrarySubTab(subTab) {
   const isItems = subTab === 'items';
   const isAbilities = subTab === 'abilities';
-  const isMisc = subTab === 'misc' || subTab === 'monsters' || subTab === 'durability';
+  const isArchive = subTab === 'archive' || subTab === 'misc' || subTab === 'monsters' || subTab === 'durability';
 
   const itemsContainer = document.getElementById('library-subtab-items');
   const abilitiesContainer = document.getElementById('library-subtab-abilities');
-  const miscContainer = document.getElementById('library-subtab-misc');
+  const archiveContainer = document.getElementById('library-subtab-archive') || document.getElementById('library-subtab-misc');
 
   const btnItems = document.getElementById('library-subnav-items');
   const btnAbilities = document.getElementById('library-subnav-abilities');
-  const btnMisc = document.getElementById('library-subnav-misc');
+  const btnArchive = document.getElementById('library-subnav-archive') || document.getElementById('library-subnav-misc');
 
   if (itemsContainer) itemsContainer.classList.toggle('hidden', !isItems);
   if (abilitiesContainer) abilitiesContainer.classList.toggle('hidden', !isAbilities);
-  if (miscContainer) miscContainer.classList.toggle('hidden', !isMisc);
+  if (archiveContainer) archiveContainer.classList.toggle('hidden', !isArchive);
 
   if (btnItems) btnItems.classList.toggle('active', isItems);
   if (btnAbilities) btnAbilities.classList.toggle('active', isAbilities);
-  if (btnMisc) btnMisc.classList.toggle('active', isMisc);
+  if (btnArchive) btnArchive.classList.toggle('active', isArchive);
 
   if (isItems) {
     renderLibrary();
   } else if (isAbilities) {
     renderAbilitiesLibrary();
-  } else if (isMisc) {
-    renderMiscLibrary();
+  } else if (isArchive) {
+    renderArchiveLibrary();
   }
 }
 
-const MISC_DATA = [
-  {
-    id: 'durability',
-    title: 'Durability',
-    content: `
-      <div class="library-section-body">
-      </div>
-    `
-  }
-];
+const ARCHIVE_DATA = [];
+const MISC_DATA = ARCHIVE_DATA;
+const MONSTERS_DATA = ARCHIVE_DATA;
 
-const MONSTERS_DATA = MISC_DATA;
-
-function renderMiscLibrary() {
-  const container = document.getElementById('library-misc-container');
+function renderArchiveLibrary() {
+  const container = document.getElementById('library-archive-container') || document.getElementById('library-misc-container');
   if (!container) return;
 
-  if (!MISC_DATA || MISC_DATA.length === 0) {
-    container.innerHTML = `<p class="empty-state">No miscellaneous entries loaded yet.</p>`;
+  if (!ARCHIVE_DATA || ARCHIVE_DATA.length === 0) {
+    container.innerHTML = `<p class="empty-state">No archive entries loaded yet.</p>`;
     return;
   }
 
-  container.innerHTML = MISC_DATA.map((section) => {
+  container.innerHTML = ARCHIVE_DATA.map((section) => {
     return `
       <details class="store-category" id="library-section-${section.id}">
         <summary class="store-category-summary">${section.title}</summary>
@@ -577,8 +568,9 @@ function renderMiscLibrary() {
   }).join('');
 }
 
-const renderMonstersLibrary = renderMiscLibrary;
-const renderDurabilityLibrary = renderMiscLibrary;
+const renderMiscLibrary = renderArchiveLibrary;
+const renderMonstersLibrary = renderArchiveLibrary;
+const renderDurabilityLibrary = renderArchiveLibrary;
 
 // Toggle individual accordion sections (supports both details and legacy accordion)
 function toggleLibraryAccordion(sectionId) {
@@ -607,11 +599,11 @@ if (typeof document !== 'undefined') {
     document.addEventListener('DOMContentLoaded', () => {
       if (typeof renderLibrary === 'function') renderLibrary();
       if (typeof renderAbilitiesLibrary === 'function') renderAbilitiesLibrary();
-      if (typeof renderMiscLibrary === 'function') renderMiscLibrary();
+      if (typeof renderArchiveLibrary === 'function') renderArchiveLibrary();
     });
   } else {
     if (typeof renderLibrary === 'function') renderLibrary();
     if (typeof renderAbilitiesLibrary === 'function') renderAbilitiesLibrary();
-    if (typeof renderMiscLibrary === 'function') renderMiscLibrary();
+    if (typeof renderArchiveLibrary === 'function') renderArchiveLibrary();
   }
 }

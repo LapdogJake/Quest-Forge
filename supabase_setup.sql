@@ -11,7 +11,6 @@
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   username TEXT,
-  email TEXT,
   role TEXT NOT NULL DEFAULT 'player',
   gold INTEGER NOT NULL DEFAULT 0 CHECK (gold >= 0),
   kingdom TEXT NOT NULL DEFAULT 'The Freeholds of Amtgard',
@@ -25,9 +24,11 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Ensure email column is dropped from public profiles to protect player privacy (emails remain secure in auth.users)
+ALTER TABLE public.profiles DROP COLUMN IF EXISTS email;
+
 ALTER TABLE public.profiles 
   ADD COLUMN IF NOT EXISTS username TEXT,
-  ADD COLUMN IF NOT EXISTS email TEXT,
   ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'player',
   ADD COLUMN IF NOT EXISTS gold INTEGER DEFAULT 0,
   ADD COLUMN IF NOT EXISTS kingdom TEXT DEFAULT 'The Freeholds of Amtgard',
@@ -312,7 +313,6 @@ BEGIN
   INSERT INTO public.profiles (
     id,
     username,
-    email,
     role,
     gold,
     kingdom,
@@ -323,7 +323,6 @@ BEGIN
   VALUES (
     new.id,
     v_username,
-    new.email,
     'player',
     0,
     v_kingdom,
@@ -333,7 +332,6 @@ BEGIN
   )
   ON CONFLICT (id) DO UPDATE SET
     username = EXCLUDED.username,
-    email = EXCLUDED.email,
     kingdom = EXCLUDED.kingdom,
     park = EXCLUDED.park;
 

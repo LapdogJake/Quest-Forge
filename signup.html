@@ -284,7 +284,6 @@
         await supabaseClient.from('profiles').upsert({
           id: loggedUser.id,
           username: username,
-          email: email,
           kingdom: kingdom,
           park: park,
           role: 'player',
