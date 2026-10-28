@@ -46,11 +46,13 @@ function switchTab(tabName) {
     if (typeof fetchUserInventory === 'function') fetchUserInventory();
   } else if (tabName === 'library') {
     activeBtn.classList.add('active');
-    if (typeof renderRulesLibrary === 'function') renderRulesLibrary();
-    else if (typeof renderLibrary === 'function') renderLibrary();
+    const isRulesActive = document.getElementById('library-subnav-rules')?.classList.contains('active');
+    if (!isRulesActive) {
+      if (typeof switchLibrarySubTab === 'function') switchLibrarySubTab('chronicles');
+    }
     if (typeof renderChroniclesLibrary === 'function') renderChroniclesLibrary();
-    else if (typeof renderArchiveLibrary === 'function') renderArchiveLibrary();
-    else if (typeof renderMiscLibrary === 'function') renderMiscLibrary();
+    if (typeof fetchChronicles === 'function') fetchChronicles();
+    if (typeof renderRulesLibrary === 'function') renderRulesLibrary();
   } else {
     activeBtn.classList.add('active');
   }

@@ -195,19 +195,12 @@
         </div>
 
         <div class="qm-subnav library-subnav" style="margin-bottom:14px; display:grid; grid-template-columns:repeat(2, 1fr); gap:6px;">
-          <button id="library-subnav-rules" class="qm-subnav-btn active" onclick="switchLibrarySubTab('rules')">Rules</button>
-          <button id="library-subnav-chronicles" class="qm-subnav-btn" onclick="switchLibrarySubTab('chronicles')">Chronicles</button>
+          <button id="library-subnav-chronicles" class="qm-subnav-btn active" onclick="switchLibrarySubTab('chronicles')">Chronicles</button>
+          <button id="library-subnav-rules" class="qm-subnav-btn" onclick="switchLibrarySubTab('rules')">Rules</button>
         </div>
 
-        <!-- SUB-TAB 1: RULES -->
-        <div id="library-subtab-rules">
-          <div id="library-rules-container" class="store-catalog-list">
-            <p class="empty-state">Loading Rules...</p>
-          </div>
-        </div>
-
-        <!-- SUB-TAB 2: CHRONICLES -->
-        <div id="library-subtab-chronicles" class="hidden">
+        <!-- SUB-TAB 1: CHRONICLES -->
+        <div id="library-subtab-chronicles">
 
           <!-- QM Authoring Action (Visible to QMs only) -->
           <div id="chronicles-qm-header" class="hidden" style="margin-bottom:14px;">
@@ -271,6 +264,13 @@
           <!-- Feed Container -->
           <div id="library-chronicles-container" class="store-catalog-list">
             <p class="empty-state">Loading Chronicles...</p>
+          </div>
+        </div>
+
+        <!-- SUB-TAB 2: RULES -->
+        <div id="library-subtab-rules" class="hidden">
+          <div id="library-rules-container" class="store-catalog-list">
+            <p class="empty-state">Loading Rules...</p>
           </div>
         </div>
 
@@ -567,12 +567,12 @@
   <!-- Modular Scripts -->
   <script src="js/config.js?v=28"></script>
   <script src="js/state.js?v=28"></script>
-  <script src="js/utils.js?v=41"></script>
+  <script src="js/utils.js?v=42"></script>
   <script src="js/reigns.js?v=29"></script>
   <script src="js/inventory.js?v=28"></script>
   <script src="js/store.js?v=28"></script>
-  <script src="js/library.js?v=40"></script>
-  <script src="js/chronicles.js?v=1"></script>
+  <script src="js/library.js?v=41"></script>
+  <script src="js/chronicles.js?v=2"></script>
   <script src="js/encounters.js?v=28"></script>
   <script src="js/quests.js?v=28"></script>
   <script src="js/app.js?v=29"></script>

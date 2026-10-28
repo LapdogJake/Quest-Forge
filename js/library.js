@@ -516,31 +516,34 @@ function renderRulesLibrary() {
   }).join('');
 }
 
-const renderLibrary = renderRulesLibrary;
+const renderLibrary = function() {
+  if (typeof renderChroniclesLibrary === 'function') renderChroniclesLibrary();
+  if (typeof renderRulesLibrary === 'function') renderRulesLibrary();
+};
 const renderAbilitiesLibrary = renderRulesLibrary;
 
-// Sub-tab switching between Rules and Chronicles
+// Sub-tab switching between Chronicles and Rules
 function switchLibrarySubTab(subTab) {
-  const isRules = subTab === 'rules' || subTab === 'items' || subTab === 'abilities';
   const isChronicles = subTab === 'chronicles' || subTab === 'archive' || subTab === 'misc' || subTab === 'monsters' || subTab === 'durability';
+  const isRules = !isChronicles && (subTab === 'rules' || subTab === 'items' || subTab === 'abilities');
 
-  const rulesContainer = document.getElementById('library-subtab-rules') || document.getElementById('library-subtab-items');
   const chroniclesContainer = document.getElementById('library-subtab-chronicles') || document.getElementById('library-subtab-archive') || document.getElementById('library-subtab-misc');
+  const rulesContainer = document.getElementById('library-subtab-rules') || document.getElementById('library-subtab-items');
 
-  const btnRules = document.getElementById('library-subnav-rules') || document.getElementById('library-subnav-items');
   const btnChronicles = document.getElementById('library-subnav-chronicles') || document.getElementById('library-subnav-archive') || document.getElementById('library-subnav-misc');
+  const btnRules = document.getElementById('library-subnav-rules') || document.getElementById('library-subnav-items');
 
-  if (rulesContainer) rulesContainer.classList.toggle('hidden', !isRules);
   if (chroniclesContainer) chroniclesContainer.classList.toggle('hidden', !isChronicles);
+  if (rulesContainer) rulesContainer.classList.toggle('hidden', !isRules);
 
-  if (btnRules) btnRules.classList.toggle('active', isRules);
   if (btnChronicles) btnChronicles.classList.toggle('active', isChronicles);
+  if (btnRules) btnRules.classList.toggle('active', isRules);
 
-  if (isRules) {
-    if (typeof renderRulesLibrary === 'function') renderRulesLibrary();
-  } else if (isChronicles) {
+  if (isChronicles) {
     if (typeof renderChroniclesLibrary === 'function') renderChroniclesLibrary();
-    else if (typeof renderArchiveLibrary === 'function') renderArchiveLibrary();
+    if (typeof fetchChronicles === 'function') fetchChronicles();
+  } else if (isRules) {
+    if (typeof renderRulesLibrary === 'function') renderRulesLibrary();
   }
 }
 

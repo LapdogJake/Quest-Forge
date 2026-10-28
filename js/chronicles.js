@@ -9,6 +9,13 @@ let chroniclesList = [];
 // Local storage key for offline & resilience fallback
 const CHRONICLES_STORAGE_KEY = 'qf_chronicles_store';
 
+// Standard UUID v4 regex pattern
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isValidUUID(str) {
+  return typeof str === 'string' && UUID_REGEX.test(str.trim());
+}
+
 /**
  * Check if the active user possesses Questmaster privileges
  */
@@ -61,6 +68,16 @@ function getActiveQMId() {
   if (typeof currentProfile !== 'undefined' && currentProfile?.last_active_qm_id) {
     return currentProfile.last_active_qm_id;
   }
+
+  // Fallback: Check park's registered Questmasters if session hasn't explicitly selected one
+  if (typeof parkQMsList !== 'undefined' && Array.isArray(parkQMsList) && parkQMsList.length > 0) {
+    const activePark = getChronicleActivePark();
+    const matchingQM = parkQMsList.find(q => q.park === activePark) || parkQMsList[0];
+    if (matchingQM?.user_id) {
+      return matchingQM.user_id;
+    }
+  }
+
   return null;
 }
 
@@ -144,41 +161,71 @@ function saveLocalChronicles(list) {
 }
 
 /**
- * Fetch chronicles from Supabase with Questmaster scoping and graceful local storage fallback
+ * Fetch chronicles from Supabase with Questmaster scoping, graceful auto-sync, and local storage fallback
  */
 async function fetchChronicles() {
+  const activePark = getChronicleActivePark();
   const activeQMId = getActiveQMId();
 
   if (typeof supabaseClient !== 'undefined' && supabaseClient) {
     try {
-      let query = supabaseClient
+      const { data, error } = await supabaseClient
         .from('chronicles')
-        .select('*');
-
-      if (activeQMId) {
-        query = query.eq('qm_id', activeQMId);
-      }
-
-      const { data, error } = await query.order('created_at', { ascending: false });
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (!error && Array.isArray(data)) {
         chroniclesList = data;
-        saveLocalChronicles(data);
+
+        // Auto-sync: If this device has any local drafts/posts authored by current QM
+        // that failed to insert into Supabase earlier (e.g. from a non-UUID or schema error),
+        // automatically upload them to Supabase so players can see them immediately!
+        if (isQMAuthorized() && typeof currentUser !== 'undefined' && currentUser?.id) {
+          const localEntries = loadLocalChronicles();
+          for (const localEntry of localEntries) {
+            if (localEntry && (localEntry.author_id === currentUser.id || !localEntry.author_id)) {
+              const alreadyInDb = chroniclesList.some(e => 
+                (e.id && localEntry.id && String(e.id) === String(localEntry.id)) ||
+                (e.title === localEntry.title && e.created_at === localEntry.created_at)
+              );
+              if (!alreadyInDb && localEntry.title && localEntry.body) {
+                try {
+                  const syncPayload = {
+                    title: localEntry.title,
+                    body: localEntry.body,
+                    category: localEntry.category || 'Chronicle',
+                    park: localEntry.park || activePark,
+                    author_id: isValidUUID(currentUser.id) ? currentUser.id : null,
+                    author_name: localEntry.author_name || getChronicleAuthorName(),
+                    is_pinned: Boolean(localEntry.is_pinned),
+                    expires_at: localEntry.expires_at || null
+                  };
+                  if (isValidUUID(activeQMId)) {
+                    syncPayload.qm_id = activeQMId;
+                  }
+                  const { data: syncedRow, error: syncErr } = await supabaseClient
+                    .from('chronicles')
+                    .insert(syncPayload)
+                    .select('*')
+                    .maybeSingle();
+
+                  if (!syncErr && syncedRow) {
+                    localEntry.id = syncedRow.id;
+                    chroniclesList.unshift(syncedRow);
+                  }
+                } catch (syncEx) {
+                  console.warn('Chronicle auto-sync notice:', syncEx);
+                }
+              }
+            }
+          }
+        }
+
+        saveLocalChronicles(chroniclesList);
         renderChroniclesLibrary();
         return chroniclesList;
-      } else if (error && error.message && error.message.includes('qm_id')) {
-        // Fallback query if column qm_id is not yet migrated in remote Supabase
-        const { data: fallbackData } = await supabaseClient
-          .from('chronicles')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (Array.isArray(fallbackData)) {
-          chroniclesList = fallbackData;
-          saveLocalChronicles(fallbackData);
-          renderChroniclesLibrary();
-          return chroniclesList;
-        }
+      } else if (error) {
+        console.warn('Supabase fetch error for chronicles:', error.message);
       }
     } catch (err) {
       console.warn('Network or schema issue fetching chronicles:', err);
@@ -193,26 +240,39 @@ async function fetchChronicles() {
 
 /**
  * Sorting & Filtering Priority (Strictly Questmaster-Scoped):
- * 1. Must match active Questmaster realm (qm_id)
+ * 1. Must match active Questmaster realm (if activeQMId is active) or active park
  * 2. Active Announcements at the top (unless expired, in which case expired are hidden)
  * 3. Pinned posts next
  * 4. Chronological (newest first) for both Chronicles and Lore
  */
 function getSortedAndFilteredChronicles() {
+  const activePark = getChronicleActivePark();
+  const normActivePark = (activePark || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
   const activeQMId = getActiveQMId();
   const myUserId = (typeof currentUser !== 'undefined' && currentUser?.id) || null;
   const now = Date.now();
 
   return chroniclesList
     .filter(entry => {
+      // 0. Active park scoping: entries must match player's active park (with apostrophe normalization)
+      if (normActivePark && entry.park) {
+        const normEntryPark = String(entry.park).replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
+        if (normEntryPark && normEntryPark !== normActivePark) {
+          return false;
+        }
+      }
+
       // 1. STRICT QUESTMASTER SCOPING:
-      // Ensure different Questmasters never share a chronicle feed.
+      // Author / QM always sees their own posts
+      const isMyPost = Boolean(myUserId && (entry.author_id === myUserId || entry.qm_id === myUserId));
+
       if (activeQMId) {
-        const matchesQM = (entry.qm_id === activeQMId) || (myUserId && entry.qm_id === myUserId);
+        // If a specific QM realm is selected, isolate strictly to that QM
+        const matchesQM = (entry.qm_id === activeQMId) || (entry.author_id === activeQMId) || isMyPost;
         if (!matchesQM) return false;
-      } else if (entry.qm_id) {
-        // If player has not selected a QM realm, do not leak another QM's feed
-        if (!myUserId || entry.qm_id !== myUserId) return false;
+      } else {
+        // If player has not chosen a specific QM realm yet (Default Realm):
+        // Allow seeing chronicles for their park so new or unassigned players see announcements and lore
       }
 
       // 2. Expiration check for announcements
@@ -466,20 +526,25 @@ async function handleSaveChronicle(event) {
 
     } else {
       // CREATE NEW ENTRY (Scoped strictly to this Questmaster's realm)
-      const newId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+      const validQMId = isValidUUID(activeQMId) ? activeQMId : null;
+      const validAuthorId = isValidUUID(authorId) ? authorId : null;
+
+      const generatedUUID = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') 
         ? crypto.randomUUID() 
-        : 'chronicle_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+        : null;
+
+      const tempId = generatedUUID || ('chronicle_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6));
 
       const newEntry = {
-        id: newId,
-        qm_id: activeQMId,
+        id: tempId,
+        qm_id: validQMId || (validAuthorId ? validAuthorId : null),
         park: activePark,
         title,
         body,
         category,
-        author_id: authorId,
+        author_id: validAuthorId,
         author_name: authorName,
-        is_pinned,
+        is_pinned: Boolean(is_pinned),
         expires_at,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -491,17 +556,45 @@ async function handleSaveChronicle(event) {
       // Persist to Supabase if available
       if (typeof supabaseClient !== 'undefined' && supabaseClient) {
         try {
-          const { error } = await supabaseClient
-            .from('chronicles')
-            .insert(newEntry);
+          const insertPayload = {
+            title,
+            body,
+            category,
+            park: activePark,
+            author_name: authorName,
+            is_pinned: Boolean(is_pinned),
+            expires_at: expires_at || null
+          };
+          if (validQMId) insertPayload.qm_id = validQMId;
+          else if (validAuthorId) insertPayload.qm_id = validAuthorId;
 
-          if (error && error.message && error.message.includes('qm_id')) {
-            const fallback = { ...newEntry };
-            delete fallback.qm_id;
-            await supabaseClient.from('chronicles').insert(fallback);
+          if (validAuthorId) insertPayload.author_id = validAuthorId;
+          if (generatedUUID) insertPayload.id = generatedUUID;
+
+          const { data: dbRow, error } = await supabaseClient
+            .from('chronicles')
+            .insert(insertPayload)
+            .select('*')
+            .maybeSingle();
+
+          if (!error && dbRow) {
+            newEntry.id = dbRow.id;
+            newEntry.created_at = dbRow.created_at || newEntry.created_at;
+          } else if (error) {
+            console.warn('Supabase insert notice, attempting schema fallback:', error.message);
+            if (error.message && error.message.includes('qm_id')) {
+              const fallback = { ...insertPayload };
+              delete fallback.qm_id;
+              const { data: fallbackRow } = await supabaseClient
+                .from('chronicles')
+                .insert(fallback)
+                .select('*')
+                .maybeSingle();
+              if (fallbackRow) newEntry.id = fallbackRow.id;
+            }
           }
         } catch (dbErr) {
-          console.warn('Supabase insert notice:', dbErr);
+          console.warn('Supabase insert exception:', dbErr);
         }
       }
 
@@ -511,7 +604,7 @@ async function handleSaveChronicle(event) {
       renderChroniclesLibrary();
 
       // Automatically open newly posted entry
-      const newEl = document.getElementById(`chronicle-card-${newId}`);
+      const newEl = document.getElementById(`chronicle-card-${newEntry.id}`);
       if (newEl) {
         newEl.open = true;
         newEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
