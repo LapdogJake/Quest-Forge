@@ -402,7 +402,61 @@ $$;
 GRANT EXECUTE ON FUNCTION public.apply_combat_durability_damage(UUID, TEXT) TO authenticated, anon, service_role;
 
 -- ------------------------------------------------------------------------------
--- 13. Permissions & Grants
+-- 14. Chronicles Table (Quest Journal, Lore & Announcements)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.chronicles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  qm_id UUID,
+  park TEXT NOT NULL DEFAULT 'Delver''s Rest',
+  kingdom TEXT NOT NULL DEFAULT 'The Freeholds of Amtgard',
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  category TEXT NOT NULL CHECK (category IN ('Chronicle', 'Lore', 'Announcement')),
+  author_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  author_name TEXT NOT NULL DEFAULT 'Questmaster',
+  is_pinned BOOLEAN NOT NULL DEFAULT false,
+  expires_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.chronicles ADD COLUMN IF NOT EXISTS qm_id UUID;
+
+CREATE INDEX IF NOT EXISTS idx_chronicles_qm_id ON public.chronicles (qm_id);
+CREATE INDEX IF NOT EXISTS idx_chronicles_park ON public.chronicles (park);
+CREATE INDEX IF NOT EXISTS idx_chronicles_qm_park ON public.chronicles (park, qm_id);
+CREATE INDEX IF NOT EXISTS idx_chronicles_category ON public.chronicles (category);
+CREATE INDEX IF NOT EXISTS idx_chronicles_created_at ON public.chronicles (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_chronicles_pinned ON public.chronicles (is_pinned);
+
+ALTER TABLE public.chronicles ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can view chronicles" ON public.chronicles;
+CREATE POLICY "Public can view chronicles"
+  ON public.chronicles FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Public and authenticated can insert chronicles" ON public.chronicles;
+CREATE POLICY "Public and authenticated can insert chronicles"
+  ON public.chronicles FOR INSERT
+  TO authenticated, anon
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public and authenticated can update chronicles" ON public.chronicles;
+CREATE POLICY "Public and authenticated can update chronicles"
+  ON public.chronicles FOR UPDATE
+  TO authenticated, anon
+  USING (true)
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public and authenticated can delete chronicles" ON public.chronicles;
+CREATE POLICY "Public and authenticated can delete chronicles"
+  ON public.chronicles FOR DELETE
+  TO authenticated, anon
+  USING (true);
+
+-- ------------------------------------------------------------------------------
+-- 15. Permissions & Grants
 -- ------------------------------------------------------------------------------
 GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, anon, authenticated, service_role;

@@ -96,6 +96,10 @@ function syncUserRoleUI(role) {
     fetchQMQueues();
     fetchQMQuests();
   }
+
+  if (typeof syncChroniclesQMVisibility === 'function') {
+    syncChroniclesQMVisibility();
+  }
 }
 
 // Isolated Park & QM Currency (Gold) Management
@@ -473,12 +477,21 @@ async function handleEndCampaign() {
       await supabaseClient.from('quests').delete().in('id', questIds);
     }
 
-    // 3. Delete QM registration from park_questmasters
+    // 3. Delete QM registration from park_questmasters and associated chronicles
     await supabaseClient
       .from('park_questmasters')
       .delete()
       .eq('user_id', currentUser.id)
       .eq('park', activePark);
+
+    try {
+      await supabaseClient
+        .from('chronicles')
+        .delete()
+        .eq('qm_id', currentUser.id);
+    } catch (e) {
+      console.warn('Chronicles campaign cleanup notice:', e);
+    }
 
     // 4. Update profile roles back to 'player'
     await supabaseClient
@@ -608,6 +621,7 @@ async function saveActivePark(newPark, kingdom = null, qmId = null, qmUsername =
   if (typeof fetchMonsterEncounters === 'function') await fetchMonsterEncounters();
   if (typeof fetchQMQuests === 'function') await fetchQMQuests();
   if (typeof fetchQMQueues === 'function') await fetchQMQueues();
+  if (typeof fetchChronicles === 'function') await fetchChronicles();
 }
 
 function updateGroupBannerDisplays() {

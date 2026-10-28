@@ -208,6 +208,67 @@
 
         <!-- SUB-TAB 2: CHRONICLES -->
         <div id="library-subtab-chronicles" class="hidden">
+
+          <!-- QM Authoring Action (Visible to QMs only) -->
+          <div id="chronicles-qm-header" class="hidden" style="margin-bottom:14px;">
+            <button id="btn-create-chronicle" class="btn" onclick="toggleChronicleForm()" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:12px; font-weight:700; border-radius:8px; font-size:14px; background:linear-gradient(135deg, #0284c7, #0369a1); border:1px solid #38bdf8; color:#ffffff; cursor:pointer; box-shadow:0 4px 12px rgba(2, 132, 199, 0.25);">
+              <span>➕</span> <span>Create a Chronicle</span>
+            </button>
+          </div>
+
+          <!-- Mobile-Friendly Creation / Edit Form Card -->
+          <div id="chronicle-form-card" class="card hidden" style="background:#18181b; border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:10px;">
+              <h3 id="chronicle-form-heading" style="margin:0; font-size:15px; font-weight:700; color:var(--text); display:flex; align-items:center; gap:8px;">
+                <span>📜</span> <span>New Chronicle Entry</span>
+              </h3>
+              <button type="button" onclick="cancelChronicleForm()" style="background:transparent; border:none; color:var(--text-muted); font-size:18px; cursor:pointer; padding:2px 6px;">✕</button>
+            </div>
+
+            <form id="chronicle-editor-form" onsubmit="handleSaveChronicle(event)">
+              <input type="hidden" id="chronicle-edit-id" value="">
+
+              <div style="margin-bottom:12px;">
+                <label style="display:block; font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:4px;" for="chronicle-title-input">Title</label>
+                <input type="text" id="chronicle-title-input" placeholder="Entry Title (e.g., The Battle for Sunken Dale)" required style="width:100%; box-sizing:border-box; background:#121214; border:1px solid var(--border); color:var(--text); padding:10px 12px; border-radius:6px; font-size:14px;">
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+                <div>
+                  <label style="display:block; font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:4px;" for="chronicle-category-select">Category</label>
+                  <select id="chronicle-category-select" onchange="handleChronicleCategoryChange(this.value)" style="width:100%; box-sizing:border-box; background:#121214; border:1px solid var(--border); color:var(--text); padding:10px 12px; border-radius:6px; font-size:14px; cursor:pointer;">
+                    <option value="Chronicle">Chronicle</option>
+                    <option value="Lore">Lore</option>
+                    <option value="Announcement">Announcement</option>
+                  </select>
+                </div>
+
+                <div id="chronicle-expires-container" class="hidden">
+                  <label style="display:block; font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:4px;" for="chronicle-expires-input">Expiration Date</label>
+                  <input type="date" id="chronicle-expires-input" style="width:100%; box-sizing:border-box; background:#121214; border:1px solid var(--border); color:var(--text); padding:9px 10px; border-radius:6px; font-size:13px;">
+                </div>
+              </div>
+
+              <div style="margin-bottom:12px;">
+                <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text); cursor:pointer; user-select:none;">
+                  <input type="checkbox" id="chronicle-pinned-input" style="width:16px; height:16px; cursor:pointer;">
+                  <span>📌 Pin this post to top</span>
+                </label>
+              </div>
+
+              <div style="margin-bottom:14px;">
+                <label style="display:block; font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:4px;" for="chronicle-body-input">Body</label>
+                <textarea id="chronicle-body-input" rows="6" placeholder="Write the quest recap, lore tale, or kingdom announcement..." required style="width:100%; box-sizing:border-box; background:#121214; border:1px solid var(--border); color:var(--text); padding:10px 12px; border-radius:6px; font-size:14px; font-family:inherit; line-height:1.5; resize:vertical;"></textarea>
+              </div>
+
+              <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" onclick="cancelChronicleForm()" style="background:#27272a; border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:6px; font-size:13px; cursor:pointer;">Cancel</button>
+                <button type="submit" id="chronicle-submit-btn" style="background:#0284c7; border:1px solid #38bdf8; color:#ffffff; padding:8px 18px; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer;">Publish Entry</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Feed Container -->
           <div id="library-chronicles-container" class="store-catalog-list">
             <p class="empty-state">Loading Chronicles...</p>
           </div>
