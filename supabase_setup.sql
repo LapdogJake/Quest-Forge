@@ -455,6 +455,18 @@ CREATE POLICY "Public and authenticated can delete chronicles"
   TO authenticated, anon
   USING (true);
 
+-- Realtime Publication for live Chronicle updates (Safe / Idempotent)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    BEGIN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.chronicles;
+    EXCEPTION WHEN duplicate_object THEN
+      NULL;
+    END;
+  END IF;
+END $$;
+
 -- ------------------------------------------------------------------------------
 -- 15. Permissions & Grants
 -- ------------------------------------------------------------------------------
