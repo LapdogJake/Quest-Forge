@@ -1,7 +1,88 @@
 // ==============================================================================
-// Quest-Forge: Player Items, Pouch, Bank Vault, & Durability Engine
-// Manages player active combat pouch, safe bank vault, item transfers, and wear
+// Quest-Forge: Items Tab (Sub-Navigation, Item Helpers, Pouch, Inventory, & Wear)
 // ==============================================================================
+
+// ------------------------------------------------------------------------------
+// 1. Items Tab Sub-Navigation (Pouch / Inventory / Store)
+// ------------------------------------------------------------------------------
+
+function switchItemsSubTab(subTab) {
+  const pouchTab = document.getElementById('items-subtab-pouch');
+  const bankTab = document.getElementById('items-subtab-bank');
+  const storeTab = document.getElementById('items-subtab-store');
+
+  const pouchNav = document.getElementById('items-subnav-pouch');
+  const bankNav = document.getElementById('items-subnav-bank');
+  const storeNav = document.getElementById('items-subnav-store');
+
+  if (pouchTab) pouchTab.classList.add('hidden');
+  if (bankTab) bankTab.classList.add('hidden');
+  if (storeTab) storeTab.classList.add('hidden');
+
+  if (pouchNav) pouchNav.classList.remove('active');
+  if (bankNav) bankNav.classList.remove('active');
+  if (storeNav) storeNav.classList.remove('active');
+
+  if (subTab === 'pouch') {
+    if (pouchTab) pouchTab.classList.remove('hidden');
+    if (pouchNav) pouchNav.classList.add('active');
+  } else if (subTab === 'bank') {
+    if (bankTab) bankTab.classList.remove('hidden');
+    if (bankNav) bankNav.classList.add('active');
+  } else if (subTab === 'store') {
+    if (storeTab) storeTab.classList.remove('hidden');
+    if (storeNav) storeNav.classList.add('active');
+  }
+
+  if (typeof fetchUserInventory === 'function') {
+    fetchUserInventory();
+  }
+}
+
+// ------------------------------------------------------------------------------
+// 2. Item Pricing, Category, & Durability Helpers
+// ------------------------------------------------------------------------------
+
+// Linear 1:1 Item Value & Durability Calculator (Based on buy-side store pricing)
+// Formula: Floor(buyPrice * (currentDurability / maxDurability))
+function calculateItemValue(basePrice, currentDurability, maxDurability) {
+  const price = Math.max(0, Number(basePrice || 0));
+  if (!maxDurability || maxDurability <= 0) return price;
+  const ratio = Math.min(1, Math.max(0, currentDurability) / maxDurability);
+  return Math.floor(price * ratio);
+}
+
+// Lookup official buy-side store catalog price for an item
+function getItemStorePrice(itemName, fallbackCost = 1) {
+  if (!itemName) return Math.max(1, Number(fallbackCost || 1));
+  const normalized = itemName.replace(/’/g, "'").trim().toLowerCase();
+  const match = STORE_CATALOG.find(item => item.item_name.replace(/’/g, "'").trim().toLowerCase() === normalized);
+  return match?.base_cost !== undefined ? match.base_cost : Math.max(1, Number(fallbackCost || 1));
+}
+
+// Catalog category matchers
+function getCategoryForItemName(itemName) {
+  if (!itemName) return null;
+  const normalized = itemName.replace(/’/g, "'").trim().toLowerCase();
+  const match = STORE_CATALOG.find(item => item.item_name.replace(/’/g, "'").trim().toLowerCase() === normalized);
+  return match?.category || null;
+}
+
+function getItemDurabilityMax(itemName) {
+  if (!itemName) return 1;
+  const normalized = itemName.replace(/’/g, "'").trim().toLowerCase();
+  const match = STORE_CATALOG.find(item => item.item_name.replace(/’/g, "'").trim().toLowerCase() === normalized);
+  if (match && Number.isFinite(match.durability_max)) {
+    return match.durability_max;
+  }
+  const cat = match?.category || getCategoryForItemName(itemName);
+  return getCategoryDurabilityMax(cat);
+}
+
+function getCategoryDurabilityMax(category) {
+  if (!category) return 1;
+  return DURABILITY_LIMITS[category] || 1;
+}
 
 // Calculate counts of items in a given storage location (pouch or bank)
 function getStorageSlotCounts(itemsList) {
@@ -15,11 +96,103 @@ function getStorageSlotCounts(itemsList) {
   return counts;
 }
 
+function normalizeItemStorageCategory(itemName) {
+  let c = getCategoryForItemName(itemName);
+  if (c === 'Trinkets' || c === 'Trinket') return 'Trinket';
+  if (c === 'Talisman' || c === 'Talismans') return 'Talismans';
+  if (c === 'Artifact' || c === 'Artifacts' || c === 'Legendary') return 'Artifacts';
+  return 'Trinket';
+}
+
+// ------------------------------------------------------------------------------
+// 3. Pouch & Inventory (Bank) Rendering & Fetching
+// ------------------------------------------------------------------------------
+
+function renderPouchItems(pouchItems, pouchCounts, isCombatLocked) {
+  const pouchList = document.getElementById('pouch-items-list');
+  if (!pouchList) return;
+
+  const categories = ['Trinket', 'Talismans', 'Artifacts'];
+
+  pouchList.innerHTML = categories.map(category => {
+    const catItems = pouchItems.filter(item => normalizeItemStorageCategory(item?.item_name) === category);
+    const curCount = pouchCounts[category] || 0;
+    const maxCount = (STORAGE_LIMITS.pouch && STORAGE_LIMITS.pouch[category]) || 1;
+
+    const itemsHtml = catItems.map(item => {
+      const itemName = item?.item_name || 'Item';
+      const durabilityMax = getItemDurabilityMax(itemName) || Number(item?.durability_max) || 1;
+      const durabilityCurrent = Number(item?.durability_current !== undefined && item?.durability_current !== null ? item.durability_current : durabilityMax);
+      const normalizedCurrent = Math.max(0, durabilityCurrent);
+
+      return `<div class="item-card">
+        <div class="item-info">
+          <h4>${itemName}</h4>
+          <small style="color:var(--text-muted);">Durability: ${normalizedCurrent}/${durabilityMax}</small>
+        </div>
+        <div class="item-actions">
+          <button class="btn-transfer" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="transferItemStorage('${item.id}', 'bank')">
+            ${isCombatLocked ? '🔒 Locked' : 'Inventory ↳'}
+          </button>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<details class="store-category" ${catItems.length > 0 ? 'open' : ''}>
+      <summary class="store-category-summary">${category} (${curCount}/${maxCount})</summary>
+      <div class="item-grid store-category-items">
+        ${itemsHtml}
+      </div>
+    </details>`;
+  }).join('');
+}
+
+function renderBankItems(bankItems, bankCounts, isCombatLocked) {
+  const bankList = document.getElementById('bank-items-list');
+  if (!bankList) return;
+
+  const categories = ['Trinket', 'Talismans', 'Artifacts'];
+
+  bankList.innerHTML = categories.map(category => {
+    const catItems = bankItems.filter(item => normalizeItemStorageCategory(item?.item_name) === category);
+    const curCount = bankCounts[category] || 0;
+    const maxCount = (STORAGE_LIMITS.bank && STORAGE_LIMITS.bank[category]) || 1;
+
+    const itemsHtml = catItems.map(item => {
+      const itemName = item?.item_name || 'Item';
+      const durabilityMax = getItemDurabilityMax(itemName) || Number(item?.durability_max) || 1;
+      const durabilityCurrent = Number(item?.durability_current !== undefined && item?.durability_current !== null ? item.durability_current : durabilityMax);
+      const normalizedCurrent = Math.max(0, durabilityCurrent);
+      const buyStorePrice = getItemStorePrice(itemName, item?.base_cost);
+      const sellGoldValue = calculateItemValue(buyStorePrice, normalizedCurrent, durabilityMax);
+
+      return `<div class="item-card">
+        <div class="item-info">
+          <h4>${itemName}</h4>
+          <small style="color:var(--text-muted);">Durability: ${normalizedCurrent}/${durabilityMax}</small>
+        </div>
+        <div class="item-actions">
+          <button class="btn-transfer" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="transferItemStorage('${item.id}', 'pouch')">
+            ${isCombatLocked ? '🔒 Locked' : '↰ Pouch'}
+          </button>
+          <button class="btn-sell" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="sellItem('${item.id}', ${sellGoldValue}, '${itemName}')">
+            Sell (${sellGoldValue}g)
+          </button>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<details class="store-category" ${catItems.length > 0 ? 'open' : ''}>
+      <summary class="store-category-summary">${category} (${curCount}/${maxCount})</summary>
+      <div class="item-grid store-category-items">
+        ${itemsHtml}
+      </div>
+    </details>`;
+  }).join('');
+}
+
 // Fetch and display user inventory for both Pouch and Bank in active Park & QM Reign
 async function fetchUserInventory() {
-  const pouchList = document.getElementById('pouch-items-list');
-  const bankList = document.getElementById('bank-items-list');
-
   if (!currentUser) return;
 
   const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
@@ -76,104 +249,13 @@ async function fetchUserInventory() {
 
   const isCombatLocked = Boolean(activeBattleQuest || activeMonsterClaim);
 
-  const calcFn = (typeof calculateItemValue === 'function')
-    ? calculateItemValue
-    : (bp, cur, mx) => (!mx || mx <= 0 ? 0 : Math.floor((bp || 0) * (Math.min(1, Math.max(0, cur) / mx))));
-
-  const categories = ['Trinket', 'Talismans', 'Artifacts'];
-
-  const getItemCat = (itemName) => {
-    let c = getCategoryForItemName(itemName);
-    if (c === 'Trinkets' || c === 'Trinket') return 'Trinket';
-    if (c === 'Talisman' || c === 'Talismans') return 'Talismans';
-    if (c === 'Artifact' || c === 'Artifacts' || c === 'Legendary') return 'Artifacts';
-    return 'Trinket';
-  };
-
-  // Render Pouch List (grouped by category)
-  if (pouchList) {
-    pouchList.innerHTML = categories.map(category => {
-      const catItems = pouchItems.filter(item => getItemCat(item?.item_name) === category);
-      const curCount = pouchCounts[category] || 0;
-      const maxCount = (STORAGE_LIMITS.pouch && STORAGE_LIMITS.pouch[category]) || 1;
-
-      const itemsHtml = catItems.map(item => {
-        const itemName = item?.item_name || 'Item';
-        const durabilityMax = getItemDurabilityMax(itemName) || Number(item?.durability_max) || 1;
-        const durabilityCurrent = Number(item?.durability_current !== undefined && item?.durability_current !== null ? item.durability_current : durabilityMax);
-        const normalizedCurrent = Math.max(0, durabilityCurrent);
-        const buyStorePrice = (typeof getItemStorePrice === 'function')
-          ? getItemStorePrice(itemName, item?.base_cost)
-          : Math.max(1, Number(item?.base_cost || 1));
-        const sellGoldValue = calcFn(buyStorePrice, normalizedCurrent, durabilityMax);
-
-        return `<div class="item-card">
-          <div class="item-info">
-            <h4>${itemName}</h4>
-            <small style="color:var(--text-muted);">Durability: ${normalizedCurrent}/${durabilityMax}</small>
-          </div>
-          <div class="item-actions">
-            <button class="btn-transfer" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="transferItemStorage('${item.id}', 'bank')">
-              ${isCombatLocked ? '🔒 Locked' : 'Inventory ↳'}
-            </button>
-          </div>
-        </div>`;
-      }).join('');
-
-      return `<details class="store-category" ${catItems.length > 0 ? 'open' : ''}>
-        <summary class="store-category-summary">${category} (${curCount}/${maxCount})</summary>
-        <div class="item-grid store-category-items">
-          ${itemsHtml}
-        </div>
-      </details>`;
-    }).join('');
-  }
-
-  // Render Bank / Inventory List (grouped by category)
-  if (bankList) {
-    bankList.innerHTML = categories.map(category => {
-      const catItems = bankItems.filter(item => getItemCat(item?.item_name) === category);
-      const curCount = bankCounts[category] || 0;
-      const maxCount = (STORAGE_LIMITS.bank && STORAGE_LIMITS.bank[category]) || 1;
-
-      const itemsHtml = catItems.map(item => {
-        const itemName = item?.item_name || 'Item';
-        const durabilityMax = getItemDurabilityMax(itemName) || Number(item?.durability_max) || 1;
-        const durabilityCurrent = Number(item?.durability_current !== undefined && item?.durability_current !== null ? item.durability_current : durabilityMax);
-        const normalizedCurrent = Math.max(0, durabilityCurrent);
-        const buyStorePrice = (typeof getItemStorePrice === 'function')
-          ? getItemStorePrice(itemName, item?.base_cost)
-          : Math.max(1, Number(item?.base_cost || 1));
-        const sellGoldValue = calcFn(buyStorePrice, normalizedCurrent, durabilityMax);
-
-        return `<div class="item-card">
-          <div class="item-info">
-            <h4>${itemName}</h4>
-            <small style="color:var(--text-muted);">Durability: ${normalizedCurrent}/${durabilityMax}</small>
-          </div>
-          <div class="item-actions">
-            <button class="btn-transfer" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="transferItemStorage('${item.id}', 'pouch')">
-              ${isCombatLocked ? '🔒 Locked' : '↰ Pouch'}
-            </button>
-            <button class="btn-sell" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="sellItem('${item.id}', ${sellGoldValue}, '${itemName}')">
-              Sell (${sellGoldValue}g)
-            </button>
-          </div>
-        </div>`;
-      }).join('');
-
-      return `<details class="store-category" ${catItems.length > 0 ? 'open' : ''}>
-        <summary class="store-category-summary">${category} (${curCount}/${maxCount})</summary>
-        <div class="item-grid store-category-items">
-          ${itemsHtml}
-        </div>
-      </details>`;
-    }).join('');
-  }
-
-
-
+  renderPouchItems(pouchItems, pouchCounts, isCombatLocked);
+  renderBankItems(bankItems, bankCounts, isCombatLocked);
 }
+
+// ------------------------------------------------------------------------------
+// 4. Storage Transfers & Combat Durability Wear Engine
+// ------------------------------------------------------------------------------
 
 // Seamlessly transfer an item between Pouch and Bank
 async function transferItemStorage(itemId, targetLocation) {
@@ -210,23 +292,14 @@ async function transferItemStorage(itemId, targetLocation) {
     return;
   }
 
-  const cat = getCategoryForItemName(targetItem.item_name);
-  let normalizedCategory = cat;
-  if (normalizedCategory === 'Talisman') normalizedCategory = 'Talismans';
-  if (normalizedCategory === 'Artifact' || normalizedCategory === 'Legendary') normalizedCategory = 'Artifacts';
-  if (normalizedCategory === 'Trinkets') normalizedCategory = 'Trinket';
-
+  const normalizedCategory = normalizeItemStorageCategory(targetItem.item_name);
   const targetLimit = (STORAGE_LIMITS[targetLocation] && STORAGE_LIMITS[targetLocation][normalizedCategory]) || 1;
 
   // Check how many items of this category are currently in the target location
   const existingInTarget = parkInventory.filter(item => {
     const loc = item.storage_location || 'pouch';
     if (loc !== targetLocation) return false;
-    let itemCat = getCategoryForItemName(item.item_name);
-    if (itemCat === 'Talisman') itemCat = 'Talismans';
-    if (itemCat === 'Artifact' || itemCat === 'Legendary') itemCat = 'Artifacts';
-    if (itemCat === 'Trinkets') itemCat = 'Trinket';
-    return itemCat === normalizedCategory;
+    return normalizeItemStorageCategory(item.item_name) === normalizedCategory;
   });
 
   if (existingInTarget.length >= targetLimit) {
@@ -381,3 +454,4 @@ async function applyCombatDurabilityDamage(userId, allowedCategories = null, wea
     await fetchUserInventory();
   }
 }
+

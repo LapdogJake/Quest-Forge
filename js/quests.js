@@ -1,6 +1,80 @@
 // ==============================================================================
-// Quest-Forge: Quest Slots, Cards, Acceptance, & Forge Catalog
+// Quest-Forge: Player Quest Tab (#tab-adventure)
 // ==============================================================================
+
+// ------------------------------------------------------------------------------
+// 1. Quest Discipline Definitions & Helpers
+// ------------------------------------------------------------------------------
+const QUEST_DISCIPLINES = [
+  { name: 'Service', icon: '🌹' },
+  { name: 'Bardic', icon: '🎵' },
+  { name: 'Roleplay', icon: '🎭' },
+  { name: 'Exploration', icon: '🌿' },
+  { name: 'Crafting', icon: '🛠' },
+  { name: 'Arts & Sciences', icon: '🎨' },
+  { name: 'Knowledge', icon: '📚' },
+  { name: 'Challenge', icon: '🏆' },
+  { name: 'Trial', icon: '🏅' }
+];
+
+const DISCIPLINE_ICONS = {
+  'Service': '🌹',
+  'Bardic': '🎵',
+  'Roleplay': '🎭',
+  'Exploration': '🌿',
+  'Crafting': '🛠',
+  'Arts & Sciences': '🎨',
+  'Knowledge': '📚',
+  'Challenge': '🏆',
+  'Trial': '🏅'
+};
+
+const DISCIPLINE_ORDER = [
+  'Service',
+  'Bardic',
+  'Roleplay',
+  'Exploration',
+  'Crafting',
+  'Arts & Sciences',
+  'Knowledge',
+  'Challenge',
+  'Trial'
+];
+
+function getQuestDiscipline(q) {
+  let disc = q?.discipline;
+  if (!disc) {
+    const textToCheck = `${q?.scenario_card || ''} ${q?.description || ''}`;
+    const match = textToCheck.match(/<!--\s*RULES:\s*(\{.*?\})\s*-->/);
+    if (match) {
+      try {
+        const parsed = JSON.parse(match[1]);
+        if (parsed.discipline) disc = parsed.discipline;
+      } catch (e) {}
+    }
+  }
+  if (!disc) return 'Service';
+  const clean = disc.replace(/^[^\w\s&]+/, '').trim();
+  return clean || 'Service';
+}
+
+function getQuestDisciplineIcon(disc) {
+  return DISCIPLINE_ICONS[disc] || '📜';
+}
+
+function getQuestDisplayTitle(q) {
+  const disc = getQuestDiscipline(q);
+  const icon = getQuestDisciplineIcon(disc);
+  let title = (q?.title || 'Untitled Quest').trim();
+  if (title.startsWith(icon)) {
+    return title;
+  }
+  return `${icon} ${title}`;
+}
+
+// ------------------------------------------------------------------------------
+// 2. Player Quest Tab (#tab-adventure): Slot State, Quest Board, & Actions
+// ------------------------------------------------------------------------------
 
 async function fetchUserSlotState() {
   if (!currentUser) return;
@@ -158,62 +232,9 @@ async function fetchQuests() {
     return (a.title || '').localeCompare(b.title || '');
   });
 
-  const joinedQueueMap = new Map();
-  (myQueueMemberships || []).forEach(m => {
-    const queue = m.quest_queues;
-    const quest = queue?.quests;
-    if (!queue || !quest || queue.status === 'completed') return;
-    if (quest.category === 'Battle' || quest.category === 'Combat') {
-      joinedQueueMap.set(quest.id, queue.id);
-    }
-  });
-
-  const combatQuestIds = combatQuests.map(q => q.id);
-  let queueRosterByQuest = new Map();
-
-  if (combatQuestIds.length > 0) {
-    const { data: queuedBattleLines } = await supabaseClient
-      .from('quest_queues')
-      .select('id, quest_id, status, queue_members(*, profiles(id, username, quest_abilities)), encounter_monsters(*, profiles(id, username, quest_abilities))')
-      .in('quest_id', combatQuestIds)
-      .in('status', ['waiting', 'active']);
-
-    (queuedBattleLines || []).forEach(line => {
-      if (!line || !line.quest_id) return;
-      const heroRoster = (line.queue_members || []).map(member => ({
-        username: member.profiles?.username || 'Hero',
-        abilities: member.profiles?.quest_abilities || []
-      })).filter(m => Boolean(m.username));
-
-      const monsterRoster = (line.encounter_monsters || []).map(member => ({
-        username: member.profiles?.username || 'Monster',
-        abilities: member.profiles?.quest_abilities || []
-      })).filter(m => Boolean(m.username));
-
-      const userHeroMember = (line.queue_members || []).find(m => m.user_id === currentUser.id || m.profiles?.id === currentUser.id);
-      const userMonsterMember = (line.encounter_monsters || []).find(m => m.user_id === currentUser.id || m.profiles?.id === currentUser.id);
-
-      queueRosterByQuest.set(line.quest_id, {
-        queueId: line.id,
-        queueStatus: line.status,
-        heroPlayers: heroRoster,
-        monsterPlayers: monsterRoster,
-        joinedHeroQueueId: userHeroMember ? line.id : null,
-        joinedMonsterClaimId: userMonsterMember ? userMonsterMember.id : null
-      });
-    });
-  }
-
-  if (combatContainer) {
-    const openCardIds = new Set(
-      Array.from(combatContainer.querySelectorAll('details.battle-accordion[open], details.battle-card[open]'))
-        .map(el => el.getAttribute('data-quest-id'))
-        .filter(Boolean)
-    );
-
-    combatContainer.innerHTML = combatQuests.length > 0
-      ? combatQuests.map(q => renderAvailableQuestCard(q, 'combat', joinedQueueMap.get(q.id), queueRosterByQuest.get(q.id), null, openCardIds.has(q.id))).join('')
-      : `<p class="empty-state">No Active Battle in ${activePark} (${activeQMName}).</p>`;
+  // Delegate Battle Tab rendering to renderBattleBoard in js/battle.js
+  if (typeof renderBattleBoard === 'function') {
+    await renderBattleBoard(combatQuests, myQueueMemberships, activePark, activeQMName);
   }
 
   if (adventureContainer) {
@@ -310,196 +331,10 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
   const isSlotLocked = isCombat ? (!!activeBattleQuest || !!activeMonsterClaim) : (!!activeAdventureQuest || !!activeLarpieQuest);
 
   if (isCombat) {
-    const rules = typeof getQuestDurabilityRules === 'function' ? getQuestDurabilityRules(q) : { allowedTypes: ['Trinket', 'Talisman', 'Artifact'], monstersAreNpc: false, defeatGold: 0 };
-    const victoryGold = Number(q.reward_gold) || 0;
-    const defeatGold = Number(q.reward_gold_defeat) || Number(rules.defeatGold) || 0;
-
-    const heroPlayers = queueRoster?.heroPlayers || [];
-    const monsterPlayers = queueRoster?.monsterPlayers || [];
-    const joinedHeroQueueId = queueRoster?.joinedHeroQueueId || joinedQueueId;
-    const joinedMonsterClaimId = queueRoster?.joinedMonsterClaimId || (activeMonsterClaim && activeMonsterClaim.quest_queues?.quest_id === q.id ? activeMonsterClaim.id : null);
-    
-    const isJoinedHero = Boolean(joinedHeroQueueId);
-    const isJoinedMonster = Boolean(joinedMonsterClaimId);
-    const isLive = queueRoster?.queueStatus === 'active';
-    const isQMUser = Boolean(currentUser && (currentQMId === currentUser.id || currentProfile?.role === 'questmaster' || currentProfile?.role === 'admin'));
-
-    const isOpen = Boolean(isCardOpen);
-
-    const statusBadge = isLive 
-      ? '<span class="badge" style="background:transparent; color:#ffffff; font-size:12px; font-weight:600; padding:2px 4px; border:none;">🟠 Live</span>'
-      : (q.is_active || queueRoster
-        ? '<span class="badge" style="background:transparent; color:#ffffff; font-size:12px; font-weight:600; padding:2px 4px; border:none;">🟢 Open</span>' 
-        : '<span class="badge" style="background:transparent; color:#ffffff; font-size:12px; font-weight:600; padding:2px 4px; border:none;">⚪ Closed</span>');
-
-    return `
-      <details class="quest-accordion battle-accordion" data-quest-id="${q.id}" ${isOpen ? 'open' : ''}>
-        <summary>
-          <span class="quest-summary-title">${q.title}</span>
-          <span class="quest-summary-actions">
-            ${statusBadge}
-          </span>
-        </summary>
-        <div class="quest-accordion-content">
-          <!-- 1. The Que Lines on top -->
-          <div class="dual-queue-grid" style="margin-top:4px; margin-bottom:12px;">
-            <!-- HEROES COLUMN (Left) -->
-            <div class="queue-box hero-box ${isJoinedHero ? 'joined-active' : ''}">
-              <div>
-                <div class="queue-header-row">
-                  <h5 class="queue-header-title" style="color:#38bdf8;">Heroes</h5>
-                  <span class="queue-count-pill" style="color:#38bdf8; border:1px solid rgba(56,189,248,0.3);">${heroPlayers.length}</span>
-                </div>
-                <div class="queue-roster-list">
-                  ${heroPlayers.length > 0 
-                    ? heroPlayers.map(p => {
-                        const name = typeof p === 'object' ? p.username : p;
-                        const abs = (typeof p === 'object' && Array.isArray(p.abilities)) ? p.abilities : [];
-                        const isMe = currentUser && (name === currentProfile?.username || name === currentUser.username);
-                        const absBadge = (rules.monstersAreNpc && abs.length > 0)
-                          ? abs.map(a => `<span class="ability-pill">${a}</span>`).join('')
-                          : '';
-                        return `<span class="party-member-tag ${isMe ? 'is-current-user' : ''}">👤 ${name}${absBadge}</span>`;
-                      }).join('')
-                    : '<p style="font-size:11px; color:#64748b; margin:6px 0; font-style:italic; text-align:center;">Line is empty.</p>'}
-                </div>
-              </div>
-
-              <!-- Big Fat-Finger Hero Button -->
-              <div>
-                ${isLive ? (
-                  isJoinedHero ? `
-                    <button class="btn-battle-action btn-battle-hero" disabled style="opacity:0.95; cursor:default;">
-                      IN COMBAT
-                    </button>
-                  ` : (rules.allowMidJoin ? (isSlotLocked ? `
-                    <button class="btn-battle-action btn-battle-disabled" disabled>
-                      ${isJoinedMonster ? 'IN MONSTERS' : 'SLOT FULL'}
-                    </button>
-                  ` : `
-                    <button class="btn-battle-action btn-battle-hero" onclick="joinOrCreateGroupQueue('${q.id}')">
-                      JOIN
-                    </button>
-                  `) : `
-                    <button class="btn-battle-action btn-battle-disabled" disabled>
-                      BATTLE LIVE
-                    </button>
-                  `)
-                ) : (
-                  isJoinedHero ? `
-                    <button class="btn-battle-action btn-battle-leave" onclick="leaveQueue('${joinedHeroQueueId}')">
-                      LEAVE
-                    </button>
-                  ` : (isSlotLocked ? `
-                    <button class="btn-battle-action btn-battle-disabled" disabled>
-                      ${isJoinedMonster ? 'IN MONSTERS' : 'SLOT FULL'}
-                    </button>
-                  ` : `
-                    <button class="btn-battle-action btn-battle-hero" onclick="joinOrCreateGroupQueue('${q.id}')">
-                      JOIN
-                    </button>
-                  `)
-                )}
-              </div>
-            </div>
-
-            <!-- MONSTERS COLUMN (Right) -->
-            <div class="queue-box monster-box ${isJoinedMonster ? 'joined-active' : ''}">
-              <div>
-                <div class="queue-header-row">
-                  <h5 class="queue-header-title" style="color:#f43f5e;">Monsters</h5>
-                  <span class="queue-count-pill" style="color:#f43f5e; border:1px solid rgba(244,63,94,0.3);">${monsterPlayers.length}</span>
-                </div>
-                <div class="queue-roster-list">
-                  ${monsterPlayers.length > 0 
-                    ? monsterPlayers.map(p => {
-                        const name = typeof p === 'object' ? p.username : p;
-                        const abs = (typeof p === 'object' && Array.isArray(p.abilities)) ? p.abilities : [];
-                        const isMe = currentUser && (name === currentProfile?.username || name === currentUser.username);
-                        const absBadge = (rules.monstersAreNpc && abs.length > 0)
-                          ? abs.map(a => `<span class="ability-pill" style="border-color:rgba(244,63,94,0.4); color:#fda4af; background:rgba(244,63,94,0.15);">${a}</span>`).join('')
-                          : '';
-                        return `<span class="party-member-tag ${isMe ? 'is-current-user' : ''}" style="border-color:rgba(244,63,94,0.3);">👤 ${name}${absBadge}</span>`;
-                      }).join('')
-                    : '<p style="font-size:11px; color:#64748b; margin:6px 0; font-style:italic; text-align:center;">Line is empty.</p>'}
-                </div>
-              </div>
-
-              <!-- Big Fat-Finger Monster Button -->
-              <div>
-                ${isLive ? (
-                  isJoinedMonster ? `
-                    <button class="btn-battle-action btn-battle-monster" disabled style="opacity:0.95; cursor:default;">
-                      IN COMBAT
-                    </button>
-                  ` : (rules.allowMidJoin ? (isSlotLocked ? `
-                    <button class="btn-battle-action btn-battle-disabled" disabled>
-                      ${isJoinedHero ? 'IN HEROES' : 'SLOT FULL'}
-                    </button>
-                  ` : `
-                    <button class="btn-battle-action btn-battle-monster" onclick="claimMonsterRole('${q.id}', 'Standard Monster')">
-                      JOIN
-                    </button>
-                  `) : `
-                    <button class="btn-battle-action btn-battle-disabled" disabled>
-                      BATTLE LIVE
-                    </button>
-                  `)
-                ) : (
-                  isJoinedMonster ? `
-                    <button class="btn-battle-action btn-battle-leave" onclick="abandonMonsterRole('${joinedMonsterClaimId}')">
-                      LEAVE
-                    </button>
-                  ` : (isSlotLocked ? `
-                    <button class="btn-battle-action btn-battle-disabled" disabled>
-                      ${isJoinedHero ? 'IN HEROES' : 'SLOT FULL'}
-                    </button>
-                  ` : `
-                    <button class="btn-battle-action btn-battle-monster" onclick="claimMonsterRole('${q.id}', 'Standard Monster')">
-                      JOIN
-                    </button>
-                  `)
-                )}
-              </div>
-            </div>
-          </div>
-
-          <!-- 2. The Badges below the Que lines -->
-          <div class="tag-container" style="margin-bottom:10px;">
-            <span class="badge badge-type" style="color:var(--gold); border-color:var(--gold); font-weight:bold;">+${victoryGold}g Win</span>
-            <span class="badge badge-type" style="color:#94a3b8; border-color:#64748b;">+${defeatGold}g Loss</span>
-            ${rules.durabilityWear === 0 
-              ? '<span class="badge badge-active">No Gear Wear</span>' 
-              : (rules.durabilityWear === 2 
-                ? '<span class="badge badge-threat-loot">2x Gear Wear</span>' 
-                : (rules.durabilityWear >= 3 
-                  ? `<span class="badge badge-threat-loot">${rules.durabilityWear}x Gear Wear</span>` 
-                  : ''))}
-            ${rules.defeatPenalty === 'items_lost' 
-              ? '<span class="badge badge-monster" style="background:#b91c1c; color:white; font-weight:bold;">Items Lost</span>' 
-              : (rules.defeatPenalty === 'total_ruin' 
-                ? '<span class="badge badge-monster" style="background:#7f1d1d; border:1px solid #ef4444; color:white; font-weight:bold;">Total Ruin</span>' 
-                : '')}
-            ${rules.monstersAreNpc 
-              ? '<span class="badge badge-monster" title="Monster queue does not lose durability">Monsters are NPCs</span>' 
-              : ''}
-            ${rules.allowMidJoin 
-              ? '<span class="badge badge-active" style="background:#0284c7; color:white; border-color:#38bdf8;">Mid-Battle Joining</span>' 
-              : ''}
-            ${rules.allowedTypes.length === 3 
-              ? '<span class="badge badge-active">All Items Active</span>' 
-              : (rules.allowedTypes.length === 0 
-                ? '<span class="badge badge-threat-loot">No Magic Items</span>' 
-                : `<span class="badge badge-type">${rules.allowedTypes.join(', ')}</span>`)}
-            ${q.repeatable ? '<span class="badge badge-quest">Repeatable</span>' : ''}
-            ${rules.rngLootDrops ? '<span class="badge badge-threat-loot" style="background:#7c3aed; color:white; border-color:#a855f7;">RNG Loot</span>' : ''}
-          </div>
-
-          <!-- 3. The Description text under the Badges -->
-          ${q.description ? `<p style="font-size:13px; color:#cbd5e1; margin:0 0 6px 0; line-height:1.45;">${q.description}</p>` : ''}
-        </div>
-      </details>
-    `;
+    if (typeof renderBattleQuestCard === 'function') {
+      return renderBattleQuestCard(q, joinedQueueId, queueRoster, isCardOpen);
+    }
+    return '';
   }
 
   if (isAdventure) {
@@ -576,619 +411,6 @@ function renderAvailableQuestCard(q, type, joinedQueueId = null, queueRoster = n
       </div>
     </div>
   `;
-}
-
-// QM Catalog Engine (Non-Battle Quests only)
-async function fetchQMQuests() {
-  const container = document.getElementById('qm-quest-list');
-  if (!container) return;
-
-  const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
-  const activeQMId = currentQMId || currentUser?.id;
-  const activeQMName = typeof getActiveQMUsername === 'function' ? getActiveQMUsername() : 'Default Realm';
-  const normActivePark = typeof normalizeParkName === 'function' ? normalizeParkName(activePark) : (activePark || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
-  const myUserId = currentUser?.id;
-
-  try {
-    const { data: quests, error: questsErr } = await supabaseClient
-      .from('quests')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (questsErr) {
-      console.error("Error querying quests in QM catalog:", questsErr);
-      container.innerHTML = `<p class="empty-state" style="color:var(--danger);">Error loading catalog: ${questsErr.message}</p>`;
-      return;
-    }
-
-    // Only non-battle (Quest) quests belonging to the active park & QM are shown in the Quest Catalog tab
-    const nonBattleQuests = (quests || []).filter(q => {
-      if (q.category === 'Battle' || q.category === 'Combat') return false;
-
-      // Lenient park check (handles curly/straight apostrophes, case, null/unassigned)
-      const normQPark = typeof normalizeParkName === 'function' ? normalizeParkName(q.park) : (q.park || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
-      const parkMatches = !normQPark || !normActivePark || (normQPark === normActivePark);
-      if (!parkMatches) return false;
-
-      // QM / Creator match:
-      // Show if unassigned QM, OR matches active QM, OR created by the currently logged-in user
-      const isMyQuest = Boolean(myUserId && q.qm_id === myUserId);
-      const qmMatches = !q.qm_id || !activeQMId || (q.qm_id === activeQMId) || isMyQuest;
-      return qmMatches;
-    });
-
-    // Sort: Quest Open first, Quest Closed second; then by Discipline, then by title
-    nonBattleQuests.sort((a, b) => {
-      const stateA = a.is_active ? 0 : 1;
-      const stateB = b.is_active ? 0 : 1;
-      if (stateA !== stateB) return stateA - stateB;
-
-      const discA = typeof getQuestDiscipline === 'function' ? getQuestDiscipline(a) : 'Service';
-      const discB = typeof getQuestDiscipline === 'function' ? getQuestDiscipline(b) : 'Service';
-      const idxA = (typeof DISCIPLINE_ORDER !== 'undefined') ? DISCIPLINE_ORDER.indexOf(discA) : -1;
-      const idxB = (typeof DISCIPLINE_ORDER !== 'undefined') ? DISCIPLINE_ORDER.indexOf(discB) : -1;
-      const posA = idxA !== -1 ? idxA : 999;
-      const posB = idxB !== -1 ? idxB : 999;
-      if (posA !== posB) return posA - posB;
-      return (a.title || '').localeCompare(b.title || '');
-    });
-
-  if (nonBattleQuests.length === 0) {
-    container.innerHTML = `<p class="empty-state">No non-battle quests in the catalog for ${activePark} (${activeQMName}).</p>`;
-    return;
-  }
-
-  const nonBattleQuestIds = nonBattleQuests.map(q => q.id);
-
-  // 1. Fetch user quest rows directly without relational join to prevent PostgREST foreign key cache errors
-  let userAssignments = [];
-  try {
-    const { data: rawAssignments, error: uqErr } = await supabaseClient
-      .from('user_quests')
-      .select('id, quest_id, user_id, status, created_at')
-      .in('quest_id', nonBattleQuestIds);
-
-    if (uqErr) {
-      console.warn("Could not query user_quests in QM catalog:", uqErr);
-    } else if (rawAssignments) {
-      userAssignments = rawAssignments;
-    }
-  } catch (err) {
-    console.error("Fatal error fetching user_quests in QM catalog:", err);
-  }
-
-  // 2. Fetch profiles for all distinct users who accepted or completed these quests
-  const userIds = [...new Set(userAssignments.map(u => u.user_id).filter(Boolean))];
-  const profilesMap = new Map();
-
-  if (userIds.length > 0) {
-    try {
-      const { data: profs, error: profErr } = await supabaseClient
-        .from('profiles')
-        .select('id, username, quest_abilities')
-        .in('id', userIds);
-
-      if (!profErr && profs) {
-        profs.forEach(p => profilesMap.set(p.id, p));
-      }
-    } catch (err) {
-      console.warn("Could not resolve profiles for questers:", err);
-    }
-  }
-
-  // 3. Attach profile info and organize into active vs completed maps
-  const activeByQuest = new Map();
-  const completedByQuest = new Map();
-
-  userAssignments.forEach(ua => {
-    const prof = profilesMap.get(ua.user_id);
-    ua.profiles = {
-      id: ua.user_id,
-      username: prof?.username || 'Adventurer',
-      quest_abilities: prof?.quest_abilities || []
-    };
-
-    const st = (ua.status || '').toLowerCase();
-    if (st === 'accepted' || st === 'active') {
-      if (!activeByQuest.has(ua.quest_id)) activeByQuest.set(ua.quest_id, []);
-      activeByQuest.get(ua.quest_id).push(ua);
-    } else if (st === 'completed') {
-      if (!completedByQuest.has(ua.quest_id)) completedByQuest.set(ua.quest_id, []);
-      completedByQuest.get(ua.quest_id).push(ua);
-    }
-  });
-
-  container.innerHTML = nonBattleQuests.map(q => {
-    const rules = typeof getQuestDurabilityRules === 'function' ? getQuestDurabilityRules(q) : { maxActive: 0, maxCompletions: 0, verificationMethod: 'Quest Master' };
-    const maxActive = rules.maxActive || 0;
-    const maxCompletions = rules.maxCompletions || 0;
-    const verificationMethod = rules.verificationMethod || 'Quest Master';
-    const discName = typeof getQuestDiscipline === 'function' ? getQuestDiscipline(q) : 'Service';
-    const discIcon = typeof getQuestDisciplineIcon === 'function' ? getQuestDisciplineIcon(discName) : '🌹';
-
-    const activeList = activeByQuest.get(q.id) || [];
-    const activeCount = activeList.length;
-
-    const borderColor = q.is_active ? 'rgba(34, 197, 94, 0.4)' : 'rgba(255, 255, 255, 0.1)';
-    const statusBadge = q.is_active
-      ? '<span class="badge badge-active" style="background:#16a34a; color:white; border-color:#22c55e; font-size:11px; font-weight:700; white-space:nowrap; padding:3px 8px;">🟢 Quest Open</span>'
-      : '<span class="badge badge-draft" style="color:#94a3b8; border-color:#52525b; font-size:11px; font-weight:700; white-space:nowrap; padding:3px 8px;">⚪ Quest Closed</span>';
-
-    return `
-      <details class="quest-accordion" data-quest-id="${q.id}" style="border: 2px solid ${borderColor}; margin-bottom: 12px;">
-        <summary>
-          <span class="quest-summary-title" style="font-size:14px; font-weight:700;">${discIcon} ${q.title}</span>
-          <span class="quest-summary-actions">
-            ${activeCount > 0 ? `<span style="font-size:12px; color:#94a3b8; font-weight:600;">👥 ${activeCount}</span>` : ''}
-            ${statusBadge}
-          </span>
-        </summary>
-
-        <div class="quest-accordion-content" style="padding-top:6px;">
-          <!-- 1. BADGES CONTAINER -->
-          <div class="tag-container" style="margin-bottom:8px;">
-            <span class="badge badge-discipline">${discIcon} ${discName}</span>
-            <span class="badge badge-type">🪙 ${q.reward_gold} Gold</span>
-            <span class="badge badge-type" style="color:#c084fc; border-color:rgba(192,132,252,0.4);">
-              ${verificationMethod === 'Quest Master' ? '👑 QM Verified' : '🤝 Self-Report'}
-            </span>
-            ${q.repeatable ? '<span class="badge badge-quest">🔁 Repeatable</span>' : ''}
-          </div>
-
-          <!-- 2. DESCRIPTION -->
-          ${q.description ? `<p style="font-size:13px; color:#cbd5e1; margin:6px 0 10px 0; line-height:1.45;">${q.description}</p>` : ''}
-
-          <!-- 3. QUESTER ROSTER -->
-          <div class="qm-questers-box" style="margin-top:8px; margin-bottom:10px;">
-            <div class="qm-questers-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.08);">
-              <div style="display:flex; align-items:center; gap:6px;">
-                <span style="font-weight:700; font-size:12px; color:var(--primary); text-transform:uppercase; letter-spacing:0.5px;">
-                  Questers
-                </span>
-                <span class="queue-count-pill" style="color:var(--primary); border:1px solid rgba(56,189,248,0.3);">${activeCount}</span>
-              </div>
-            </div>
-            <div class="qm-questers-list">
-              ${activeList.length > 0 ? activeList.map(aq => {
-                const uName = aq.profiles?.username || 'Adventurer';
-                const abs = Array.isArray(aq.profiles?.quest_abilities) ? aq.profiles.quest_abilities : [];
-                const absBadges = abs.map(a => `<span class="ability-pill">${a}</span>`).join('');
-                return `
-                  <div class="qm-quester-item">
-                    <div class="qm-quester-info">
-                      <span class="qm-quester-name">👤 ${uName}</span>
-                      ${absBadges}
-                    </div>
-                    <div class="qm-quester-actions">
-                      <button class="btn-qm-verify" onclick="qmVerifyCompleteQuest('${aq.id}', '${aq.user_id}', '${q.id}', ${q.reward_gold}, '${(q.title || '').replace(/'/g, "\\'")}', ${maxCompletions})">
-                        Complete
-                      </button>
-                      <button class="btn-qm-kick" onclick="qmKickUserFromQuest('${aq.id}', '${(uName).replace(/'/g, "\\'")}', '${(q.title || '').replace(/'/g, "\\'")}')">
-                        Kick
-                      </button>
-                    </div>
-                  </div>
-                `;
-              }).join('') : '<p class="empty-roster-msg">No players currently on this quest.</p>'}
-            </div>
-          </div>
-
-          <!-- 4. BOTTOM ACTIONS -->
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; gap:8px;">
-            ${q.is_active ? `
-              <button class="btn-leave" style="flex:1; min-height:40px; font-size:13px; font-weight:bold; border-radius:6px;" onclick="toggleQuestDeployment('${q.id}', true)">
-                Close
-              </button>
-            ` : `
-              <button class="btn-battle-action btn-battle-hero" style="flex:1; min-height:40px; font-size:13px; font-weight:bold; border-radius:6px; text-transform:none;" onclick="toggleQuestDeployment('${q.id}', false)">
-                Open
-              </button>
-            `}
-            <button class="btn-delete" style="min-height:40px; padding:8px 14px; font-size:13px; font-weight:bold; justify-content:center; border-radius:6px;" onclick="qmDeleteQuest('${q.id}', '${(q.title || '').replace(/'/g, "\\'")}')" title="Delete quest from catalog">
-              🗑️ Delete
-            </button>
-          </div>
-        </div>
-      </details>
-    `;
-  }).join('');
-  } catch (err) {
-    console.error("Fatal error rendering QM quests catalog:", err);
-    container.innerHTML = `<p class="empty-state" style="color:var(--danger);">Error rendering quest catalog: ${err.message || err}</p>`;
-  }
-}
-
-async function qmVerifyCompleteQuest(userQuestId, userId, questId, rewardGold, questTitle, maxCompletions = 0) {
-  const confirmed = confirm(`Verify completion for this player on "${questTitle}"?\n\nThis will award +${rewardGold} Gold to their character and complete the quest.`);
-  if (!confirmed) return;
-
-  try {
-    // 1. Mark user_quest as completed
-    const { error: updateErr } = await supabaseClient
-      .from('user_quests')
-      .update({ status: 'completed' })
-      .eq('id', userQuestId);
-
-    if (updateErr) {
-      alert("Error completing quest: " + updateErr.message);
-      return;
-    }
-
-    // 2. Award gold to user in active park/QM
-    if (typeof awardGoldToUser === 'function') {
-      await awardGoldToUser(userId, rewardGold);
-    }
-
-    // 3. Trigger RNG Loot Drops if quest has them enabled
-    const { data: qData } = await supabaseClient.from('quests').select('*').eq('id', questId).maybeSingle();
-    const rules = typeof getQuestDurabilityRules === 'function' ? getQuestDurabilityRules(qData) : { rngLootDrops: false };
-    let lootNotice = '';
-    if (rules.rngLootDrops && typeof rollItemLootDrops === 'function') {
-      const dropResults = await rollItemLootDrops([userId], false, qData?.qm_id, qData?.park, qData?.kingdom);
-      if (dropResults && dropResults.length > 0 && dropResults[0].items && dropResults[0].items.length > 0) {
-        const drop = dropResults[0];
-        lootNotice = `\n\n🎲 MYSTERY LOOT DROPPED!\n${drop.username} received:\n• ${drop.items.join('\n• ')}`;
-      } else {
-        lootNotice = `\n\n🎲 Mystery Loot: Roll cast, but no items dropped.`;
-      }
-    }
-
-    // 4. Check if max completions reached
-    if (maxCompletions > 0) {
-      const { data: compRows } = await supabaseClient
-        .from('user_quests')
-        .select('id')
-        .eq('quest_id', questId)
-        .eq('status', 'completed');
-
-      const totalCompleted = compRows?.length || 0;
-      if (totalCompleted >= maxCompletions) {
-        // Auto close field openings
-        await supabaseClient.from('quests').update({ is_active: false }).eq('id', questId);
-        alert(`🏆 Quest "${questTitle}" finished! Max completions (${maxCompletions}/${maxCompletions}) reached. Quest is now closed on the field.${lootNotice}`);
-      } else {
-        alert(`✨ Quest verified! +${rewardGold}g awarded to player (${totalCompleted}/${maxCompletions} completed).${lootNotice}`);
-      }
-    } else {
-      alert(`✨ Quest verified! +${rewardGold}g awarded to player.${lootNotice}`);
-    }
-
-    await fetchQMQuests();
-    await fetchUserSlotState();
-    await fetchQuests();
-  } catch (err) {
-    console.error("Error verifying quest completion:", err);
-    alert("Error: " + (err.message || err));
-  }
-}
-
-async function qmKickUserFromQuest(userQuestId, username, questTitle) {
-  const confirmed = confirm(`Remove "${username}" from "${questTitle}"?\n\nThis will remove them from the active quest list and free up their quest slot.`);
-  if (!confirmed) return;
-
-  try {
-    await supabaseClient
-      .from('user_quests')
-      .update({ status: 'abandoned' })
-      .eq('id', userQuestId);
-
-    alert(`🚫 ${username} removed from "${questTitle}".`);
-    await fetchQMQuests();
-    await fetchUserSlotState();
-    await fetchQuests();
-  } catch (err) {
-    console.error("Error kicking user from quest:", err);
-    alert("Error removing player: " + (err.message || err));
-  }
-}
-
-window.qmVerifyCompleteQuest = qmVerifyCompleteQuest;
-window.qmKickUserFromQuest = qmKickUserFromQuest;
-
-async function qmDeleteQuest(questId, questTitle) {
-  let title = questTitle;
-  if (!title) {
-    const { data } = await supabaseClient.from('quests').select('title').eq('id', questId).maybeSingle();
-    title = data?.title || 'Quest';
-  }
-
-  const confirmed = confirm(`Are you sure you want to delete "${title}"?\n\nThis will permanently remove it from the catalog.`);
-  if (!confirmed) return;
-
-  try {
-    // 1. Delete associated quest queues and members/monsters
-    const { data: queues } = await supabaseClient
-      .from('quest_queues')
-      .select('id')
-      .eq('quest_id', questId);
-
-    if (queues && queues.length > 0) {
-      const queueIds = queues.map(q => q.id);
-      await supabaseClient.from('queue_members').delete().in('queue_id', queueIds);
-      await supabaseClient.from('encounter_monsters').delete().in('queue_id', queueIds);
-      await supabaseClient.from('quest_queues').delete().in('id', queueIds);
-    }
-
-    // 2. Delete user quest assignments/records
-    await supabaseClient.from('user_quests').delete().eq('quest_id', questId);
-
-    // 3. Delete the quest itself with .select() to verify rows affected
-    const { data: deletedRows, error } = await supabaseClient.from('quests').delete().eq('id', questId).select();
-    
-    if (error) {
-      alert("Failed to delete quest: " + error.message);
-      return;
-    }
-
-    if (!deletedRows || deletedRows.length === 0) {
-      alert("⚠️ Database blocked deleting this quest.\n\nThis happens when Supabase Row-Level Security (RLS) is missing DELETE policies.\n\nPlease run the SQL in 'supabase_setup.sql' in your Supabase SQL Editor!");
-      return;
-    }
-
-    // 4. Refresh all states
-    await fetchUserSlotState();
-    await fetchQuests();
-    await fetchMonsterEncounters();
-    await fetchQMQuests();
-    if (typeof fetchQMQueues === 'function') {
-      await fetchQMQueues();
-    }
-  } catch (err) {
-    console.error("Error deleting quest:", err);
-    alert("Error deleting quest: " + (err.message || err));
-  }
-}
-
-window.qmDeleteQuest = qmDeleteQuest;
-
-async function toggleQuestDeployment(questId, currentActiveState) {
-  const nextState = !currentActiveState;
-  const { error } = await supabaseClient.from('quests').update({ is_active: nextState }).eq('id', questId);
-
-  if (error) {
-    alert("Error updating quest deployment: " + error.message);
-    return;
-  }
-
-  // Archive user completions/assignments when QM toggles quest deployment state (off or on)
-  await supabaseClient.from('user_quests').update({ status: 'closed' }).eq('quest_id', questId);
-
-  await fetchUserSlotState();
-  await fetchQMQuests();
-  await fetchQuests();
-  await fetchMonsterEncounters();
-}
-
-async function createBattle() {
-  const title = document.getElementById('qm-battle-title')?.value.trim();
-  const category = 'Battle';
-  const participation_type = 'Group';
-  const threat_level = 'Safe';
-  const verification_method = 'Quest Master';
-
-  const victoryInput = document.getElementById('qm-battle-gold-victory');
-  const defeatInput = document.getElementById('qm-battle-gold-defeat');
-  const reward_gold_victory = victoryInput ? (parseInt(victoryInput.value) || 0) : 0;
-  const reward_gold_defeat = defeatInput ? (parseInt(defeatInput.value) || 0) : 0;
-
-  const description = document.getElementById('qm-battle-description')?.value.trim() || '';
-  const repeatable = true; // Battles on the public board are repeatable encounters by default
-  
-  const npcInput = document.getElementById('qm-battle-monsters-are-npc');
-  const monsters_are_npc = Boolean(npcInput?.checked);
-
-  const durabilityWearInput = document.getElementById('qm-battle-durability-wear');
-  const durability_wear = durabilityWearInput ? Number(durabilityWearInput.value) : 1;
-
-  const defeatPenaltyInput = document.getElementById('qm-battle-defeat-penalty');
-  const defeat_penalty = defeatPenaltyInput ? defeatPenaltyInput.value : 'none';
-
-  const allow_mid_join = Boolean(document.getElementById('qm-battle-allow-mid-join')?.checked);
-  const rng_loot_drops = Boolean(document.getElementById('qm-battle-rng-loot')?.checked);
-
-  const allowTrinket = document.getElementById('qm-item-trinket') ? document.getElementById('qm-item-trinket').checked : true;
-  const allowTalisman = document.getElementById('qm-item-talisman') ? document.getElementById('qm-item-talisman').checked : true;
-  const allowArtifact = document.getElementById('qm-item-artifact') ? document.getElementById('qm-item-artifact').checked : true;
-
-  const allowedList = [];
-  if (allowTrinket) allowedList.push('Trinket');
-  if (allowTalisman) allowedList.push('Talisman');
-  if (allowArtifact) allowedList.push('Artifact');
-  const allowed_items = allowedList.join(',');
-
-  if (!title) { alert("Please enter a Battle Title."); return; }
-
-  const rulesMeta = `<!-- RULES: ${JSON.stringify({ monsters_are_npc, allowed_items: allowedList, reward_gold_defeat, defeat_gold: reward_gold_defeat, durability_wear, defeat_penalty, allow_mid_join, rng_loot_drops })} -->`;
-  const scenarioWithMeta = rulesMeta;
-
-  const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
-  const activeKingdom = typeof getActiveKingdom === 'function' ? getActiveKingdom() : "The Freeholds of Amtgard";
-  const activeQMId = currentQMId || currentUser?.id || null;
-  const activeQMUsername = currentQMUsername || currentProfile?.username || 'Questmaster';
-
-  const battlePayload = {
-    title,
-    category,
-    reward_gold: reward_gold_victory,
-    reward_gold_defeat: reward_gold_defeat,
-    monsters_are_npc,
-    allowed_items,
-    description,
-    scenario_card: scenarioWithMeta,
-    repeatable,
-    allow_mid_join,
-    rng_loot_drops,
-    park: activePark,
-    kingdom: activeKingdom,
-    qm_id: activeQMId,
-    qm_username: activeQMUsername,
-    is_active: true
-  };
-
-  let { error } = await supabaseClient.from('quests').insert(battlePayload);
-
-  if (error) {
-    let fallbackPayload = { ...battlePayload };
-    const colMatch = error.message.match(/'([^']+)' column/) || error.message.match(/column ["']?([^"'\s]+)["']? of relation/);
-    if (colMatch && colMatch[1] && colMatch[1] in fallbackPayload) {
-      delete fallbackPayload[colMatch[1]];
-    }
-    delete fallbackPayload.allow_mid_join;
-    delete fallbackPayload.rng_loot_drops;
-    if (error.message.includes('qm_id') || error.message.includes('qm_username')) {
-      delete fallbackPayload.qm_id;
-      delete fallbackPayload.qm_username;
-    }
-    if (error.message.includes('park')) delete fallbackPayload.park;
-    if (error.message.includes('kingdom')) delete fallbackPayload.kingdom;
-    if (error.message.includes('monsters_are_npc')) delete fallbackPayload.monsters_are_npc;
-    if (error.message.includes('allowed_items')) delete fallbackPayload.allowed_items;
-    if (error.message.includes('reward_gold_defeat')) delete fallbackPayload.reward_gold_defeat;
-    let retry = await supabaseClient.from('quests').insert(fallbackPayload);
-    if (retry.error) {
-      delete fallbackPayload.allow_mid_join;
-      delete fallbackPayload.rng_loot_drops;
-      delete fallbackPayload.qm_id;
-      delete fallbackPayload.qm_username;
-      delete fallbackPayload.park;
-      delete fallbackPayload.kingdom;
-      delete fallbackPayload.monsters_are_npc;
-      delete fallbackPayload.allowed_items;
-      delete fallbackPayload.reward_gold_defeat;
-      retry = await supabaseClient.from('quests').insert(fallbackPayload);
-    }
-    error = retry.error;
-  }
-
-  if (error) { alert("Failed to save battle: " + error.message); return; }
-
-  alert(`⚔️ Battle "${title}" saved and opened on field!`);
-
-  if (document.getElementById('qm-battle-title')) document.getElementById('qm-battle-title').value = '';
-  if (document.getElementById('qm-battle-description')) document.getElementById('qm-battle-description').value = '';
-
-  if (victoryInput) victoryInput.value = '15';
-  if (defeatInput) defeatInput.value = '10';
-  if (document.getElementById('qm-battle-monsters-are-npc')) document.getElementById('qm-battle-monsters-are-npc').checked = false;
-  if (document.getElementById('qm-battle-allow-mid-join')) document.getElementById('qm-battle-allow-mid-join').checked = false;
-  if (document.getElementById('qm-battle-rng-loot')) document.getElementById('qm-battle-rng-loot').checked = false;
-  if (document.getElementById('qm-battle-durability-wear')) document.getElementById('qm-battle-durability-wear').value = '1';
-  if (document.getElementById('qm-battle-defeat-penalty')) document.getElementById('qm-battle-defeat-penalty').value = 'none';
-  if (document.getElementById('qm-item-trinket')) document.getElementById('qm-item-trinket').checked = true;
-  if (document.getElementById('qm-item-talisman')) document.getElementById('qm-item-talisman').checked = true;
-  if (document.getElementById('qm-item-artifact')) document.getElementById('qm-item-artifact').checked = true;
-
-  await fetchUserSlotState();
-  await fetchQuests();
-  await fetchMonsterEncounters();
-  switchQMSubTab('queues');
-}
-
-async function createAdventureQuest() {
-  const title = document.getElementById('qm-quest-title')?.value.trim();
-  const discipline = document.getElementById('qm-quest-discipline')?.value || 'Service';
-  const category = 'Quest';
-  const goldInput = document.getElementById('qm-quest-gold');
-  const reward_gold = goldInput ? (parseInt(goldInput.value) || 0) : 0;
-  const description = document.getElementById('qm-quest-description')?.value.trim() || '';
-  const repeatable = Boolean(document.getElementById('qm-quest-repeatable')?.checked);
-
-  const verification_method = document.getElementById('qm-quest-verification')?.value || 'Quest Master';
-
-  if (!title) { alert("Please enter a Quest Title."); return; }
-
-  const rulesMeta = `<!-- RULES: ${JSON.stringify({ discipline, verification_method, repeatable })} -->`;
-  const scenarioWithMeta = rulesMeta;
-
-  const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
-  const activeKingdom = typeof getActiveKingdom === 'function' ? getActiveKingdom() : "The Freeholds of Amtgard";
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  const rawQMId = currentQMId || currentUser?.id || null;
-  const activeQMId = (rawQMId && uuidRegex.test(rawQMId)) ? rawQMId : (currentUser?.id && uuidRegex.test(currentUser.id) ? currentUser.id : null);
-  const activeQMUsername = currentQMUsername || currentProfile?.username || 'Questmaster';
-
-  const questPayload = {
-    title,
-    discipline,
-    category,
-    reward_gold,
-    description,
-    scenario_card: scenarioWithMeta,
-    repeatable,
-    park: activePark,
-    kingdom: activeKingdom,
-    qm_id: activeQMId,
-    qm_username: activeQMUsername,
-    verification_method,
-    is_active: true
-  };
-
-  let { error } = await supabaseClient.from('quests').insert(questPayload);
-
-  // Resilient retry loop if any optional column is missing in Supabase schema cache
-  if (error) {
-    console.warn("Initial quest insert error, attempting schema fallback:", error.message);
-    let fallbackPayload = { ...questPayload };
-
-    // 1. Remove column identified directly in the error message
-    const colMatch = error.message.match(/'([^']+)' column/) || error.message.match(/column ["']?([^"'\s]+)["']? of relation/);
-    if (colMatch && colMatch[1] && colMatch[1] in fallbackPayload) {
-      delete fallbackPayload[colMatch[1]];
-    }
-
-    // 2. Remove recently added custom columns if they don't exist yet in user's Supabase schema
-    // (Note: discipline and verification_method are already safely preserved inside scenario_card metadata)
-    delete fallbackPayload.discipline;
-    delete fallbackPayload.verification_method;
-
-    // 3. ONLY remove park / kingdom / qm_id if the error message explicitly says those columns don't exist!
-    if (error.message.includes('qm_id') || error.message.includes('qm_username')) {
-      delete fallbackPayload.qm_id;
-      delete fallbackPayload.qm_username;
-    }
-    if (error.message.includes('park')) delete fallbackPayload.park;
-    if (error.message.includes('kingdom')) delete fallbackPayload.kingdom;
-    if (error.message.includes('repeatable')) delete fallbackPayload.repeatable;
-
-    let retry = await supabaseClient.from('quests').insert(fallbackPayload);
-    if (retry.error) {
-      console.warn("Second retry attempt for quest insert:", retry.error.message);
-      const colMatch2 = retry.error.message.match(/'([^']+)' column/) || retry.error.message.match(/column ["']?([^"'\s]+)["']? of relation/);
-      if (colMatch2 && colMatch2[1] && colMatch2[1] in fallbackPayload) {
-        delete fallbackPayload[colMatch2[1]];
-      }
-      if (retry.error.message.includes('repeatable')) delete fallbackPayload.repeatable;
-      if (retry.error.message.includes('qm_id')) delete fallbackPayload.qm_id;
-      if (retry.error.message.includes('qm_username')) delete fallbackPayload.qm_username;
-      if (retry.error.message.includes('park')) delete fallbackPayload.park;
-      if (retry.error.message.includes('kingdom')) delete fallbackPayload.kingdom;
-
-      retry = await supabaseClient.from('quests').insert(fallbackPayload);
-    }
-    error = retry.error;
-  }
-
-  if (error) {
-    console.error("Failed to save quest:", error);
-    alert("Failed to save quest: " + error.message);
-    return;
-  }
-
-  alert(`📜 Quest "${title}" published to catalog!`);
-
-  if (document.getElementById('qm-quest-title')) document.getElementById('qm-quest-title').value = '';
-  if (document.getElementById('qm-quest-discipline')) document.getElementById('qm-quest-discipline').value = 'Service';
-  if (document.getElementById('qm-quest-description')) document.getElementById('qm-quest-description').value = '';
-  if (goldInput) goldInput.value = '5';
-  if (document.getElementById('qm-quest-repeatable')) document.getElementById('qm-quest-repeatable').checked = false;
-  if (document.getElementById('qm-quest-verification')) document.getElementById('qm-quest-verification').value = 'Quest Master';
-
-  await fetchUserSlotState();
-  await fetchQuests();
-  switchQMSubTab('library');
-  if (typeof fetchQMQuests === 'function') {
-    await fetchQMQuests();
-  }
 }
 
 async function acceptQuest(questId) {
@@ -1273,3 +495,4 @@ async function completeQuest(userQuestId, rewardGold) {
 
   initDashboard();
 }
+

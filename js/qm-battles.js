@@ -1,152 +1,139 @@
 // ==============================================================================
-// Quest-Forge: Monster Encounters, PC Lines, & Questmaster Queue Controls
+// Quest-Forge: QM Panel — Forge Battle & Battle Catalog (#qm-subtab-battle & #qm-subtab-queues)
 // ==============================================================================
 
-async function fetchMonsterEncounters() {
-  // Delegate directly to fetchQuests() which manages the live unified combat board (#available-combat-quests)
-  if (typeof fetchQuests === 'function') {
-    return await fetchQuests();
+// ------------------------------------------------------------------------------
+// 1. Forge Battle (#qm-subtab-battle)
+// ------------------------------------------------------------------------------
+
+async function createBattle() {
+  const title = document.getElementById('qm-battle-title')?.value.trim();
+  const category = 'Battle';
+  const participation_type = 'Group';
+  const threat_level = 'Safe';
+  const verification_method = 'Quest Master';
+
+  const victoryInput = document.getElementById('qm-battle-gold-victory');
+  const defeatInput = document.getElementById('qm-battle-gold-defeat');
+  const reward_gold_victory = victoryInput ? (parseInt(victoryInput.value) || 0) : 0;
+  const reward_gold_defeat = defeatInput ? (parseInt(defeatInput.value) || 0) : 0;
+
+  const description = document.getElementById('qm-battle-description')?.value.trim() || '';
+  const repeatable = true; // Battles on the public board are repeatable encounters by default
+  
+  const npcInput = document.getElementById('qm-battle-monsters-are-npc');
+  const monsters_are_npc = Boolean(npcInput?.checked);
+
+  const durabilityWearInput = document.getElementById('qm-battle-durability-wear');
+  const durability_wear = durabilityWearInput ? Number(durabilityWearInput.value) : 1;
+
+  const defeatPenaltyInput = document.getElementById('qm-battle-defeat-penalty');
+  const defeat_penalty = defeatPenaltyInput ? defeatPenaltyInput.value : 'none';
+
+  const allow_mid_join = Boolean(document.getElementById('qm-battle-allow-mid-join')?.checked);
+  const rng_loot_drops = Boolean(document.getElementById('qm-battle-rng-loot')?.checked);
+
+  const allowTrinket = document.getElementById('qm-item-trinket') ? document.getElementById('qm-item-trinket').checked : true;
+  const allowTalisman = document.getElementById('qm-item-talisman') ? document.getElementById('qm-item-talisman').checked : true;
+  const allowArtifact = document.getElementById('qm-item-artifact') ? document.getElementById('qm-item-artifact').checked : true;
+
+  const allowedList = [];
+  if (allowTrinket) allowedList.push('Trinket');
+  if (allowTalisman) allowedList.push('Talisman');
+  if (allowArtifact) allowedList.push('Artifact');
+  const allowed_items = allowedList.join(',');
+
+  if (!title) { alert("Please enter a Battle Title."); return; }
+
+  const rulesMeta = `<!-- RULES: ${JSON.stringify({ monsters_are_npc, allowed_items: allowedList, reward_gold_defeat, defeat_gold: reward_gold_defeat, durability_wear, defeat_penalty, allow_mid_join, rng_loot_drops })} -->`;
+  const scenarioWithMeta = rulesMeta;
+
+  const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
+  const activeKingdom = typeof getActiveKingdom === 'function' ? getActiveKingdom() : "The Freeholds of Amtgard";
+  const activeQMId = currentQMId || currentUser?.id || null;
+  const activeQMUsername = currentQMUsername || currentProfile?.username || 'Questmaster';
+
+  const battlePayload = {
+    title,
+    category,
+    reward_gold: reward_gold_victory,
+    reward_gold_defeat: reward_gold_defeat,
+    monsters_are_npc,
+    allowed_items,
+    description,
+    scenario_card: scenarioWithMeta,
+    repeatable,
+    allow_mid_join,
+    rng_loot_drops,
+    park: activePark,
+    kingdom: activeKingdom,
+    qm_id: activeQMId,
+    qm_username: activeQMUsername,
+    is_active: true
+  };
+
+  let { error } = await supabaseClient.from('quests').insert(battlePayload);
+
+  if (error) {
+    let fallbackPayload = { ...battlePayload };
+    const colMatch = error.message.match(/'([^']+)' column/) || error.message.match(/column ["']?([^"'\s]+)["']? of relation/);
+    if (colMatch && colMatch[1] && colMatch[1] in fallbackPayload) {
+      delete fallbackPayload[colMatch[1]];
+    }
+    delete fallbackPayload.allow_mid_join;
+    delete fallbackPayload.rng_loot_drops;
+    if (error.message.includes('qm_id') || error.message.includes('qm_username')) {
+      delete fallbackPayload.qm_id;
+      delete fallbackPayload.qm_username;
+    }
+    if (error.message.includes('park')) delete fallbackPayload.park;
+    if (error.message.includes('kingdom')) delete fallbackPayload.kingdom;
+    if (error.message.includes('monsters_are_npc')) delete fallbackPayload.monsters_are_npc;
+    if (error.message.includes('allowed_items')) delete fallbackPayload.allowed_items;
+    if (error.message.includes('reward_gold_defeat')) delete fallbackPayload.reward_gold_defeat;
+    let retry = await supabaseClient.from('quests').insert(fallbackPayload);
+    if (retry.error) {
+      delete fallbackPayload.allow_mid_join;
+      delete fallbackPayload.rng_loot_drops;
+      delete fallbackPayload.qm_id;
+      delete fallbackPayload.qm_username;
+      delete fallbackPayload.park;
+      delete fallbackPayload.kingdom;
+      delete fallbackPayload.monsters_are_npc;
+      delete fallbackPayload.allowed_items;
+      delete fallbackPayload.reward_gold_defeat;
+      retry = await supabaseClient.from('quests').insert(fallbackPayload);
+    }
+    error = retry.error;
   }
-}
 
-function renderMonsterQuestCard(q, activeMonsterClaim, monsterRoster = null, isBattleLocked = false) {
-  if (typeof renderAvailableQuestCard === 'function') {
-    return renderAvailableQuestCard(q, 'combat', null, monsterRoster);
-  }
-  return '';
-}
+  if (error) { alert("Failed to save battle: " + error.message); return; }
 
-async function claimMonsterRole(questId, roleName) {
-  if (activeBattleQuest || activeMonsterClaim) {
-    alert("⚠️ Your Battle Slot is already occupied by a Combat quest or another Monster assignment!");
-    return;
-  }
+  alert(`⚔️ Battle "${title}" saved and opened on field!`);
 
-  const { data: questRow } = await supabaseClient.from('quests').select('*').eq('id', questId).maybeSingle();
-  const rules = typeof getQuestDurabilityRules === 'function' ? getQuestDurabilityRules(questRow) : { allowMidJoin: false };
+  if (document.getElementById('qm-battle-title')) document.getElementById('qm-battle-title').value = '';
+  if (document.getElementById('qm-battle-description')) document.getElementById('qm-battle-description').value = '';
 
-  const { data: existingQueues } = await supabaseClient
-    .from('quest_queues')
-    .select('*')
-    .eq('quest_id', questId)
-    .in('status', ['waiting', 'active'])
-    .order('created_at', { ascending: false })
-    .limit(1);
+  if (victoryInput) victoryInput.value = '15';
+  if (defeatInput) defeatInput.value = '10';
+  if (document.getElementById('qm-battle-monsters-are-npc')) document.getElementById('qm-battle-monsters-are-npc').checked = false;
+  if (document.getElementById('qm-battle-allow-mid-join')) document.getElementById('qm-battle-allow-mid-join').checked = false;
+  if (document.getElementById('qm-battle-rng-loot')) document.getElementById('qm-battle-rng-loot').checked = false;
+  if (document.getElementById('qm-battle-durability-wear')) document.getElementById('qm-battle-durability-wear').value = '1';
+  if (document.getElementById('qm-battle-defeat-penalty')) document.getElementById('qm-battle-defeat-penalty').value = 'none';
+  if (document.getElementById('qm-item-trinket')) document.getElementById('qm-item-trinket').checked = true;
+  if (document.getElementById('qm-item-talisman')) document.getElementById('qm-item-talisman').checked = true;
+  if (document.getElementById('qm-item-artifact')) document.getElementById('qm-item-artifact').checked = true;
 
-  if (existingQueues && existingQueues.length > 0 && existingQueues[0].status === 'active' && !rules.allowMidJoin) {
-    alert("⚠️ This battle is currently active in combat! You cannot join or switch sides while the battle is live.");
-    return;
-  }
-
-  let queueId = null;
-
-  if (existingQueues && existingQueues.length > 0 && (existingQueues[0].status === 'waiting' || existingQueues[0].status === 'active')) {
-    queueId = existingQueues[0].id;
-  } else {
-    const { data: newQueue, error: queueError } = await supabaseClient
-      .from('quest_queues')
-      .insert({ quest_id: questId, status: 'waiting' })
-      .select()
-      .single();
-
-    if (queueError) { alert("Error opening encounter line: " + queueError.message); return; }
-    queueId = newQueue.id;
-  }
-
-  const { error } = await supabaseClient.from('encounter_monsters').insert({
-    queue_id: queueId,
-    user_id: currentUser.id,
-    role_name: roleName,
-    status: 'claimed'
-  });
-
-  if (error) { alert("Error joining monster line: " + error.message); return; }
-
-  alert("👹 Joined Monster Line!");
   await fetchUserSlotState();
-  fetchMonsterEncounters();
-  fetchQuests();
-  if (currentProfile?.role === 'questmaster' || currentProfile?.role === 'admin') {
-    fetchQMQueues();
-  }
+  await fetchQuests();
+  await fetchMonsterEncounters();
+  switchQMSubTab('queues');
 }
 
-async function abandonMonsterRole(claimId) {
-  await supabaseClient.from('encounter_monsters').delete().eq('id', claimId);
-  await fetchUserSlotState();
-  fetchMonsterEncounters();
-  fetchQuests();
-  if (currentProfile?.role === 'questmaster' || currentProfile?.role === 'admin') {
-    fetchQMQueues();
-  }
-}
-
-async function joinOrCreateGroupQueue(questId) {
-  if (activeBattleQuest || activeMonsterClaim) {
-    alert("⚠️ Your Battle Slot is already occupied!");
-    return;
-  }
-
-  const { data: questRow } = await supabaseClient.from('quests').select('*').eq('id', questId).maybeSingle();
-  const rules = typeof getQuestDurabilityRules === 'function' ? getQuestDurabilityRules(questRow) : { allowMidJoin: false };
-
-  const { data: existingQueues } = await supabaseClient
-    .from('quest_queues')
-    .select('*')
-    .eq('quest_id', questId)
-    .in('status', ['waiting', 'active'])
-    .order('created_at', { ascending: false })
-    .limit(1);
-
-  if (existingQueues && existingQueues.length > 0 && existingQueues[0].status === 'active' && !rules.allowMidJoin) {
-    alert("⚠️ This battle is currently active in combat! You cannot join or switch sides while the battle is live.");
-    return;
-  }
-
-  let queueId = null;
-
-  if (existingQueues && existingQueues.length > 0 && (existingQueues[0].status === 'waiting' || existingQueues[0].status === 'active')) {
-    queueId = existingQueues[0].id;
-  } else {
-    const { data: newQueue, error } = await supabaseClient
-      .from('quest_queues')
-      .insert({ quest_id: questId, leader_id: currentUser.id, status: 'waiting' })
-      .select()
-      .single();
-
-    if (error) { alert("Error opening line: " + error.message); return; }
-    queueId = newQueue.id;
-  }
-
-  const { error: joinError } = await supabaseClient
-    .from('queue_members')
-    .insert({ queue_id: queueId, user_id: currentUser.id });
-
-  if (joinError && !joinError.message.includes('duplicate')) {
-    alert("Error joining line: " + joinError.message);
-    return;
-  }
-
-  alert("⚔️ Joined Heroes Line!");
-  await fetchUserSlotState();
-  fetchQuests();
-  if (currentProfile?.role === 'questmaster' || currentProfile?.role === 'admin') {
-    fetchQMQueues();
-  }
-}
-
-async function leaveQueue(queueId) {
-  await supabaseClient.from('queue_members').delete().eq('queue_id', queueId).eq('user_id', currentUser.id);
-  await fetchUserSlotState();
-  fetchQuests();
-  if (currentProfile?.role === 'questmaster' || currentProfile?.role === 'admin') {
-    fetchQMQueues();
-  }
-}
-
-// ==============================================================================
-// Questmaster: Battle Catalog & Field Encounter State Management
-// ==============================================================================
+// ------------------------------------------------------------------------------
+// 2. Battle Catalog & Field Encounter State Management (#qm-subtab-queues)
+// ------------------------------------------------------------------------------
 
 async function fetchQMQueues() {
   const container = document.getElementById('qm-queue-list');
@@ -181,7 +168,7 @@ async function fetchQMQueues() {
   });
 
   if (!battleQuests || battleQuests.length === 0) {
-    container.innerHTML = `<p class="empty-state">No battle quests found for ${activePark} (${activeQMName}). Create one in the Forge Quest tab!</p>`;
+    container.innerHTML = `<p class="empty-state">No battle quests found for ${activePark} (${activeQMName}). Create one in the Forge Battle tab!</p>`;
     return;
   }
 
@@ -671,178 +658,6 @@ async function qmFinishBattle(queueId, questId, victoryGold, defeatGold, explici
   initDashboard();
 }
 
-// Roll Mystery Item Loot Drops for winning adventurers
-async function rollItemLootDrops(winnerUserIds, isBattle = true, customQMId = null, customPark = null, customKingdom = null) {
-  if (!Array.isArray(winnerUserIds) || winnerUserIds.length === 0) return [];
-  const activePark = customPark || (typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest"));
-  const activeKingdom = customKingdom || (typeof getActiveKingdom === 'function' ? getActiveKingdom() : "The Freeholds of Amtgard");
-  const activeQMId = (customQMId !== undefined && customQMId !== null) ? customQMId : (currentQMId || null);
-
-  const trinketItems = STORE_CATALOG.filter(i => i.category === 'Trinket' || i.category === 'Trinkets');
-  const talismanItems = STORE_CATALOG.filter(i => i.category === 'Talisman' || i.category === 'Talismans');
-  const artifactItems = STORE_CATALOG.filter(i => i.category === 'Artifact' || i.category === 'Artifacts' || i.category === 'Legendary');
-
-  const trinketConfig = (typeof RNG_LOOT_DROP_RATES !== 'undefined' && RNG_LOOT_DROP_RATES.trinket) || { rolls: 3, chance: 0.25 };
-  const talismanConfig = (typeof RNG_LOOT_DROP_RATES !== 'undefined' && RNG_LOOT_DROP_RATES.talisman) || { rolls: 2, chance: 0.05 };
-  const artifactConfig = (typeof RNG_LOOT_DROP_RATES !== 'undefined' && RNG_LOOT_DROP_RATES.artifact) || { rolls: 1, chance: 1 / 250 };
-
-  // Fetch usernames so we can report drops clearly to the QM & UI
-  let usernameMap = new Map();
-  try {
-    const { data: userProfiles } = await supabaseClient
-      .from('profiles')
-      .select('id, username')
-      .in('id', winnerUserIds);
-
-    (userProfiles || []).forEach(p => {
-      if (p && p.id) usernameMap.set(p.id, p.username || 'Adventurer');
-    });
-  } catch (err) {
-    console.warn("Could not fetch user profiles for loot drop report", err);
-  }
-
-  const allAwardedDrops = [];
-
-  for (const uid of winnerUserIds) {
-    const wonItems = [];
-
-    // Trinket rolls (3 rolls @ 25% chance each)
-    for (let i = 0; i < (trinketConfig.rolls || 3); i++) {
-      if (Math.random() < trinketConfig.chance && trinketItems.length > 0) {
-        const picked = trinketItems[Math.floor(Math.random() * trinketItems.length)];
-        wonItems.push(picked);
-      }
-    }
-
-    // Talisman rolls (2 rolls @ 5% chance each)
-    for (let i = 0; i < (talismanConfig.rolls || 2); i++) {
-      if (Math.random() < talismanConfig.chance && talismanItems.length > 0) {
-        const picked = talismanItems[Math.floor(Math.random() * talismanItems.length)];
-        wonItems.push(picked);
-      }
-    }
-
-    // Artifact rolls (1 roll @ 1/250 chance = 0.4%)
-    for (let i = 0; i < (artifactConfig.rolls || 1); i++) {
-      if (Math.random() < artifactConfig.chance && artifactItems.length > 0) {
-        const picked = artifactItems[Math.floor(Math.random() * artifactItems.length)];
-        wonItems.push(picked);
-      }
-    }
-
-    if (wonItems.length === 0) continue;
-
-    // Fetch user inventory to check capacity
-    const { data: userItems, error: invFetchErr } = await supabaseClient
-      .from('user_inventory')
-      .select('*')
-      .eq('user_id', uid)
-      .eq('park', activePark);
-
-    if (invFetchErr) {
-      console.error(`Error fetching inventory for user ${uid} during loot roll:`, invFetchErr);
-    }
-
-    const parkItems = (userItems || []).filter(item => !item.qm_id || !activeQMId || item.qm_id === activeQMId);
-    let runningPouch = parkItems.filter(item => !item.storage_location || item.storage_location === 'pouch');
-    let runningBank = parkItems.filter(item => item.storage_location === 'bank');
-
-    const awardedNames = [];
-
-    for (const item of wonItems) {
-      const cat = getCategoryForItemName(item.item_name);
-      let normCat = cat;
-      if (normCat === 'Talisman') normCat = 'Talismans';
-      if (normCat === 'Artifact' || normCat === 'Legendary') normCat = 'Artifacts';
-      if (normCat === 'Trinkets') normCat = 'Trinket';
-
-      const pouchLimit = (STORAGE_LIMITS.pouch && (STORAGE_LIMITS.pouch[normCat] || STORAGE_LIMITS.pouch[cat])) || 1;
-      const bankLimit = (STORAGE_LIMITS.bank && (STORAGE_LIMITS.bank[normCat] || STORAGE_LIMITS.bank[cat])) || 1;
-
-      const pouchCount = runningPouch.filter(i => {
-        let c = getCategoryForItemName(i.item_name);
-        if (c === 'Talisman') c = 'Talismans';
-        if (c === 'Artifact' || c === 'Legendary') c = 'Artifacts';
-        if (c === 'Trinkets') c = 'Trinket';
-        return c === normCat;
-      }).length;
-
-      const bankCount = runningBank.filter(i => {
-        let c = getCategoryForItemName(i.item_name);
-        if (c === 'Talisman') c = 'Talismans';
-        if (c === 'Artifact' || c === 'Legendary') c = 'Artifacts';
-        if (c === 'Trinkets') c = 'Trinket';
-        return c === normCat;
-      }).length;
-
-      let destLocation = null;
-      if (pouchCount < pouchLimit) {
-        destLocation = 'pouch';
-      } else if (bankCount < bankLimit) {
-        destLocation = 'bank';
-      }
-
-      if (!destLocation) {
-        console.warn(`Loot drop: User ${uid} has full pouch and bank for ${normCat}. Item "${item.item_name}" could not be stored.`);
-        continue;
-      }
-
-      const durMax = item.durability_max || (typeof getItemDurabilityMax === 'function' ? getItemDurabilityMax(item.item_name) : 1);
-
-      const payload = {
-        user_id: uid,
-        item_name: item.item_name,
-        base_cost: item.base_cost || 1,
-        quantity: 1,
-        durability_current: durMax,
-        durability_max: durMax,
-        storage_location: destLocation,
-        park: activePark,
-        kingdom: activeKingdom,
-        qm_id: activeQMId
-      };
-
-      let insPayload = { ...payload };
-      let { error: insErr } = await supabaseClient.from('user_inventory').insert(insPayload);
-      if (insErr && insErr.message && insErr.message.includes('qm_id')) {
-        delete insPayload.qm_id;
-        const retry = await supabaseClient.from('user_inventory').insert(insPayload);
-        insErr = retry.error;
-      }
-      if (insErr && insErr.message && insErr.message.includes('storage_location')) {
-        delete insPayload.storage_location;
-        const retry = await supabaseClient.from('user_inventory').insert(insPayload);
-        insErr = retry.error;
-      }
-
-      if (insErr) {
-        console.error(`Failed to insert loot drop item "${item.item_name}" for user ${uid}:`, insErr);
-      } else {
-        awardedNames.push(`${item.item_name} (${destLocation === 'pouch' ? '🎒 Pouch' : '🏦 Bank'})`);
-        if (destLocation === 'pouch') runningPouch.push(payload);
-        else runningBank.push(payload);
-      }
-    }
-
-    if (awardedNames.length > 0) {
-      allAwardedDrops.push({
-        userId: uid,
-        username: usernameMap.get(uid) || 'Adventurer',
-        items: awardedNames
-      });
-
-      if (currentUser && currentUser.id === uid) {
-        alert(`🎲 MYSTERY LOOT DROP!\n\nYou discovered:\n• ${awardedNames.join('\n• ')}`);
-        try {
-          localStorage.setItem('qf_last_inventory_seen_' + currentUser.id, new Date().toISOString());
-        } catch (e) {}
-      }
-    }
-  }
-
-  return allAwardedDrops;
-}
-
 async function executeDefeatPenalty(userId, penalty) {
   if (!userId || !penalty || penalty === 'none') return;
   const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
@@ -1049,3 +864,4 @@ async function qmKickMonsterFromQueue(claimId, username) {
 
 window.qmKickHeroFromQueue = qmKickHeroFromQueue;
 window.qmKickMonsterFromQueue = qmKickMonsterFromQueue;
+

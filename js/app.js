@@ -161,11 +161,6 @@ async function initDashboard() {
 }
 
 
-async function handleSignOut() {
-  await supabaseClient.auth.signOut();
-  window.location.href = "login.html";
-}
-
 // Password Recovery Handlers & View Management
 function togglePasswordVisibility(inputId, btn) {
   const input = document.getElementById(inputId);

@@ -47,9 +47,9 @@ function isQMAuthorized() {
 }
 
 /**
- * Retrieve the active Questmaster ID (strictly QM-scoped)
+ * Retrieve the active Questmaster ID for Chronicles (strictly QM-scoped)
  */
-function getActiveQMId() {
+function getChronicleActiveQMId() {
   // If current user is a Questmaster viewing/authoring in their own realm:
   if (isQMAuthorized() && typeof currentUser !== 'undefined' && currentUser?.id) {
     if (typeof currentQMId !== 'undefined' && currentQMId) {
@@ -165,7 +165,7 @@ function saveLocalChronicles(list) {
  */
 async function fetchChronicles() {
   const activePark = getChronicleActivePark();
-  const activeQMId = getActiveQMId();
+  const activeQMId = getChronicleActiveQMId();
 
   if (typeof supabaseClient !== 'undefined' && supabaseClient) {
     try {
@@ -248,7 +248,7 @@ async function fetchChronicles() {
 function getSortedAndFilteredChronicles() {
   const activePark = getChronicleActivePark();
   const normActivePark = (activePark || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
-  const activeQMId = getActiveQMId();
+  const activeQMId = getChronicleActiveQMId();
   const myUserId = (typeof currentUser !== 'undefined' && currentUser?.id) || null;
   const now = Date.now();
 
@@ -468,7 +468,7 @@ async function handleSaveChronicle(event) {
   }
 
   const activePark = getChronicleActivePark();
-  const activeQMId = getActiveQMId();
+  const activeQMId = getChronicleActiveQMId();
   const authorName = getChronicleAuthorName();
   const authorId = (typeof currentUser !== 'undefined' && currentUser?.id) || null;
 

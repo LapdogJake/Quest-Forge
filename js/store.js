@@ -3,41 +3,6 @@
 // Manages buying, selling, and catalog display isolated by Park & QM Reign
 // ==============================================================================
 
-// Items tab sub-navigation (Pouch / Bank / Store)
-function switchItemsSubTab(subTab) {
-  const pouchTab = document.getElementById('items-subtab-pouch');
-  const bankTab = document.getElementById('items-subtab-bank');
-  const storeTab = document.getElementById('items-subtab-store');
-
-  const pouchNav = document.getElementById('items-subnav-pouch');
-  const bankNav = document.getElementById('items-subnav-bank');
-  const storeNav = document.getElementById('items-subnav-store');
-
-  if (pouchTab) pouchTab.classList.add('hidden');
-  if (bankTab) bankTab.classList.add('hidden');
-  if (storeTab) storeTab.classList.add('hidden');
-
-  if (pouchNav) pouchNav.classList.remove('active');
-  if (bankNav) bankNav.classList.remove('active');
-  if (storeNav) storeNav.classList.remove('active');
-
-  if (subTab === 'pouch') {
-    if (pouchTab) pouchTab.classList.remove('hidden');
-    if (pouchNav) pouchNav.classList.add('active');
-  } else if (subTab === 'bank') {
-    if (bankTab) bankTab.classList.remove('hidden');
-    if (bankNav) bankNav.classList.add('active');
-  } else if (subTab === 'store') {
-    if (storeTab) storeTab.classList.remove('hidden');
-    if (storeNav) storeNav.classList.add('active');
-  }
-
-  if (typeof fetchUserInventory === 'function') {
-    fetchUserInventory();
-  }
-}
-
-
 // Render the merchant catalog organized by category (Trinket, Talismans, Artifacts)
 function renderStoreCatalog() {
   const container = document.getElementById('store-catalog-list');
