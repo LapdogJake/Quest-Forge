@@ -124,6 +124,7 @@ function getQuestDurabilityRules(q) {
   let battleMode = q?.battle_mode;
   let battleTeams = q?.battle_teams;
   let placementRewards = q?.placement_rewards;
+  let extraPlacements = null;
   let monsterReward = q?.monster_reward;
 
   // Check fallback metadata embedded in scenario_card or description
@@ -174,6 +175,9 @@ function getQuestDurabilityRules(q) {
       if ((!placementRewards || (Array.isArray(placementRewards) && placementRewards.length === 0)) && parsed.placement_rewards !== undefined) {
         placementRewards = parsed.placement_rewards;
       }
+      if (Array.isArray(parsed.extra_placements)) {
+        extraPlacements = parsed.extra_placements.map(v => Math.max(0, Number(v) || 0));
+      }
       if (monsterReward === undefined && parsed.monster_reward !== undefined) {
         monsterReward = Number(parsed.monster_reward);
       }
@@ -189,55 +193,74 @@ function getQuestDurabilityRules(q) {
     try { placementRewards = JSON.parse(placementRewards); } catch (_) { placementRewards = null; }
   }
 
-  // Resolve battleMode ('pvp' vs 'pvm')
-  const resolvedMode = (battleMode === 'pvm' || battleMode === 'pvp')
-    ? battleMode
-    : (Boolean(monstersAreNpc) ? 'pvm' : 'pvp');
-
-  // Resolve active teams list
+  // Resolve active teams list directly from checked teams
   let activeTeams = [];
   if (Array.isArray(battleTeams) && battleTeams.length > 0) {
     activeTeams = battleTeams.map(t => String(t).toLowerCase().trim()).filter(Boolean);
   } else {
-    activeTeams = resolvedMode === 'pvm' ? ['monster', 'red'] : ['red', 'blue'];
-  }
-
-  // Ensure if PvM mode is active, 'monster' is included, and if PvP, 'monster' is excluded unless explicitly in activeTeams
-  if (resolvedMode === 'pvm' && !activeTeams.includes('monster')) {
-    activeTeams = ['monster', ...activeTeams];
-  } else if (resolvedMode === 'pvp' && activeTeams.includes('monster')) {
-    activeTeams = activeTeams.filter(t => t !== 'monster');
+    activeTeams = Boolean(monstersAreNpc) ? ['monster', 'red'] : ['red', 'blue'];
   }
 
   const playerTeams = activeTeams.filter(t => t !== 'monster');
-  if (playerTeams.length === 0) {
-    playerTeams.push('red');
-    activeTeams.push('red');
-  }
-
   const hasMonsters = activeTeams.includes('monster');
-  const isMonsterNpc = hasMonsters || resolvedMode === 'pvm' || Boolean(monstersAreNpc);
+  const isMonsterNpc = hasMonsters || Boolean(monstersAreNpc);
 
-  // Resolve 6-slot placement rewards array [1st, 2nd, 3rd, 4th, 5th, 6th]
   const defaultFirst = Number.isFinite(victoryGold) ? victoryGold : 15;
-  const defaultOther = Number.isFinite(defeatGold) ? defeatGold : 10;
-  let resolvedPlacements = [defaultFirst, defaultOther, defaultOther, defaultOther, defaultOther, defaultOther];
-  if (Array.isArray(placementRewards) && placementRewards.length > 0) {
-    for (let i = 0; i < 6; i++) {
-      if (placementRewards[i] !== undefined && placementRewards[i] !== null && !isNaN(Number(placementRewards[i]))) {
-        resolvedPlacements[i] = Math.max(0, Number(placementRewards[i]));
-      }
+  const defaultDefeat = Number.isFinite(defeatGold) ? defeatGold : 10;
+
+  // Resolve optional extra placements (2nd, 3rd, 4th, 5th) added via the '+' button
+  let resolvedExtraPlacements = [];
+  if (Array.isArray(extraPlacements)) {
+    resolvedExtraPlacements = extraPlacements.slice(0, 4).map(v => Math.max(0, Number(v) || 0));
+  } else if (Array.isArray(placementRewards) && placementRewards.length > 2) {
+    // Infer extra placements if middle values differ from the final defeat value
+    const tailVal = Number(placementRewards[placementRewards.length - 1] ?? defaultDefeat);
+    const middle = placementRewards.slice(1, 5).map(v => Number(v) || 0);
+    const hasCustomMiddle = middle.some(v => v !== tailVal);
+    if (hasCustomMiddle) {
+      let lastCustomIdx = -1;
+      middle.forEach((v, idx) => { if (v !== tailVal) lastCustomIdx = idx; });
+      resolvedExtraPlacements = middle.slice(0, lastCustomIdx + 1);
     }
   }
 
+  // Build ordered placement tiers: [Victory, ...2nd..Nth, Defeat]
+  const ordinalLabels = ['2nd Place', '3rd Place', '4th Place', '5th Place'];
+  const placementTiers = [
+    { key: 'victory', label: '🥇 Victory (1st)', shortLabel: '1st', gold: defaultFirst }
+  ];
+  resolvedExtraPlacements.forEach((amt, idx) => {
+    const icon = idx === 0 ? '🥈 ' : (idx === 1 ? '🥉 ' : '🏅 ');
+    placementTiers.push({
+      key: `place_${idx + 2}`,
+      label: `${icon}${ordinalLabels[idx]}`,
+      shortLabel: `${idx + 2}${idx === 0 ? 'nd' : (idx === 1 ? 'rd' : 'th')}`,
+      gold: amt
+    });
+  });
+  placementTiers.push({
+    key: 'defeat',
+    label: '💀 Defeat',
+    shortLabel: 'Loss',
+    gold: defaultDefeat
+  });
+
+  // Legacy 6-slot array for backward compatibility
+  const resolvedPlacements = [
+    defaultFirst,
+    ...resolvedExtraPlacements,
+    defaultDefeat,
+    defaultDefeat,
+    defaultDefeat,
+    defaultDefeat,
+    defaultDefeat
+  ].slice(0, 6);
+
   const resolvedMonsterReward = (monsterReward !== undefined && monsterReward !== null && !isNaN(Number(monsterReward)))
     ? Math.max(0, Number(monsterReward))
-    : defaultOther;
+    : defaultDefeat;
 
-  // Check if active player teams have distinct 2nd..Nth placement payouts (requiring ranked finish selection)
-  const activePlacementSlices = resolvedPlacements.slice(0, Math.max(1, playerTeams.length));
-  const nonFirstSlices = activePlacementSlices.slice(1);
-  const isRankedPayout = playerTeams.length >= 2 && nonFirstSlices.some(val => val !== nonFirstSlices[0]);
+  const isRankedPayout = resolvedExtraPlacements.length > 0;
 
   // Allowed magic items: defaults to all 3 categories (Trinket, Talisman, Artifact)
   let allowedTypes = ['Trinket', 'Talisman', 'Artifact'];
@@ -256,12 +279,14 @@ function getQuestDurabilityRules(q) {
     playerTeams,
     hasMonsters,
     monstersAreNpc: isMonsterNpc,
+    extraPlacements: resolvedExtraPlacements,
+    placementTiers,
     placementRewards: resolvedPlacements,
     monsterReward: resolvedMonsterReward,
     isRankedPayout,
     allowedTypes: allowedTypes,
-    victoryGold: resolvedPlacements[0],
-    defeatGold: resolvedPlacements[1] ?? defaultOther,
+    victoryGold: defaultFirst,
+    defeatGold: defaultDefeat,
     durabilityWear: Number.isFinite(durabilityWear) ? durabilityWear : 1,
     defeatPenalty: defeatPenalty || 'none',
     maxActive: Number.isFinite(maxActive) ? maxActive : 0,

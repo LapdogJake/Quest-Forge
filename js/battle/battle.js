@@ -271,34 +271,21 @@ function renderBattleQuestCard(q, joinedQueueId = null, queueRoster = null, isCa
     `;
   }).join('');
 
-  // Build Mode & Reward Badges
-  const modeBadge = rules.battleMode === 'pvm'
-    ? '<span class="badge badge-monster" title="Player vs Monster (Monsters are NPCs with 0 gear wear)">👹 PvM</span>'
-    : '<span class="badge badge-active" style="background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.35);">⚔️ PvP</span>';
+  // Build Reward & Rule Badges
+  const winGold = rules.victoryGold ?? 15;
+  const lossGold = rules.defeatGold ?? 10;
+  const extraPlacements = Array.isArray(rules.extraPlacements) ? rules.extraPlacements : [];
+  const ordSuffix = ['2nd', '3rd', '4th', '5th'];
 
-  const playerCount = Math.max(1, rules.playerTeams?.length || 2);
-  const rewards = Array.isArray(rules.placementRewards) ? rules.placementRewards : [rules.victoryGold || 15, rules.defeatGold || 10];
-  let rewardBadgesHtml = '';
+  const middleBadgesHtml = extraPlacements.map((amt, idx) => {
+    return `<span class="badge badge-type" style="color:#cbd5e1; border-color:#475569; font-weight:600;">+${amt}g ${ordSuffix[idx] || `${idx + 2}th`}</span>`;
+  }).join('');
 
-  if (rules.isRankedPayout && playerCount > 2) {
-    const rankLabels = ['🥇 1st', '🥈 2nd', '🥉 3rd', '4th', '5th', '6th'];
-    rewardBadgesHtml = Array.from({ length: playerCount }, (_, idx) => {
-      const amt = rewards[idx] ?? rewards[rewards.length - 1] ?? 0;
-      const isFirst = idx === 0;
-      return `<span class="badge badge-type" style="${isFirst ? 'color:var(--gold); border-color:var(--gold); font-weight:bold;' : 'color:#cbd5e1; border-color:#475569;'}">${rankLabels[idx]}: +${amt}g</span>`;
-    }).join('');
-  } else {
-    const winGold = rewards[0] ?? rules.victoryGold ?? 15;
-    const lossGold = rewards[1] ?? rules.defeatGold ?? 10;
-    rewardBadgesHtml = `
-      <span class="badge badge-type" style="color:var(--gold); border-color:var(--gold); font-weight:bold;">+${winGold}g Win</span>
-      ${playerCount > 1 ? `<span class="badge badge-type" style="color:#94a3b8; border-color:#64748b;">+${lossGold}g Loss</span>` : ''}
-    `;
-  }
-
-  if (rules.hasMonsters) {
-    rewardBadgesHtml += `<span class="badge badge-type" style="color:#fda4af; border-color:rgba(244,63,94,0.4);">👹 Monster: +${rules.monsterReward ?? 10}g</span>`;
-  }
+  const rewardBadgesHtml = `
+    <span class="badge badge-type" style="color:var(--gold); border-color:var(--gold); font-weight:bold;">+${winGold}g Win</span>
+    ${middleBadgesHtml}
+    <span class="badge badge-type" style="color:#94a3b8; border-color:#64748b;">+${lossGold}g Loss</span>
+  `;
 
   return `
     <details class="quest-accordion battle-accordion" data-quest-id="${q.id}" ${isOpen ? 'open' : ''}>
@@ -316,8 +303,10 @@ function renderBattleQuestCard(q, joinedQueueId = null, queueRoster = null, isCa
 
         <!-- 2. The Badges below the Queue lines -->
         <div class="tag-container" style="margin-bottom:10px;">
-          ${modeBadge}
           ${rewardBadgesHtml}
+          ${rules.hasMonsters
+            ? '<span class="badge badge-monster" title="Monster line does not lose gear durability">Monsters are NPCs</span>'
+            : ''}
           ${rules.durabilityWear === 0
             ? '<span class="badge badge-active">No Gear Wear</span>'
             : (rules.durabilityWear === 2

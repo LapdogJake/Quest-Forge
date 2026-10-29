@@ -4,119 +4,77 @@
 // ==============================================================================
 
 // ------------------------------------------------------------------------------
-// 1. Forge Battle & Inline Edit Form Helpers (PvP / PvM Slider & Team Checklist)
+// 1. Forge Battle & Inline Edit Form Helpers (Teams & Dynamic Placement Rewards)
 // ------------------------------------------------------------------------------
 
 const QM_TEAM_KEYS = ['red', 'blue', 'yellow', 'green', 'purple', 'orange'];
-const QM_PLACEMENT_NAMES = [
-  '🥇 1st Place',
-  '🥈 2nd Place',
-  '🥉 3rd Place',
-  '4th Place',
-  '5th Place',
-  '6th Place'
-];
 
 function getQMFormEl(baseId, questId = null) {
   const fullId = questId ? `${baseId}-${questId}` : baseId;
   return document.getElementById(fullId);
 }
 
-function setQMBattleMode(mode, questId = null) {
-  const normalizedMode = mode === 'pvm' ? 'pvm' : 'pvp';
+// Sync visibility of 2nd, 3rd, 4th, 5th place inputs between Victory and Defeat
+function syncQMPlacementControls(count, questId = null) {
   const prefix = questId ? 'qm-edit' : 'qm';
+  const safeCount = Math.max(0, Math.min(4, Number(count) || 0));
 
-  const modeInput = getQMFormEl(`${prefix}-battle-mode`, questId);
-  if (modeInput) modeInput.value = normalizedMode;
+  const countInput = getQMFormEl(`${prefix}-extra-placements-count`, questId);
+  if (countInput) countInput.value = String(safeCount);
 
-  const pvpBtn = getQMFormEl(`${prefix}-mode-btn-pvp`, questId);
-  const pvmBtn = getQMFormEl(`${prefix}-mode-btn-pvm`, questId);
-  const hintEl = getQMFormEl(`${prefix}-battle-mode-hint`, questId);
-
-  if (pvpBtn) {
-    pvpBtn.classList.toggle('active-pvp', normalizedMode === 'pvp');
-  }
-  if (pvmBtn) {
-    pvmBtn.classList.toggle('active-pvm', normalizedMode === 'pvm');
-  }
-  if (hintEl) {
-    hintEl.innerText = normalizedMode === 'pvm'
-      ? 'Monsters are NPCs (0 Gear Wear)'
-      : 'Player Teams Only';
-  }
-
-  const monsterRow = getQMFormEl(`${prefix}-team-row-monster`, questId);
-  const monsterCheck = getQMFormEl(`${prefix}-team-check-monster`, questId);
-
-  if (normalizedMode === 'pvm') {
-    if (monsterRow) monsterRow.style.display = 'grid';
-    if (monsterCheck) monsterCheck.checked = true;
-    // Ensure at least Red Team is checked
-    const anyPlayerChecked = QM_TEAM_KEYS.some(tk => getQMFormEl(`${prefix}-team-check-${tk}`, questId)?.checked);
-    if (!anyPlayerChecked) {
-      const redCheck = getQMFormEl(`${prefix}-team-check-red`, questId);
-      if (redCheck) redCheck.checked = true;
-    }
-  } else {
-    if (monsterRow) monsterRow.style.display = 'none';
-    if (monsterCheck) monsterCheck.checked = false;
-    // Ensure at least 2 player teams are checked in PvP
-    const checkedPlayers = QM_TEAM_KEYS.filter(tk => getQMFormEl(`${prefix}-team-check-${tk}`, questId)?.checked);
-    if (checkedPlayers.length < 2) {
-      const redCheck = getQMFormEl(`${prefix}-team-check-red`, questId);
-      const blueCheck = getQMFormEl(`${prefix}-team-check-blue`, questId);
-      if (redCheck) redCheck.checked = true;
-      if (blueCheck) blueCheck.checked = true;
+  for (let p = 2; p <= 5; p++) {
+    const idx = p - 1; // 1..4
+    const wrapEl = getQMFormEl(`${prefix}-placement-wrap-${p}`, questId);
+    if (wrapEl) {
+      wrapEl.classList.toggle('hidden', idx > safeCount);
     }
   }
 
-  handleQMTeamCheckChange(questId);
+  const removeBtn = getQMFormEl(`${prefix}-btn-remove-placement`, questId);
+  if (removeBtn) {
+    removeBtn.classList.toggle('hidden', safeCount <= 0);
+  }
+
+  const addBtn = getQMFormEl(`${prefix}-btn-add-placement`, questId);
+  if (addBtn) {
+    addBtn.disabled = safeCount >= 4;
+  }
 }
 
-function handleQMTeamCheckChange(questId = null) {
+function addQMBattlePlacement(questId = null) {
   const prefix = questId ? 'qm-edit' : 'qm';
+  const countInput = getQMFormEl(`${prefix}-extra-placements-count`, questId);
+  const curCount = countInput ? (parseInt(countInput.value, 10) || 0) : 0;
+  if (curCount >= 4) return;
 
-  const monsterRow = getQMFormEl(`${prefix}-team-row-monster`, questId);
-  const monsterCheck = getQMFormEl(`${prefix}-team-check-monster`, questId);
-  if (monsterRow && monsterCheck) {
-    monsterRow.classList.toggle('is-disabled', !monsterCheck.checked);
+  const nextCount = curCount + 1;
+  syncQMPlacementControls(nextCount, questId);
+
+  const nextPlaceNum = nextCount + 1; // 2, 3, 4, or 5
+  const nextInput = getQMFormEl(`${prefix}-battle-gold-place-${nextPlaceNum}`, questId);
+  if (nextInput) {
+    nextInput.focus();
   }
+}
 
-  let checkedPlayerCount = 0;
-  QM_TEAM_KEYS.forEach(tk => {
-    const checkEl = getQMFormEl(`${prefix}-team-check-${tk}`, questId);
-    if (checkEl && checkEl.checked) checkedPlayerCount++;
-  });
+function removeQMBattlePlacement(questId = null) {
+  const prefix = questId ? 'qm-edit' : 'qm';
+  const countInput = getQMFormEl(`${prefix}-extra-placements-count`, questId);
+  const curCount = countInput ? (parseInt(countInput.value, 10) || 0) : 0;
+  if (curCount <= 0) return;
 
-  QM_TEAM_KEYS.forEach((tk, idx) => {
-    const rowEl = getQMFormEl(`${prefix}-team-row-${tk}`, questId);
-    const checkEl = getQMFormEl(`${prefix}-team-check-${tk}`, questId);
-    const labelEl = getQMFormEl(`${prefix}-placement-label-${idx}`, questId);
-    const rewardEl = getQMFormEl(`${prefix}-placement-reward-${idx}`, questId);
+  const placeNumToClear = curCount + 1;
+  const clearInput = getQMFormEl(`${prefix}-battle-gold-place-${placeNumToClear}`, questId);
+  if (clearInput) clearInput.value = '';
 
-    const isTeamChecked = Boolean(checkEl?.checked);
-    const isPlacementActive = idx < checkedPlayerCount;
-
-    if (rowEl) {
-      rowEl.classList.toggle('is-disabled', !isTeamChecked && !isPlacementActive);
-    }
-    if (labelEl) {
-      labelEl.style.opacity = isPlacementActive ? '1' : '0.35';
-    }
-    if (rewardEl) {
-      rewardEl.disabled = !isPlacementActive;
-      rewardEl.style.opacity = isPlacementActive ? '1' : '0.4';
-    }
-  });
+  syncQMPlacementControls(curCount - 1, questId);
 }
 
 function readBattleConfigFromForm(questId = null) {
   const prefix = questId ? 'qm-edit' : 'qm';
-  const modeInput = getQMFormEl(`${prefix}-battle-mode`, questId);
-  const battle_mode = modeInput?.value === 'pvm' ? 'pvm' : 'pvp';
 
   const monsterCheck = getQMFormEl(`${prefix}-team-check-monster`, questId);
-  const includeMonster = battle_mode === 'pvm' && (!monsterCheck || monsterCheck.checked);
+  const includeMonster = Boolean(monsterCheck?.checked);
 
   const playerTeams = [];
   QM_TEAM_KEYS.forEach(tk => {
@@ -130,30 +88,53 @@ function readBattleConfigFromForm(questId = null) {
   if (includeMonster) battle_teams.push('monster');
   playerTeams.forEach(tk => battle_teams.push(tk));
 
-  const placement_rewards = [];
-  for (let i = 0; i < 6; i++) {
-    const rewardEl = getQMFormEl(`${prefix}-placement-reward-${i}`, questId);
-    const val = rewardEl ? parseInt(rewardEl.value, 10) : (i === 0 ? 15 : 10);
-    placement_rewards.push(Number.isFinite(val) && val >= 0 ? val : 0);
+  const victoryInput = getQMFormEl(`${prefix}-battle-gold-victory`, questId);
+  const defeatInput = getQMFormEl(`${prefix}-battle-gold-defeat`, questId);
+  const reward_gold = victoryInput ? Math.max(0, parseInt(victoryInput.value, 10) || 0) : 15;
+  const reward_gold_defeat = defeatInput ? Math.max(0, parseInt(defeatInput.value, 10) || 0) : 10;
+
+  const countInput = getQMFormEl(`${prefix}-extra-placements-count`, questId);
+  const extraCount = countInput ? Math.max(0, Math.min(4, parseInt(countInput.value, 10) || 0)) : 0;
+
+  const extra_placements = [];
+  for (let i = 1; i <= extraCount; i++) {
+    const placeNum = i + 1; // 2..5
+    const placeInput = getQMFormEl(`${prefix}-battle-gold-place-${placeNum}`, questId);
+    const rawVal = placeInput?.value?.trim();
+    const parsedVal = rawVal !== '' && rawVal !== undefined ? parseInt(rawVal, 10) : reward_gold_defeat;
+    extra_placements.push(Number.isFinite(parsedVal) && parsedVal >= 0 ? parsedVal : reward_gold_defeat);
   }
 
-  const monsterRewardEl = getQMFormEl(`${prefix}-team-reward-monster`, questId);
-  const monsterVal = monsterRewardEl ? parseInt(monsterRewardEl.value, 10) : 10;
-  const monster_reward = Number.isFinite(monsterVal) && monsterVal >= 0 ? monsterVal : 10;
+  const placement_rewards = [
+    reward_gold,
+    ...extra_placements,
+    reward_gold_defeat,
+    reward_gold_defeat,
+    reward_gold_defeat,
+    reward_gold_defeat,
+    reward_gold_defeat
+  ].slice(0, 6);
 
   return {
-    battle_mode,
+    battle_mode: includeMonster ? 'pvm' : 'pvp',
     battle_teams,
     playerTeams,
     includeMonster,
-    monsters_are_npc: battle_mode === 'pvm',
+    monsters_are_npc: includeMonster,
+    extra_placements,
     placement_rewards,
-    monster_reward,
-    reward_gold: placement_rewards[0] ?? 15,
-    reward_gold_defeat: placement_rewards[1] ?? 10
+    monster_reward: reward_gold_defeat,
+    reward_gold,
+    reward_gold_defeat
   };
 }
 
+// Keep legacy hooks safe if called anywhere
+function setQMBattleMode() {}
+function handleQMTeamCheckChange() {}
+
+window.addQMBattlePlacement = addQMBattlePlacement;
+window.removeQMBattlePlacement = removeQMBattlePlacement;
 window.setQMBattleMode = setQMBattleMode;
 window.handleQMTeamCheckChange = handleQMTeamCheckChange;
 
@@ -174,9 +155,7 @@ async function createBattle() {
 
   const config = readBattleConfigFromForm(null);
   if (config.battle_teams.length < 2) {
-    alert(config.battle_mode === 'pvm'
-      ? "Please select at least 1 Player Team along with the Monster Line."
-      : "Please select at least 2 Player Teams for a PvP battle.");
+    alert("Please check at least 2 Teams for the battle.");
     return;
   }
 
@@ -202,6 +181,7 @@ async function createBattle() {
   const rulesMeta = `<!-- RULES: ${JSON.stringify({
     battle_mode: config.battle_mode,
     battle_teams: config.battle_teams,
+    extra_placements: config.extra_placements,
     placement_rewards: config.placement_rewards,
     monster_reward: config.monster_reward,
     monsters_are_npc: config.monsters_are_npc,
@@ -285,16 +265,19 @@ async function createBattle() {
   // Reset Forge Battle form
   if (document.getElementById('qm-battle-title')) document.getElementById('qm-battle-title').value = '';
   if (document.getElementById('qm-battle-description')) document.getElementById('qm-battle-description').value = '';
-  if (document.getElementById('qm-team-reward-monster')) document.getElementById('qm-team-reward-monster').value = '10';
-  for (let i = 0; i < 6; i++) {
-    const rEl = document.getElementById(`qm-placement-reward-${i}`);
-    if (rEl) rEl.value = i === 0 ? '15' : '10';
+  if (document.getElementById('qm-battle-gold-victory')) document.getElementById('qm-battle-gold-victory').value = '15';
+  if (document.getElementById('qm-battle-gold-defeat')) document.getElementById('qm-battle-gold-defeat').value = '10';
+  for (let p = 2; p <= 5; p++) {
+    const pEl = document.getElementById(`qm-battle-gold-place-${p}`);
+    if (pEl) pEl.value = '';
   }
+  syncQMPlacementControls(0, null);
+
+  if (document.getElementById('qm-team-check-monster')) document.getElementById('qm-team-check-monster').checked = false;
   QM_TEAM_KEYS.forEach((tk, idx) => {
     const cEl = document.getElementById(`qm-team-check-${tk}`);
     if (cEl) cEl.checked = idx < 2;
   });
-  setQMBattleMode('pvp', null);
 
   if (document.getElementById('qm-battle-allow-mid-join')) document.getElementById('qm-battle-allow-mid-join').checked = false;
   if (document.getElementById('qm-battle-rng-loot')) document.getElementById('qm-battle-rng-loot').checked = false;
@@ -369,7 +352,6 @@ async function fetchQMQueues() {
     }
   });
 
-  // Sort battles: Live first (0), Open second (1), Closed last (2), newest created first
   const stateRank = { 'live': 0, 'open': 1, 'closed': 2 };
 
   battleQuests.sort((a, b) => {
@@ -423,6 +405,11 @@ async function fetchQMQueues() {
           playerTeams: ['red', 'blue'],
           hasMonsters: false,
           monstersAreNpc: false,
+          extraPlacements: [],
+          placementTiers: [
+            { key: 'victory', label: '🥇 Victory (1st)', shortLabel: '1st', gold: 15 },
+            { key: 'defeat', label: '💀 Defeat', shortLabel: 'Loss', gold: 10 }
+          ],
           placementRewards: [15, 10, 10, 10, 10, 10],
           monsterReward: 10,
           isRankedPayout: false,
@@ -441,12 +428,17 @@ async function fetchQMQueues() {
     const playerTeams = Array.isArray(rules.playerTeams) && rules.playerTeams.length > 0
       ? rules.playerTeams
       : activeTeams.filter(t => t !== 'monster');
-    const placementRewards = Array.isArray(rules.placementRewards) && rules.placementRewards.length >= 6
-      ? rules.placementRewards
-      : [Number(q.reward_gold) || 15, Number(q.reward_gold_defeat) || 10, 10, 10, 10, 10];
-    const monsterReward = Number.isFinite(rules.monsterReward) ? Number(rules.monsterReward) : 10;
+    const extraPlacements = Array.isArray(rules.extraPlacements) ? rules.extraPlacements : [];
+    const placementTiers = Array.isArray(rules.placementTiers) && rules.placementTiers.length >= 2
+      ? rules.placementTiers
+      : [
+          { key: 'victory', label: '🥇 Victory (1st)', shortLabel: '1st', gold: rules.victoryGold ?? 15 },
+          { key: 'defeat', label: '💀 Defeat', shortLabel: 'Loss', gold: rules.defeatGold ?? 10 }
+        ];
 
-    // Determine state: 'closed' | 'open' | 'live'
+    const victoryGold = rules.victoryGold ?? Number(q.reward_gold) ?? 15;
+    const defeatGold = rules.defeatGold ?? Number(q.reward_gold_defeat) ?? 10;
+
     let state = 'closed';
     if (activeQueue) {
       if (activeQueue.status === 'active') {
@@ -511,33 +503,18 @@ async function fetchQMQueues() {
     const curPenalty = rules.defeatPenalty || 'none';
 
     // Build Badges HTML
-    const modeBadgeHtml = rules.battleMode === 'pvm'
-      ? '<span class="badge badge-monster" title="Player vs Monster (Monsters are NPCs with 0 gear wear)">👹 PvM</span>'
-      : '<span class="badge badge-active" style="background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.35);">⚔️ PvP</span>';
-
-    let rewardBadgesHtml = '';
-    if (rules.isRankedPayout && playerTeams.length > 2) {
-      const rankLabels = ['🥇 1st', '🥈 2nd', '🥉 3rd', '4th', '5th', '6th'];
-      rewardBadgesHtml = playerTeams.map((_, idx) => {
-        const amt = placementRewards[idx] ?? 0;
-        const isFirst = idx === 0;
-        return `<span class="badge badge-type" style="${isFirst ? 'color:var(--gold); border-color:var(--gold); font-weight:bold;' : 'color:#cbd5e1; border-color:#475569;'}">${rankLabels[idx]}: +${amt}g</span>`;
-      }).join('');
-    } else {
-      const winGold = placementRewards[0] ?? 15;
-      const lossGold = placementRewards[1] ?? 10;
-      rewardBadgesHtml = `
-        <span class="badge badge-type" style="color:var(--gold); border-color:var(--gold); font-weight:bold;">+${winGold}g Win</span>
-        ${playerTeams.length > 1 ? `<span class="badge badge-type" style="color:#94a3b8; border-color:#64748b;">+${lossGold}g Loss</span>` : ''}
-      `;
-    }
-    if (rules.hasMonsters) {
-      rewardBadgesHtml += `<span class="badge badge-type" style="color:#fda4af; border-color:rgba(244,63,94,0.4);">👹 Monster: +${monsterReward}g</span>`;
-    }
+    const ordSuffix = ['2nd', '3rd', '4th', '5th'];
+    const middleBadgesHtml = extraPlacements.map((amt, idx) => {
+      return `<span class="badge badge-type" style="color:#cbd5e1; border-color:#475569; font-weight:600;">+${amt}g ${ordSuffix[idx] || `${idx + 2}th`}</span>`;
+    }).join('');
 
     const commonBadgesHtml = `
-      ${modeBadgeHtml}
-      ${rewardBadgesHtml}
+      <span class="badge badge-type" style="color:var(--gold); border-color:var(--gold); font-weight:bold;">+${victoryGold}g Win</span>
+      ${middleBadgesHtml}
+      <span class="badge badge-type" style="color:#94a3b8; border-color:#64748b;">+${defeatGold}g Loss</span>
+      ${rules.hasMonsters
+        ? '<span class="badge badge-monster" title="Monster line does not lose gear durability">Monsters are NPCs</span>'
+        : ''}
       ${rules.durabilityWear === 0
         ? '<span class="badge badge-active">No Gear Wear</span>'
         : (rules.durabilityWear === 2
@@ -584,7 +561,7 @@ async function fetchQMQueues() {
                 ? members.map(m => {
                     const uName = m.username || 'Warrior';
                     const abs = Array.isArray(m.abilities) ? m.abilities : [];
-                    const showAbs = rules.battleMode === 'pvm' || rules.monstersAreNpc || teamKey === 'monster';
+                    const showAbs = rules.hasMonsters || rules.monstersAreNpc || teamKey === 'monster';
                     const absBadge = (showAbs && abs.length > 0)
                       ? abs.map(a => `<span class="ability-pill" style="border-color:${meta.border}; color:${meta.color};">${a}</span>`).join('')
                       : '';
@@ -609,10 +586,11 @@ async function fetchQMQueues() {
       `;
     }).join('');
 
-    // Build Smart Hybrid Resolution Section
+    // Build Resolution Section:
+    // - If no extra placements were added (just Victory & Defeat): show 1-tap Winner buttons
+    // - If 2nd/3rd/4th/5th Place were added via '+': show Placement dropdowns per active team
     let resolutionHtml = '';
     if (!rules.isRankedPayout) {
-      // One-Tap Winner Buttons for each active team
       const victorButtons = activeTeams.map(teamKey => {
         const meta = typeof getBattleTeamMeta === 'function'
           ? getBattleTeamMeta(teamKey)
@@ -630,21 +608,19 @@ async function fetchQMQueues() {
         </div>
       `;
     } else {
-      // Ranked Placement Selector per Player Team + Complete button
-      const rankOptionLabels = ['🥇 1st Place', '🥈 2nd Place', '🥉 3rd Place', '4th Place', '5th Place', '6th Place'];
-      const teamSelectorsHtml = playerTeams.map((teamKey, tIdx) => {
+      const teamSelectorsHtml = activeTeams.map((teamKey, tIdx) => {
         const meta = typeof getBattleTeamMeta === 'function'
           ? getBattleTeamMeta(teamKey)
           : { label: teamKey, icon: '⚔️', color: '#38bdf8' };
-        const optionsHtml = playerTeams.map((_, pIdx) => {
-          const goldAmt = placementRewards[pIdx] ?? 0;
-          return `<option value="${pIdx}" ${pIdx === tIdx ? 'selected' : ''}>${rankOptionLabels[pIdx]} (+${goldAmt}g)</option>`;
+        const defaultTierIdx = Math.min(tIdx, placementTiers.length - 1);
+        const optionsHtml = placementTiers.map((tier, pIdx) => {
+          return `<option value="${pIdx}" ${pIdx === defaultTierIdx ? 'selected' : ''}>${tier.label} (+${tier.gold}g)</option>`;
         }).join('');
 
         return `
           <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 8px; background:rgba(24,24,27,0.75); border:1px solid rgba(255,255,255,0.07); border-radius:6px;">
             <span style="font-size:12px; font-weight:700; color:${meta.color};">${meta.icon} ${meta.label}</span>
-            <select id="qm-rank-select-${q.id}-${teamKey}" class="form-control" style="width:auto; min-width:145px; padding:4px 8px; font-size:12px; height:30px;">
+            <select id="qm-rank-select-${q.id}-${teamKey}" class="form-control" style="width:auto; min-width:155px; padding:4px 8px; font-size:12px; height:30px;">
               ${optionsHtml}
             </select>
           </div>
@@ -659,42 +635,26 @@ async function fetchQMQueues() {
           <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:8px;">
             ${teamSelectorsHtml}
           </div>
-          <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button class="btn-battle-action btn-battle-hero" style="flex:2; min-height:40px; font-size:13px;" onclick="qmFinishRankedBattle('${queueId}', '${q.id}')">
-              🏆 Complete &amp; Pay Placements
-            </button>
-            ${rules.hasMonsters ? `
-              <button class="btn-battle-action btn-team-monster" style="flex:1; min-height:40px; font-size:12px;" onclick="qmFinishBattle('${queueId}', '${q.id}', 'monster')">
-                👹 Monsters Won
-              </button>
-            ` : ''}
-          </div>
+          <button class="btn-battle-action btn-battle-hero" style="width:100%; min-height:40px; font-size:13px;" onclick="qmFinishRankedBattle('${queueId}', '${q.id}')">
+            🏆 Complete &amp; Pay Placements
+          </button>
         </div>
       `;
     }
 
-    // Build Inline Edit Team Checklist Rows
-    const editPlayerCount = playerTeams.length;
-    const editTeamRowsHtml = QM_TEAM_KEYS.map((tk, idx) => {
+    // Inline Edit Team Checkboxes
+    const editTeamChecksHtml = QM_TEAM_KEYS.map(tk => {
       const meta = typeof getBattleTeamMeta === 'function' ? getBattleTeamMeta(tk) : { label: tk, icon: '⚔️', color: '#ffffff' };
       const isChecked = playerTeams.includes(tk);
-      const isPlacementActive = idx < editPlayerCount;
-      const rewardVal = placementRewards[idx] ?? (idx === 0 ? 15 : 10);
-
       return `
-        <div id="qm-edit-team-row-${tk}-${q.id}" class="battle-team-config-row ${(!isChecked && !isPlacementActive) ? 'is-disabled' : ''}">
-          <label class="battle-team-check-label">
-            <input type="checkbox" id="qm-edit-team-check-${tk}-${q.id}" ${isChecked ? 'checked' : ''} onchange="handleQMTeamCheckChange('${q.id}')">
-            <span style="color:${meta.color};">${meta.icon} ${meta.label}</span>
-          </label>
-          <span class="battle-placement-tag" id="qm-edit-placement-label-${idx}-${q.id}" style="opacity:${isPlacementActive ? '1' : '0.35'};">${QM_PLACEMENT_NAMES[idx]}</span>
-          <div class="battle-reward-input-wrap">
-            <input type="number" id="qm-edit-placement-reward-${idx}-${q.id}" value="${rewardVal}" min="0" ${isPlacementActive ? '' : 'disabled'} style="opacity:${isPlacementActive ? '1' : '0.4'};">
-            <span>g</span>
-          </div>
-        </div>
+        <label class="battle-team-check-item">
+          <input type="checkbox" id="qm-edit-team-check-${tk}-${q.id}" ${isChecked ? 'checked' : ''}>
+          <span style="color:${meta.color};">${meta.icon} ${meta.label}</span>
+        </label>
       `;
     }).join('');
+
+    const curExtraCount = extraPlacements.length;
 
     return `
       <details class="quest-accordion battle-accordion" data-quest-id="${q.id}" ${isOpenByDefault ? 'open' : ''} style="border: 1px solid var(--border); margin-bottom: 12px;">
@@ -779,50 +739,67 @@ async function fetchQMQueues() {
               <input type="text" id="qm-edit-battle-title-${q.id}" class="form-control" value="${escapeAttr(q.title)}">
             </div>
 
-            <!-- Inline Battle Mode Slider -->
-            <div class="form-group" style="margin-bottom:8px;">
-              <label style="font-size:12px; display:flex; justify-content:space-between; align-items:center;">
-                <span>Battle Mode</span>
-                <span id="qm-edit-battle-mode-hint-${q.id}" style="font-size:11px; color:var(--text-muted); font-weight:500;">
-                  ${rules.battleMode === 'pvm' ? 'Monsters are NPCs (0 Gear Wear)' : 'Player Teams Only'}
-                </span>
-              </label>
-              <input type="hidden" id="qm-edit-battle-mode-${q.id}" value="${rules.battleMode}">
-              <div class="battle-mode-slider">
-                <button type="button" id="qm-edit-mode-btn-pvp-${q.id}" class="battle-mode-btn ${rules.battleMode === 'pvp' ? 'active-pvp' : ''}" onclick="setQMBattleMode('pvp', '${q.id}')">
-                  ⚔️ PvP (Player vs Player)
-                </button>
-                <button type="button" id="qm-edit-mode-btn-pvm-${q.id}" class="battle-mode-btn ${rules.battleMode === 'pvm' ? 'active-pvm' : ''}" onclick="setQMBattleMode('pvm', '${q.id}')">
-                  👹 PvM (Player vs Monster)
-                </button>
-              </div>
-            </div>
-
-            <!-- Inline Teams & Placement Rewards Checklist -->
-            <div class="form-group" style="margin-bottom:8px;">
-              <label style="font-size:12px; display:flex; justify-content:space-between; align-items:center;">
-                <span>Active Teams &amp; Placement Rewards</span>
-                <span style="font-size:11px; color:var(--text-muted);">Gold per placement</span>
-              </label>
-              <div class="battle-teams-config-list">
-                <div id="qm-edit-team-row-monster-${q.id}" class="battle-team-config-row ${rules.hasMonsters ? '' : 'is-disabled'}" style="display:${rules.battleMode === 'pvm' ? 'grid' : 'none'};">
-                  <label class="battle-team-check-label">
-                    <input type="checkbox" id="qm-edit-team-check-monster-${q.id}" ${rules.hasMonsters ? 'checked' : ''} onchange="handleQMTeamCheckChange('${q.id}')">
-                    <span style="color:#fda4af;">👹 Monsters (NPC Line)</span>
-                  </label>
-                  <span class="battle-placement-tag" style="color:#fda4af;">NPC Reward</span>
-                  <div class="battle-reward-input-wrap">
-                    <input type="number" id="qm-edit-team-reward-monster-${q.id}" value="${monsterReward}" min="0">
-                    <span>g</span>
-                  </div>
-                </div>
-                ${editTeamRowsHtml}
-              </div>
-            </div>
-
-            <div class="form-group" style="margin-bottom:8px;">
-              <label style="font-size:12px;">Public Description</label>
+            <div class="form-group" style="margin-bottom:10px;">
+              <label style="font-size:12px;">Description</label>
               <textarea id="qm-edit-battle-description-${q.id}" class="form-control" style="min-height:70px;">${escapeAttr(q.description || '')}</textarea>
+            </div>
+
+            <!-- Inline Teams Selector -->
+            <div class="form-group" style="background:#121214; padding:10px; border-radius:6px; border:1px solid var(--border); margin-bottom:10px;">
+              <label style="font-weight:600; font-size:12px; color:var(--text); display:block; margin-bottom:8px;">
+                Teams
+              </label>
+              <div class="battle-teams-check-grid">
+                <label class="battle-team-check-item span-full">
+                  <input type="checkbox" id="qm-edit-team-check-monster-${q.id}" ${rules.hasMonsters ? 'checked' : ''}>
+                  <span style="color:#fda4af;">👹 Monsters (NPC Line)</span>
+                </label>
+                ${editTeamChecksHtml}
+              </div>
+            </div>
+
+            <!-- Inline Separate Dynamic Rewards Box -->
+            <div class="battle-rewards-box" style="background:#121214; margin-bottom:10px;">
+              <div class="battle-rewards-header">
+                <span style="font-weight:600; font-size:12px; color:var(--text);">Rewards</span>
+                <div class="battle-rewards-header-actions">
+                  <button type="button" id="qm-edit-btn-remove-placement-${q.id}" class="btn-placement-step ${curExtraCount > 0 ? '' : 'hidden'}" onclick="removeQMBattlePlacement('${q.id}')" title="Remove last placement">−</button>
+                  <button type="button" id="qm-edit-btn-add-placement-${q.id}" class="btn-placement-step" ${curExtraCount >= 4 ? 'disabled' : ''} onclick="addQMBattlePlacement('${q.id}')" title="Add 2nd / 3rd / 4th / 5th Place">+</button>
+                </div>
+              </div>
+              <input type="hidden" id="qm-edit-extra-placements-count-${q.id}" value="${curExtraCount}">
+
+              <div class="battle-rewards-grid">
+                <div class="battle-reward-field">
+                  <label>Victory</label>
+                  <input type="number" id="qm-edit-battle-gold-victory-${q.id}" value="${victoryGold}" min="0">
+                </div>
+
+                <div class="battle-reward-field ${curExtraCount >= 1 ? '' : 'hidden'}" id="qm-edit-placement-wrap-2-${q.id}">
+                  <label>2nd Place</label>
+                  <input type="number" id="qm-edit-battle-gold-place-2-${q.id}" value="${extraPlacements[0] ?? ''}" placeholder="0" min="0">
+                </div>
+
+                <div class="battle-reward-field ${curExtraCount >= 2 ? '' : 'hidden'}" id="qm-edit-placement-wrap-3-${q.id}">
+                  <label>3rd Place</label>
+                  <input type="number" id="qm-edit-battle-gold-place-3-${q.id}" value="${extraPlacements[1] ?? ''}" placeholder="0" min="0">
+                </div>
+
+                <div class="battle-reward-field ${curExtraCount >= 3 ? '' : 'hidden'}" id="qm-edit-placement-wrap-4-${q.id}">
+                  <label>4th Place</label>
+                  <input type="number" id="qm-edit-battle-gold-place-4-${q.id}" value="${extraPlacements[2] ?? ''}" placeholder="0" min="0">
+                </div>
+
+                <div class="battle-reward-field ${curExtraCount >= 4 ? '' : 'hidden'}" id="qm-edit-placement-wrap-5-${q.id}">
+                  <label>5th Place</label>
+                  <input type="number" id="qm-edit-battle-gold-place-5-${q.id}" value="${extraPlacements[3] ?? ''}" placeholder="0" min="0">
+                </div>
+
+                <div class="battle-reward-field">
+                  <label>Defeat</label>
+                  <input type="number" id="qm-edit-battle-gold-defeat-${q.id}" value="${defeatGold}" min="0">
+                </div>
+              </div>
             </div>
 
             <div class="form-group" style="background:#121214; padding:10px; border-radius:6px; border:1px solid var(--border); margin-bottom:12px;">
@@ -969,7 +946,6 @@ async function qmCloseBattle(questId, queueId) {
   await fetchMonsterEncounters();
 }
 
-// Helper to fetch and group queue fighters by team for resolution
 async function fetchBattleResolutionContext(queueId, questId) {
   let queueData = null;
   if (queueId) {
@@ -1005,9 +981,16 @@ async function fetchBattleResolutionContext(queueId, questId) {
         playerTeams: ['red', 'blue'],
         hasMonsters: false,
         monstersAreNpc: false,
+        extraPlacements: [],
+        placementTiers: [
+          { key: 'victory', label: '🥇 Victory (1st)', shortLabel: '1st', gold: 15 },
+          { key: 'defeat', label: '💀 Defeat', shortLabel: 'Loss', gold: 10 }
+        ],
         placementRewards: [15, 10, 10, 10, 10, 10],
         monsterReward: 10,
         allowedTypes: ['Trinket', 'Talisman', 'Artifact'],
+        victoryGold: 15,
+        defeatGold: 10,
         durabilityWear: 1,
         defeatPenalty: 'none',
         rngLootDrops: false
@@ -1041,7 +1024,7 @@ async function fetchBattleResolutionContext(queueId, questId) {
   return { questId, questData, rules, activeTeams, teamUserIds };
 }
 
-// One-Tap Winner Resolution (supports both new `qmFinishBattle(queueId, questId, winningTeamKey)` and legacy 5-arg call)
+// One-Tap Winner Resolution
 async function qmFinishBattle(queueId, questId, winningTeamOrVictoryGold = 'red', legacyDefeatGold = null, legacyExplicitVictor = null) {
   const { questId: resolvedQuestId, questData, rules, activeTeams, teamUserIds } = await fetchBattleResolutionContext(queueId, questId);
 
@@ -1052,7 +1035,6 @@ async function qmFinishBattle(queueId, questId, winningTeamOrVictoryGold = 'red'
     winningTeam = winningTeamOrVictoryGold;
   }
 
-  // Normalize legacy 'heroes' / 'monsters' strings
   if (winningTeam === 'heroes') winningTeam = rules.playerTeams[0] || 'red';
   if (winningTeam === 'monsters') winningTeam = activeTeams.includes('monster') ? 'monster' : (rules.playerTeams[1] || 'blue');
 
@@ -1060,20 +1042,12 @@ async function qmFinishBattle(queueId, questId, winningTeamOrVictoryGold = 'red'
     ? getBattleTeamMeta(winningTeam)
     : { label: winningTeam, icon: '⚔️' };
 
-  const firstPlaceGold = rules.placementRewards?.[0] ?? Number(questData?.reward_gold) ?? 15;
-  const otherPlaceGold = rules.placementRewards?.[1] ?? Number(questData?.reward_gold_defeat) ?? 10;
-  const monsterGold = rules.monsterReward ?? otherPlaceGold;
+  const victoryGold = rules.victoryGold ?? Number(questData?.reward_gold) ?? 15;
+  const defeatGold = rules.defeatGold ?? Number(questData?.reward_gold_defeat) ?? 10;
 
-  // Build Gold Payout Map per Team
   const payoutByTeam = {};
   activeTeams.forEach(tk => {
-    if (tk === 'monster') {
-      payoutByTeam[tk] = monsterGold;
-    } else if (tk === winningTeam) {
-      payoutByTeam[tk] = firstPlaceGold;
-    } else {
-      payoutByTeam[tk] = otherPlaceGold;
-    }
+    payoutByTeam[tk] = tk === winningTeam ? victoryGold : defeatGold;
   });
 
   const wearAmount = Number.isFinite(rules.durabilityWear) ? Number(rules.durabilityWear) : 1;
@@ -1090,18 +1064,16 @@ async function qmFinishBattle(queueId, questId, winningTeamOrVictoryGold = 'red'
     const meta = typeof getBattleTeamMeta === 'function' ? getBattleTeamMeta(tk) : { label: tk, icon: '⚔️' };
     const count = (teamUserIds[tk] || []).length;
     const gold = payoutByTeam[tk] ?? 0;
-    const statusTag = tk === 'monster'
-      ? (winningTeam === 'monster' ? 'VICTORY / NPC' : 'NPC REWARD')
-      : (tk === winningTeam ? '🥇 1ST PLACE' : 'DEFEATED');
+    const statusTag = tk === winningTeam ? 'VICTORY' : 'DEFEAT';
     return `• ${meta.icon} ${meta.label} (${count} players): +${gold}g each (${statusTag})`;
   }).join('\n');
 
   const confirmMsg = `Declare ${winMeta.icon} ${winMeta.label.toUpperCase()} the Victor?\n\n` +
     `${teamSummaryLines}\n\n` +
     `Combat Rules:\n` +
-    `• Mode: ${rules.battleMode === 'pvm' ? '👹 PvM (Monsters take 0 gear wear)' : '⚔️ PvP (All teams take gear wear)'}\n` +
     `• Active Magic Items: ${rules.allowedTypes.length > 0 ? rules.allowedTypes.join(', ') : 'None'}\n` +
     `• Gear Durability Wear: ${wearAmount} per battle` +
+    (rules.hasMonsters ? `\n• Monster Line: NPCs (0 gear wear)` : '') +
     stakesWarning + `\n\n` +
     `Distribute rewards and complete battle?`;
 
@@ -1120,44 +1092,44 @@ async function qmFinishBattle(queueId, questId, winningTeamOrVictoryGold = 'red'
   });
 }
 
-// Ranked Multi-Team Placement Resolution (when 2nd..Nth place rewards differ)
+// Ranked Multi-Team Placement Resolution (when 2nd/3rd/4th/5th Place rewards are configured)
 async function qmFinishRankedBattle(queueId, questId) {
   const { questId: resolvedQuestId, questData, rules, activeTeams, teamUserIds } = await fetchBattleResolutionContext(queueId, questId);
 
-  const playerTeams = rules.playerTeams || activeTeams.filter(tk => tk !== 'monster');
-  const placementRewards = rules.placementRewards || [15, 10, 10, 10, 10, 10];
+  const placementTiers = Array.isArray(rules.placementTiers) && rules.placementTiers.length >= 2
+    ? rules.placementTiers
+    : [
+        { key: 'victory', label: '🥇 Victory (1st)', shortLabel: '1st', gold: rules.victoryGold ?? 15 },
+        { key: 'defeat', label: '💀 Defeat', shortLabel: 'Loss', gold: rules.defeatGold ?? 10 }
+      ];
+
   const payoutByTeam = {};
-  const placementIndexByTeam = {};
+  const tierByTeam = {};
 
-  let firstPlaceTeamKey = playerTeams[0] || 'red';
-  let bestRankIdx = 99;
+  let firstPlaceTeamKey = activeTeams[0] || 'red';
+  let bestTierIdx = 99;
 
-  playerTeams.forEach((tk, idx) => {
+  activeTeams.forEach((tk, idx) => {
     const selectEl = document.getElementById(`qm-rank-select-${resolvedQuestId}-${tk}`);
-    const rankIdx = selectEl ? parseInt(selectEl.value, 10) : idx;
-    const safeRankIdx = Number.isFinite(rankIdx) && rankIdx >= 0 ? rankIdx : idx;
-    placementIndexByTeam[tk] = safeRankIdx;
-    payoutByTeam[tk] = placementRewards[safeRankIdx] ?? 0;
+    const defaultIdx = Math.min(idx, placementTiers.length - 1);
+    const tierIdx = selectEl ? parseInt(selectEl.value, 10) : defaultIdx;
+    const safeTierIdx = (Number.isFinite(tierIdx) && tierIdx >= 0 && tierIdx < placementTiers.length) ? tierIdx : defaultIdx;
 
-    if (safeRankIdx < bestRankIdx) {
-      bestRankIdx = safeRankIdx;
+    const chosenTier = placementTiers[safeTierIdx];
+    tierByTeam[tk] = chosenTier;
+    payoutByTeam[tk] = chosenTier.gold ?? 0;
+
+    if (safeTierIdx < bestTierIdx) {
+      bestTierIdx = safeTierIdx;
       firstPlaceTeamKey = tk;
     }
   });
 
-  if (activeTeams.includes('monster')) {
-    payoutByTeam['monster'] = rules.monsterReward ?? 10;
-  }
-
-  const rankLabels = ['🥇 1st Place', '🥈 2nd Place', '🥉 3rd Place', '4th Place', '5th Place', '6th Place'];
   const teamSummaryLines = activeTeams.map(tk => {
     const meta = typeof getBattleTeamMeta === 'function' ? getBattleTeamMeta(tk) : { label: tk, icon: '⚔️' };
     const count = (teamUserIds[tk] || []).length;
-    const gold = payoutByTeam[tk] ?? 0;
-    const rankText = tk === 'monster'
-      ? '👹 Monster Line'
-      : (rankLabels[placementIndexByTeam[tk] ?? 0] || 'Participant');
-    return `• ${meta.icon} ${meta.label} (${count} players): ${rankText} → +${gold}g each`;
+    const tier = tierByTeam[tk] || placementTiers[placementTiers.length - 1];
+    return `• ${meta.icon} ${meta.label} (${count} players): ${tier.label} → +${tier.gold}g each`;
   }).join('\n');
 
   const wearAmount = Number.isFinite(rules.durabilityWear) ? Number(rules.durabilityWear) : 1;
@@ -1207,30 +1179,25 @@ async function executeBattleResolutionPayouts({
   activeTeams.forEach(tk => {
     const uids = teamUserIds[tk] || [];
     const goldAmt = payoutByTeam[tk] ?? 0;
-    const isMonsterNpc = tk === 'monster' && (rules.battleMode === 'pvm' || rules.monstersAreNpc);
+    const isMonsterNpc = tk === 'monster' && (rules.hasMonsters || rules.monstersAreNpc);
     const isWinningTeam = tk === winningTeamKey;
 
     uids.forEach(uid => {
-      // 1. Gold payout
       if (goldAmt > 0) {
         goldPromises.push(awardFighterGold(uid, goldAmt));
       }
-      // 2. Gear Durability Wear (skip for NPC Monsters)
       if (!isMonsterNpc && wearAmount > 0) {
         wearPromises.push(applyCombatDurabilityDamage(uid, rules.allowedTypes, wearAmount));
       }
-      // 3. Defeat Penalty on losing player teams (never on NPC Monsters)
       if (!isMonsterNpc && !isWinningTeam && defeatPenalty !== 'none') {
         penaltyPromises.push(executeDefeatPenalty(uid, defeatPenalty));
       }
-      // 4. Collect winning player IDs for RNG Loot
       if (!isMonsterNpc && isWinningTeam) {
         winningUserIds.push(uid);
       }
     });
   });
 
-  // 5. RNG Loot Drops for winning players
   let lootNotice = '';
   if (rules.rngLootDrops && winningUserIds.length > 0 && typeof rollItemLootDrops === 'function') {
     const battleDrops = await rollItemLootDrops(winningUserIds, true, questData?.qm_id, questData?.park, questData?.kingdom);
@@ -1242,7 +1209,6 @@ async function executeBattleResolutionPayouts({
     }
   }
 
-  // 6. Mark queues completed and close battle quest
   const queueUpdates = [];
   if (queueId) {
     queueUpdates.push(supabaseClient.from('quest_queues').update({ status: 'completed' }).eq('id', queueId));
@@ -1397,7 +1363,6 @@ async function awardFighterGold(userId, goldAmt) {
   }
 }
 
-// Backward compatibility aliases
 async function qmSetQueueStatus(queueId, status) {
   return qmStartCombat(queueId);
 }
@@ -1473,9 +1438,7 @@ async function qmSaveEditedBattle(questId) {
 
   const config = readBattleConfigFromForm(questId);
   if (config.battle_teams.length < 2) {
-    alert(config.battle_mode === 'pvm'
-      ? "Please select at least 1 Player Team along with the Monster Line."
-      : "Please select at least 2 Player Teams for a PvP battle.");
+    alert("Please check at least 2 Teams for the battle.");
     return;
   }
 
@@ -1508,6 +1471,7 @@ async function qmSaveEditedBattle(questId) {
     const scenario_card = `<!-- RULES: ${JSON.stringify({
       battle_mode: config.battle_mode,
       battle_teams: config.battle_teams,
+      extra_placements: config.extra_placements,
       placement_rewards: config.placement_rewards,
       monster_reward: config.monster_reward,
       monsters_are_npc: config.monsters_are_npc,

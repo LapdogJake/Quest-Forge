@@ -25,7 +25,7 @@
     })();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="stylesheet" href="styles.css?v=24">
+  <link rel="stylesheet" href="styles.css?v=25">
   <style>
     html.recovery-mode main.container,
     html.recovery-mode nav.bottom-nav {
@@ -298,129 +298,92 @@
             <input type="text" id="qm-battle-title" class="form-control" placeholder="Battle Title">
           </div>
 
-          <!-- Battle Mode Slider (PvP vs PvM) -->
           <div class="form-group">
-            <label style="display:flex; justify-content:space-between; align-items:center;">
-              <span>Battle Mode</span>
-              <span id="qm-battle-mode-hint" style="font-size:11px; color:var(--text-muted); font-weight:500;">Player Teams Only</span>
-            </label>
-            <input type="hidden" id="qm-battle-mode" value="pvp">
-            <div class="battle-mode-slider">
-              <button type="button" id="qm-mode-btn-pvp" class="battle-mode-btn active-pvp" onclick="setQMBattleMode('pvp')">
-                ⚔️ PvP (Player vs Player)
-              </button>
-              <button type="button" id="qm-mode-btn-pvm" class="battle-mode-btn" onclick="setQMBattleMode('pvm')">
-                👹 PvM (Player vs Monster)
-              </button>
-            </div>
-          </div>
-
-          <!-- Teams & Placement Rewards Checklist -->
-          <div class="form-group">
-            <label style="display:flex; justify-content:space-between; align-items:center;">
-              <span>Active Teams &amp; Placement Rewards</span>
-              <span style="font-size:11px; color:var(--text-muted); font-weight:500;">Gold per placement</span>
-            </label>
-            <div class="battle-teams-config-list" id="qm-battle-teams-list">
-              <!-- Monster Row (Auto-checked in PvM, hidden/optional in PvP) -->
-              <div id="qm-team-row-monster" class="battle-team-config-row is-disabled" style="display:none;">
-                <label class="battle-team-check-label">
-                  <input type="checkbox" id="qm-team-check-monster" onchange="handleQMTeamCheckChange()">
-                  <span style="color:#fda4af;">👹 Monsters (NPC Line)</span>
-                </label>
-                <span class="battle-placement-tag" style="color:#fda4af;">NPC Reward</span>
-                <div class="battle-reward-input-wrap">
-                  <input type="number" id="qm-team-reward-monster" value="10" min="0">
-                  <span>g</span>
-                </div>
-              </div>
-
-              <!-- 1. Red Team -->
-              <div id="qm-team-row-red" class="battle-team-config-row">
-                <label class="battle-team-check-label">
-                  <input type="checkbox" id="qm-team-check-red" checked onchange="handleQMTeamCheckChange()">
-                  <span style="color:#f87171;">🔴 Red Team</span>
-                </label>
-                <span class="battle-placement-tag" id="qm-placement-label-0">🥇 1st Place</span>
-                <div class="battle-reward-input-wrap">
-                  <input type="number" id="qm-placement-reward-0" value="15" min="0">
-                  <span>g</span>
-                </div>
-              </div>
-
-              <!-- 2. Blue Team -->
-              <div id="qm-team-row-blue" class="battle-team-config-row">
-                <label class="battle-team-check-label">
-                  <input type="checkbox" id="qm-team-check-blue" checked onchange="handleQMTeamCheckChange()">
-                  <span style="color:#38bdf8;">🔵 Blue Team</span>
-                </label>
-                <span class="battle-placement-tag" id="qm-placement-label-1">🥈 2nd Place</span>
-                <div class="battle-reward-input-wrap">
-                  <input type="number" id="qm-placement-reward-1" value="10" min="0">
-                  <span>g</span>
-                </div>
-              </div>
-
-              <!-- 3. Yellow Team -->
-              <div id="qm-team-row-yellow" class="battle-team-config-row is-disabled">
-                <label class="battle-team-check-label">
-                  <input type="checkbox" id="qm-team-check-yellow" onchange="handleQMTeamCheckChange()">
-                  <span style="color:#facc15;">🟡 Yellow Team</span>
-                </label>
-                <span class="battle-placement-tag" id="qm-placement-label-2">🥉 3rd Place</span>
-                <div class="battle-reward-input-wrap">
-                  <input type="number" id="qm-placement-reward-2" value="10" min="0">
-                  <span>g</span>
-                </div>
-              </div>
-
-              <!-- 4. Green Team -->
-              <div id="qm-team-row-green" class="battle-team-config-row is-disabled">
-                <label class="battle-team-check-label">
-                  <input type="checkbox" id="qm-team-check-green" onchange="handleQMTeamCheckChange()">
-                  <span style="color:#4ade80;">🟢 Green Team</span>
-                </label>
-                <span class="battle-placement-tag" id="qm-placement-label-3">4th Place</span>
-                <div class="battle-reward-input-wrap">
-                  <input type="number" id="qm-placement-reward-3" value="10" min="0">
-                  <span>g</span>
-                </div>
-              </div>
-
-              <!-- 5. Purple Team -->
-              <div id="qm-team-row-purple" class="battle-team-config-row is-disabled">
-                <label class="battle-team-check-label">
-                  <input type="checkbox" id="qm-team-check-purple" onchange="handleQMTeamCheckChange()">
-                  <span style="color:#c084fc;">🟣 Purple Team</span>
-                </label>
-                <span class="battle-placement-tag" id="qm-placement-label-4">5th Place</span>
-                <div class="battle-reward-input-wrap">
-                  <input type="number" id="qm-placement-reward-4" value="10" min="0">
-                  <span>g</span>
-                </div>
-              </div>
-
-              <!-- 6. Orange Team -->
-              <div id="qm-team-row-orange" class="battle-team-config-row is-disabled">
-                <label class="battle-team-check-label">
-                  <input type="checkbox" id="qm-team-check-orange" onchange="handleQMTeamCheckChange()">
-                  <span style="color:#fb923c;">🟠 Orange Team</span>
-                </label>
-                <span class="battle-placement-tag" id="qm-placement-label-5">6th Place</span>
-                <div class="battle-reward-input-wrap">
-                  <input type="number" id="qm-placement-reward-5" value="10" min="0">
-                  <span>g</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Public Description</label>
+            <label>Description</label>
             <textarea id="qm-battle-description" class="form-control" style="min-height:70px;"
-              placeholder="Public battle description for heroes"></textarea>
+              placeholder="Battle description for heroes"></textarea>
           </div>
 
+          <!-- Teams Selector -->
+          <div class="form-group" style="background:#18181b; padding:12px; border-radius:8px; border:1px solid var(--border);">
+            <label style="font-weight:600; font-size:13px; color:var(--text); display:block; margin-bottom:8px;">
+              Teams
+            </label>
+            <div class="battle-teams-check-grid" id="qm-battle-teams-list">
+              <label class="battle-team-check-item span-full">
+                <input type="checkbox" id="qm-team-check-monster">
+                <span style="color:#fda4af;">👹 Monsters (NPC Line)</span>
+              </label>
+              <label class="battle-team-check-item">
+                <input type="checkbox" id="qm-team-check-red" checked>
+                <span style="color:#f87171;">🔴 Red Team</span>
+              </label>
+              <label class="battle-team-check-item">
+                <input type="checkbox" id="qm-team-check-blue" checked>
+                <span style="color:#38bdf8;">🔵 Blue Team</span>
+              </label>
+              <label class="battle-team-check-item">
+                <input type="checkbox" id="qm-team-check-yellow">
+                <span style="color:#facc15;">🟡 Yellow Team</span>
+              </label>
+              <label class="battle-team-check-item">
+                <input type="checkbox" id="qm-team-check-green">
+                <span style="color:#4ade80;">🟢 Green Team</span>
+              </label>
+              <label class="battle-team-check-item">
+                <input type="checkbox" id="qm-team-check-purple">
+                <span style="color:#c084fc;">🟣 Purple Team</span>
+              </label>
+              <label class="battle-team-check-item">
+                <input type="checkbox" id="qm-team-check-orange">
+                <span style="color:#fb923c;">🟠 Orange Team</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Separate Dynamic Rewards Box -->
+          <div class="battle-rewards-box">
+            <div class="battle-rewards-header">
+              <span style="font-weight:600; font-size:13px; color:var(--text);">Rewards</span>
+              <div class="battle-rewards-header-actions">
+                <button type="button" id="qm-btn-remove-placement" class="btn-placement-step hidden" onclick="removeQMBattlePlacement()" title="Remove last placement">−</button>
+                <button type="button" id="qm-btn-add-placement" class="btn-placement-step" onclick="addQMBattlePlacement()" title="Add 2nd / 3rd / 4th / 5th Place">+</button>
+              </div>
+            </div>
+            <input type="hidden" id="qm-extra-placements-count" value="0">
+
+            <div class="battle-rewards-grid" id="qm-battle-rewards-grid">
+              <div class="battle-reward-field">
+                <label>Victory</label>
+                <input type="number" id="qm-battle-gold-victory" value="15" min="0">
+              </div>
+
+              <div class="battle-reward-field hidden" id="qm-placement-wrap-2">
+                <label>2nd Place</label>
+                <input type="number" id="qm-battle-gold-place-2" placeholder="0" min="0">
+              </div>
+
+              <div class="battle-reward-field hidden" id="qm-placement-wrap-3">
+                <label>3rd Place</label>
+                <input type="number" id="qm-battle-gold-place-3" placeholder="0" min="0">
+              </div>
+
+              <div class="battle-reward-field hidden" id="qm-placement-wrap-4">
+                <label>4th Place</label>
+                <input type="number" id="qm-battle-gold-place-4" placeholder="0" min="0">
+              </div>
+
+              <div class="battle-reward-field hidden" id="qm-placement-wrap-5">
+                <label>5th Place</label>
+                <input type="number" id="qm-battle-gold-place-5" placeholder="0" min="0">
+              </div>
+
+              <div class="battle-reward-field">
+                <label>Defeat</label>
+                <input type="number" id="qm-battle-gold-defeat" value="10" min="0">
+              </div>
+            </div>
+          </div>
 
           <!-- Durability & Magic Item Restriction Rules -->
           <div class="form-group"
@@ -669,17 +632,17 @@
   <!-- Modular Scripts -->
   <script src="js/core/config.js?v=30"></script>
   <script src="js/core/state.js?v=29"></script>
-  <script src="js/core/utils.js?v=48"></script>
+  <script src="js/core/utils.js?v=49"></script>
   <script src="js/core/reigns.js?v=33"></script>
   <script src="js/profile/profile.js?v=2"></script>
   <script src="js/items/items.js?v=2"></script>
   <script src="js/items/store.js?v=30"></script>
   <script src="js/library/library.js?v=42"></script>
   <script src="js/library/chronicles.js?v=5"></script>
-  <script src="js/battle/battle.js?v=4"></script>
+  <script src="js/battle/battle.js?v=5"></script>
   <script src="js/quests/quests.js?v=33"></script>
   <script src="js/qm-panel/qm-panel.js?v=2"></script>
-  <script src="js/qm-panel/qm-battles.js?v=4"></script>
+  <script src="js/qm-panel/qm-battles.js?v=5"></script>
   <script src="js/qm-panel/qm-quests.js?v=3"></script>
   <script src="js/qm-panel/qm-items.js?v=2"></script>
   <script src="js/qm-panel/qm-tools.js?v=2"></script>
