@@ -399,7 +399,7 @@ function renderQMLootDropControls() {
 
   container.innerHTML = slotRows.map(row => {
     const isModified = Math.abs(Number(row.val) - Number(row.def)) > 0.001;
-    return `<div style="display:grid; grid-template-columns: minmax(125px, 1.1fr) 1fr 84px 32px; gap:10px; align-items:center; padding:8px 10px; background:#121214; border:1px solid ${isModified ? '#52525b' : '#27272a'}; border-radius:6px;">
+    return `<div style="display:grid; grid-template-columns: minmax(115px, 1.1fr) 1fr 78px; gap:10px; align-items:center; padding:8px 10px; background:#121214; border:1px solid ${isModified ? '#52525b' : '#27272a'}; border-radius:6px;">
       <div>
         <div style="font-size:13px; font-weight:600; color:var(--text);">${row.label}</div>
         <small style="font-size:11px; color:var(--text-muted);">Default: ${row.def}%${isModified ? ' (Modified)' : ''}</small>
@@ -410,9 +410,6 @@ function renderQMLootDropControls() {
       <div style="display:flex; align-items:center; gap:4px;">
         <input type="number" id="qm-loot-num-${row.tier}-${row.index}" class="form-control" min="0" max="100" step="0.1" value="${row.val}" style="margin:0; padding:5px 6px; font-size:13px; text-align:center;" oninput="syncQMLootRateInput('${row.tier}', ${row.index}, 'number')">
         <span style="font-size:12px; color:var(--text-muted); font-weight:600;">%</span>
-      </div>
-      <div style="display:flex; justify-content:flex-end;">
-        ${isModified ? `<button type="button" class="btn-secondary" style="width:auto; padding:4px 7px; font-size:11px; border-radius:5px;" onclick="qmResetSingleLootSlot('${row.tier}', ${row.index})" title="Reset to ${row.def}%">↺</button>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -535,27 +532,23 @@ function renderQMItemsPanel() {
         .replace(/"/g, '&quot;');
 
       if (item.is_custom) {
-        return `<div class="qm-economy-item-row" data-item-id="${item.id}" data-is-custom="true" style="display:grid; grid-template-columns: minmax(130px, 1.6fr) 105px 72px 72px auto; gap:8px; align-items:center; padding:8px 10px; background:#121214; border:1px solid #27272a; border-radius:6px; margin-bottom:6px;">
-          <div>
-            <input type="text" id="qm-item-name-${item.id}" class="form-control" value="${escapedName}" style="margin:0; padding:5px 8px; font-size:13px;" title="Custom Item Name">
-            <span style="display:inline-block; font-size:10px; color:var(--text-muted); margin-top:2px;">Custom Item</span>
-          </div>
-          <div>
-            <select id="qm-item-cat-${item.id}" class="form-control" style="margin:0; padding:5px 6px; font-size:12px;" title="Item Type">
-              <option value="Trinket" ${catObj.key === 'Trinket' ? 'selected' : ''}>Trinket</option>
-              <option value="Talismans" ${catObj.key === 'Talismans' ? 'selected' : ''}>Talisman</option>
-              <option value="Artifacts" ${catObj.key === 'Artifacts' ? 'selected' : ''}>Artifact</option>
-            </select>
+        return `<div class="qm-economy-item-row" data-item-id="${item.id}" data-is-custom="true" style="display:grid; grid-template-columns: minmax(120px, 1fr) 74px 74px; gap:8px; align-items:center; padding:8px 10px; background:#121214; border:1px solid #27272a; border-radius:6px; margin-bottom:6px;">
+          <div style="min-width:0;">
+            <input type="text" id="qm-item-name-${item.id}" class="form-control" value="${escapedName}" style="margin:0 0 4px 0; padding:5px 8px; font-size:13px;" title="Custom Item Name">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <select id="qm-item-cat-${item.id}" class="form-control" style="margin:0; padding:3px 6px; font-size:11px; width:auto;" title="Item Type">
+                <option value="Trinket" ${catObj.key === 'Trinket' ? 'selected' : ''}>Trinket</option>
+                <option value="Talismans" ${catObj.key === 'Talismans' ? 'selected' : ''}>Talisman</option>
+                <option value="Artifacts" ${catObj.key === 'Artifacts' ? 'selected' : ''}>Artifact</option>
+              </select>
+              <button type="button" class="btn-delete" style="width:auto; padding:3px 7px; font-size:11px; border-radius:4px; margin:0;" onclick="qmDeleteCustomItem('${safeId}')" title="Delete custom item">Delete</button>
+            </div>
           </div>
           <div>
             <input type="number" id="qm-item-cost-${item.id}" class="form-control" value="${item.base_cost}" min="0" style="margin:0; padding:5px 6px; font-size:13px; text-align:center;" title="Cost">
           </div>
           <div>
             <input type="number" id="qm-item-dur-${item.id}" class="form-control" value="${item.durability_max}" min="1" style="margin:0; padding:5px 6px; font-size:13px; text-align:center;" title="Durability">
-          </div>
-          <div style="display:flex; gap:4px; align-items:center; justify-content:flex-end;">
-            <button type="button" class="btn-secondary" style="width:auto; padding:5px 8px; font-size:11px; border-radius:5px;" onclick="qmSaveSingleItem('${safeId}')" title="Save item">Save</button>
-            <button type="button" class="btn-delete" style="width:auto; padding:5px 8px; font-size:11px; border-radius:5px;" onclick="qmDeleteCustomItem('${safeId}')" title="Delete custom item">✕</button>
           </div>
         </div>`;
       }
@@ -564,7 +557,7 @@ function renderQMItemsPanel() {
       const defDur = item.default_durability ?? item.durability_max;
       const isModified = (item.base_cost !== defCost || item.durability_max !== defDur);
 
-      return `<div class="qm-economy-item-row" data-item-id="${item.id}" data-is-custom="false" style="display:grid; grid-template-columns: minmax(140px, 1fr) 76px 76px auto; gap:8px; align-items:center; padding:8px 10px; background:#121214; border:1px solid ${isModified ? '#52525b' : '#27272a'}; border-radius:6px; margin-bottom:6px;">
+      return `<div class="qm-economy-item-row" data-item-id="${item.id}" data-is-custom="false" style="display:grid; grid-template-columns: minmax(120px, 1fr) 74px 74px; gap:8px; align-items:center; padding:8px 10px; background:#121214; border:1px solid ${isModified ? '#52525b' : '#27272a'}; border-radius:6px; margin-bottom:6px;">
         <div style="min-width:0;">
           <div style="font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapedName}</div>
           <small style="font-size:11px; color:var(--text-muted);">Default: ${defCost}g &bull; ${defDur} dur${isModified ? ' (Modified)' : ''}</small>
@@ -575,10 +568,6 @@ function renderQMItemsPanel() {
         <div>
           <input type="number" id="qm-item-dur-${item.id}" class="form-control" value="${item.durability_max}" min="1" style="margin:0; padding:5px 6px; font-size:13px; text-align:center;" title="Durability">
         </div>
-        <div style="display:flex; gap:4px; align-items:center; justify-content:flex-end;">
-          <button type="button" class="btn-secondary" style="width:auto; padding:5px 8px; font-size:11px; border-radius:5px;" onclick="qmSaveSingleItem('${safeId}')" title="Save item">Save</button>
-          ${isModified ? `<button type="button" class="btn-secondary" style="width:auto; padding:5px 7px; font-size:11px; border-radius:5px;" onclick="qmResetSingleItem('${safeId}')" title="Reset to default (${defCost}g, ${defDur} dur)">↺</button>` : ''}
-        </div>
       </div>`;
     }).join('');
 
@@ -587,11 +576,10 @@ function renderQMItemsPanel() {
         <span>${catObj.label} (${items.length})</span>
       </summary>
       <div style="padding:8px 4px 2px 4px;">
-        <div style="display:grid; grid-template-columns: minmax(140px, 1fr) 76px 76px 74px; gap:8px; padding:0 10px 6px 10px; font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">
+        <div style="display:grid; grid-template-columns: minmax(120px, 1fr) 74px 74px; gap:8px; padding:0 10px 6px 10px; font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">
           <span>Item</span>
           <span style="text-align:center;">Cost</span>
           <span style="text-align:center;">Durability</span>
-          <span style="text-align:right;">Action</span>
         </div>
         ${rowsHtml || '<p class="empty-state" style="margin:6px 0;">No items in this category.</p>'}
       </div>
@@ -998,27 +986,39 @@ async function fetchQMRealmPlayers(forceRefresh = false) {
     realmPlayers.sort((a, b) => a.username.localeCompare(b.username));
     qmRealmPlayersCache = realmPlayers;
 
-    filterQMRealmPlayers();
-
     if (qmSelectedPlayerId) {
       await renderQMSelectedPlayerPanel(qmSelectedPlayerId);
     }
   } catch (err) {
     console.warn('Error fetching realm players for QM inspector:', err);
-    resultsEl.innerHTML = `<p class="empty-state" style="margin:0; font-size:12px;">Could not load players.</p>`;
   }
 }
 
-// Filter & render player pills matching the search box
+// Close the player search dropdown when clicking outside
+if (typeof document !== 'undefined' && !window.__qmPlayerDropdownListenerBound) {
+  window.__qmPlayerDropdownListenerBound = true;
+  document.addEventListener('click', (e) => {
+    const searchInput = document.getElementById('qm-player-search-input');
+    const resultsEl = document.getElementById('qm-player-search-results');
+    if (!resultsEl || resultsEl.classList.contains('hidden')) return;
+    if (searchInput && (searchInput.contains(e.target) || resultsEl.contains(e.target))) return;
+    resultsEl.classList.add('hidden');
+  });
+}
+
+// Auto-populating dropdown list matching the search box
 function filterQMRealmPlayers() {
   const resultsEl = document.getElementById('qm-player-search-results');
-  if (!resultsEl) return;
+  const searchInput = document.getElementById('qm-player-search-input');
+  if (!resultsEl || !searchInput) return;
 
-  const query = (document.getElementById('qm-player-search-input')?.value || '').trim().toLowerCase();
+  const query = (searchInput.value || '').trim().toLowerCase();
   const filtered = qmRealmPlayersCache.filter(p => !query || p.username.toLowerCase().includes(query));
 
+  resultsEl.classList.remove('hidden');
+
   if (filtered.length === 0) {
-    resultsEl.innerHTML = `<p class="empty-state" style="margin:0; font-size:12px;">No matching players found on this realm.</p>`;
+    resultsEl.innerHTML = `<div style="padding:10px 12px; font-size:12px; color:var(--text-muted);">No matching players found.</div>`;
     return;
   }
 
@@ -1028,21 +1028,34 @@ function filterQMRealmPlayers() {
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
-    return `<button type="button" onclick="selectQMPlayerForEdit('${p.userId}')" style="width:auto; padding:6px 10px; font-size:12px; font-weight:600; border-radius:6px; cursor:pointer; background:${isSelected ? '#27272a' : '#121214'}; color:var(--text); border:1px solid ${isSelected ? '#a1a1aa' : '#27272a'}; display:inline-flex; align-items:center; gap:6px;">
+    return `<div onclick="selectQMPlayerForEdit('${p.userId}')" style="padding:9px 12px; font-size:13px; font-weight:600; cursor:pointer; background:${isSelected ? '#27272a' : 'transparent'}; color:var(--text); border-bottom:1px solid #27272a; display:flex; justify-content:space-between; align-items:center;">
       <span>${escapedName}</span>
-      <span style="color:var(--text-muted); font-size:11px;">(${p.gold}g)</span>
-    </button>`;
+      <span style="color:var(--text-muted); font-size:12px;">${p.gold}g</span>
+    </div>`;
   }).join('');
 }
 
-// Select a player to inspect & edit their Gold, Pouch, and Inventory
+// Select a player from the dropdown to inspect & edit their Gold, Pouch, and Inventory
 async function selectQMPlayerForEdit(userId) {
   qmSelectedPlayerId = userId || null;
-  filterQMRealmPlayers();
+  const cachedPlayer = qmRealmPlayersCache.find(p => p.userId === userId);
+  const searchInput = document.getElementById('qm-player-search-input');
+  const resultsEl = document.getElementById('qm-player-search-results');
+
+  if (searchInput && cachedPlayer) {
+    searchInput.value = cachedPlayer.username;
+  }
+  if (resultsEl) {
+    resultsEl.classList.add('hidden');
+  }
+
   await renderQMSelectedPlayerPanel(qmSelectedPlayerId);
 }
 
-// Render the selected player's editable Gold, Add Item bar, and Pouch/Inventory list
+// Render the selected player's 3 clearly defined sub-boxes:
+// 1. Give Players Gold
+// 2. Give Player Items
+// 3. Edit Pouch/Inventory
 async function renderQMSelectedPlayerPanel(userId) {
   const panel = document.getElementById('qm-selected-player-panel');
   if (!panel) return;
@@ -1123,88 +1136,84 @@ async function renderQMSelectedPlayerPanel(userId) {
     const curDur = item.durability_current !== undefined && item.durability_current !== null ? Number(item.durability_current) : maxDur;
     const loc = item.storage_location === 'bank' ? 'bank' : 'pouch';
 
-    return `<div class="qm-player-inv-row" data-inv-id="${item.id}" style="display:grid; grid-template-columns: minmax(120px, 1.4fr) 100px 68px 68px auto; gap:8px; align-items:center; padding:8px 10px; background:#121214; border:1px solid #27272a; border-radius:6px; margin-bottom:6px;">
-      <div style="min-width:0;">
-        <div style="font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escName}</div>
-        <small style="font-size:11px; color:var(--text-muted);">${normalizeCatalogCategory(getCategoryForItemName(itemName) || 'Trinket')}</small>
+    return `<div class="qm-player-inv-row" data-inv-id="${item.id}" style="padding:8px 10px; background:#18181b; border:1px solid #27272a; border-radius:6px; margin-bottom:6px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">
+        <div style="font-size:13px; font-weight:600; color:var(--text); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escName}</div>
+        <button type="button" class="btn-delete" style="width:auto; padding:3px 8px; font-size:11px; border-radius:4px; margin:0; flex-shrink:0;" onclick="qmDeletePlayerInventoryItem('${item.id}')" title="Remove item">✕</button>
       </div>
-      <div>
-        <select id="qm-pitem-loc-${item.id}" class="form-control" style="margin:0; padding:5px 6px; font-size:12px;" title="Storage Location">
-          <option value="pouch" ${loc === 'pouch' ? 'selected' : ''}>Pouch</option>
-          <option value="bank" ${loc === 'bank' ? 'selected' : ''}>Inventory</option>
-        </select>
-      </div>
-      <div>
-        <input type="number" id="qm-pitem-cur-${item.id}" class="form-control" value="${curDur}" min="0" style="margin:0; padding:5px 6px; font-size:13px; text-align:center;" title="Current Durability">
-      </div>
-      <div>
-        <input type="number" id="qm-pitem-max-${item.id}" class="form-control" value="${maxDur}" min="1" style="margin:0; padding:5px 6px; font-size:13px; text-align:center;" title="Max Durability">
-      </div>
-      <div style="display:flex; gap:4px; align-items:center; justify-content:flex-end;">
-        <button type="button" class="btn-secondary" style="width:auto; padding:5px 8px; font-size:11px; border-radius:5px;" onclick="qmSavePlayerInventoryItem('${item.id}')" title="Save item">Save</button>
-        <button type="button" class="btn-delete" style="width:auto; padding:5px 8px; font-size:11px; border-radius:5px;" onclick="qmDeletePlayerInventoryItem('${item.id}')" title="Remove item from player">✕</button>
+      <div style="display:grid; grid-template-columns: 1.2fr 1fr 1fr; gap:8px; align-items:end;">
+        <div>
+          <label style="font-size:10px; color:var(--text-muted); display:block; margin-bottom:2px;">Location</label>
+          <select id="qm-pitem-loc-${item.id}" class="form-control" style="margin:0; padding:5px 6px; font-size:12px;">
+            <option value="pouch" ${loc === 'pouch' ? 'selected' : ''}>Pouch</option>
+            <option value="bank" ${loc === 'bank' ? 'selected' : ''}>Inventory</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:10px; color:var(--text-muted); display:block; margin-bottom:2px; text-align:center;">Cur Dur</label>
+          <input type="number" id="qm-pitem-cur-${item.id}" class="form-control" value="${curDur}" min="0" style="margin:0; padding:5px 6px; font-size:13px; text-align:center;">
+        </div>
+        <div>
+          <label style="font-size:10px; color:var(--text-muted); display:block; margin-bottom:2px; text-align:center;">Max Dur</label>
+          <input type="number" id="qm-pitem-max-${item.id}" class="form-control" value="${maxDur}" min="1" style="margin:0; padding:5px 6px; font-size:13px; text-align:center;">
+        </div>
       </div>
     </div>`;
   };
 
   panel.innerHTML = `
-    <!-- Selected Player Header & Editable Gold -->
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; background:#121214; border:1px solid #27272a; padding:10px 12px; border-radius:6px; margin-bottom:12px;">
-      <div style="font-size:14px; font-weight:700; color:var(--text);">
-        ${escapedPlayerName}
+    <!-- Box 1: Give Players Gold -->
+    <div style="background:#121214; border:1px solid #27272a; padding:12px; border-radius:6px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <span style="font-size:13px; font-weight:700; color:var(--text);">Give Players Gold</span>
+        <span style="font-size:12px; color:var(--text-muted);">${escapedPlayerName}</span>
       </div>
-      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-        <label style="font-size:12px; color:var(--text-muted); margin:0;">Gold</label>
-        <input type="number" id="qm-edit-player-gold" class="form-control" value="${playerGold}" min="0" style="width:88px; margin:0; padding:5px 8px; font-size:13px; text-align:center;">
-        <button type="button" class="btn-secondary" style="width:auto; padding:6px 10px; font-size:12px; font-weight:600; border-radius:6px;" onclick="qmSavePlayerGold(false)">Save Gold</button>
-        <button type="button" class="btn btn-primary" style="width:auto; padding:6px 12px; font-size:12px; font-weight:700; border-radius:6px; margin:0;" onclick="qmSaveAllPlayerChanges()">Save All</button>
+      <div style="display:grid; grid-template-columns: 1fr auto; gap:8px; align-items:center;">
+        <input type="number" id="qm-edit-player-gold" class="form-control" value="${playerGold}" min="0" style="margin:0; padding:8px 10px; font-size:14px;">
+        <button type="button" class="btn btn-primary" style="width:auto; padding:8px 16px; font-size:13px; font-weight:700; border-radius:6px; margin:0;" onclick="qmSavePlayerGold(false)">Save Gold</button>
       </div>
     </div>
 
-    <!-- Add / Grant Item to Player -->
-    <div style="background:#121214; border:1px solid #27272a; padding:10px 12px; border-radius:6px; margin-bottom:12px;">
-      <div style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px;">Add Item to Player</div>
-      <div style="display:grid; grid-template-columns: minmax(140px, 1.6fr) 105px 76px auto; gap:8px; align-items:end;">
-        <div>
-          <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:3px;">Item</label>
-          <select id="qm-grant-item-select" class="form-control" style="margin:0; padding:5px 8px; font-size:12px;" onchange="onQMGrantItemSelectChange()">
-            ${catalogOptionsHtml}
-          </select>
-        </div>
+    <!-- Box 2: Give Player Items -->
+    <div style="background:#121214; border:1px solid #27272a; padding:12px; border-radius:6px;">
+      <div style="font-size:13px; font-weight:700; color:var(--text); margin-bottom:8px;">Give Player Items</div>
+      <div style="margin-bottom:8px;">
+        <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:3px;">Item</label>
+        <select id="qm-grant-item-select" class="form-control" style="margin:0; padding:7px 8px; font-size:13px;" onchange="onQMGrantItemSelectChange()">
+          ${catalogOptionsHtml}
+        </select>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:10px;">
         <div>
           <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:3px;">Location</label>
-          <select id="qm-grant-item-location" class="form-control" style="margin:0; padding:5px 6px; font-size:12px;">
+          <select id="qm-grant-item-location" class="form-control" style="margin:0; padding:7px 8px; font-size:13px;">
             <option value="pouch" selected>Pouch</option>
             <option value="bank">Inventory</option>
           </select>
         </div>
         <div>
           <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:3px;">Durability</label>
-          <input type="number" id="qm-grant-item-durability" class="form-control" value="${firstCatalogDur}" min="1" style="margin:0; padding:5px 6px; font-size:13px; text-align:center;">
-        </div>
-        <div>
-          <button type="button" class="btn btn-primary" style="width:auto; padding:6px 12px; font-size:12px; font-weight:700; border-radius:6px; margin:0;" onclick="qmGrantItemToPlayer()">Add Item</button>
+          <input type="number" id="qm-grant-item-durability" class="form-control" value="${firstCatalogDur}" min="1" style="margin:0; padding:7px 8px; font-size:13px; text-align:center;">
         </div>
       </div>
+      <button type="button" class="btn btn-primary" style="width:100%; padding:10px; font-size:13px; font-weight:700; border-radius:6px; margin:0;" onclick="qmGrantItemToPlayer()">Add Item</button>
     </div>
 
-    <!-- Editable Pouch & Inventory List -->
-    <div style="display:grid; grid-template-columns: minmax(120px, 1.4fr) 100px 68px 68px 74px; gap:8px; padding:0 10px 6px 10px; font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">
-      <span>Item</span>
-      <span>Location</span>
-      <span style="text-align:center;">Cur Dur</span>
-      <span style="text-align:center;">Max Dur</span>
-      <span style="text-align:right;">Action</span>
-    </div>
+    <!-- Box 3: Edit Pouch/Inventory -->
+    <div style="background:#121214; border:1px solid #27272a; padding:12px; border-radius:6px;">
+      <div style="font-size:13px; font-weight:700; color:var(--text); margin-bottom:8px;">Edit Pouch/Inventory</div>
 
-    <div style="margin-bottom:10px;">
-      <div style="font-size:12px; font-weight:700; color:var(--text); margin:4px 0 6px 2px;">Pouch (${pouchItems.length})</div>
-      ${pouchItems.length > 0 ? pouchItems.map(renderEditableItemRow).join('') : '<p class="empty-state" style="margin:4px 0 8px 0; font-size:12px;">No items in Pouch.</p>'}
-    </div>
+      <div style="margin-bottom:10px;">
+        <div style="font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:6px;">Pouch (${pouchItems.length})</div>
+        ${pouchItems.length > 0 ? pouchItems.map(renderEditableItemRow).join('') : '<p class="empty-state" style="margin:4px 0 8px 0; font-size:12px;">No items in Pouch.</p>'}
+      </div>
 
-    <div>
-      <div style="font-size:12px; font-weight:700; color:var(--text); margin:4px 0 6px 2px;">Inventory (${bankItems.length})</div>
-      ${bankItems.length > 0 ? bankItems.map(renderEditableItemRow).join('') : '<p class="empty-state" style="margin:4px 0 0 0; font-size:12px;">No items in Inventory.</p>'}
+      <div style="margin-bottom:10px;">
+        <div style="font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:6px;">Inventory (${bankItems.length})</div>
+        ${bankItems.length > 0 ? bankItems.map(renderEditableItemRow).join('') : '<p class="empty-state" style="margin:4px 0 0 0; font-size:12px;">No items in Inventory.</p>'}
+      </div>
+
+      ${playerItems.length > 0 ? `<button type="button" class="btn btn-primary" style="width:100%; padding:10px; font-size:13px; font-weight:700; border-radius:6px; margin:0;" onclick="qmSaveAllPlayerChanges()">Save Pouch/Inventory</button>` : ''}
     </div>
   `;
 }
@@ -1267,7 +1276,6 @@ async function qmSavePlayerGold(silent = false) {
     // Update cache & UI
     const cached = qmRealmPlayersCache.find(p => p.userId === qmSelectedPlayerId);
     if (cached) cached.gold = newGold;
-    filterQMRealmPlayers();
 
     // If editing the currently logged-in user, sync header gold immediately
     if (currentUser && currentUser.id === qmSelectedPlayerId) {

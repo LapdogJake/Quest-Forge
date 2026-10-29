@@ -513,64 +513,50 @@
 
         <!-- SUB-TAB 5: QM ITEMS -->
         <div id="qm-subtab-items" class="hidden">
-          <!-- Editable Player Items & Gold (Phase 4) -->
+          <!-- Card 1: Edit Player Items and Gold -->
           <div class="card" style="background:#18181b; border:1px solid var(--border); padding:16px; border-radius:8px; margin-bottom:16px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
-              <div>
-                <div style="font-size:14px; font-weight:700; color:var(--text);">Player Items &amp; Gold</div>
-                <small style="font-size:12px; color:var(--text-muted);">Search a player in your realm to view and edit their Gold, Pouch, and Inventory.</small>
+            <div style="font-size:14px; font-weight:700; color:var(--text); margin-bottom:10px;">Edit Player Items and Gold</div>
+
+            <div style="position:relative;">
+              <input type="text" id="qm-player-search-input" class="form-control" placeholder="Search player on your realm..." autocomplete="off" style="margin:0;" oninput="filterQMRealmPlayers()" onfocus="filterQMRealmPlayers()">
+              <div id="qm-player-search-results" class="hidden" style="position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:40; background:#18181b; border:1px solid #3f3f46; border-radius:6px; max-height:190px; overflow-y:auto; box-shadow:0 8px 24px rgba(0,0,0,0.6);">
               </div>
-              <button type="button" class="btn-secondary" style="width:auto; padding:6px 12px; font-size:12px; font-weight:600; border-radius:6px;" onclick="fetchQMRealmPlayers(true)">
-                Refresh Players
-              </button>
             </div>
 
-            <div style="margin-bottom:10px;">
-              <input type="text" id="qm-player-search-input" class="form-control" placeholder="Search player on your realm..." style="margin:0;" oninput="filterQMRealmPlayers()">
-            </div>
-
-            <div id="qm-player-search-results" style="display:flex; flex-wrap:wrap; gap:6px; max-height:140px; overflow-y:auto; margin-bottom:4px;">
-              <p class="empty-state" style="margin:0; font-size:12px;">Loading realm players...</p>
-            </div>
-
-            <div id="qm-selected-player-panel" class="hidden" style="border-top:1px solid #27272a; margin-top:12px; padding-top:12px;">
+            <div id="qm-selected-player-panel" class="hidden" style="margin-top:12px; display:flex; flex-direction:column; gap:12px;">
               <!-- Populated dynamically by renderQMSelectedPlayerPanel() -->
             </div>
           </div>
 
-          <!-- Item Loot Drop Rates / RNG Controllers (Phase 3) -->
+          <!-- Card 2: Drop Rates -->
           <div class="card" style="background:#18181b; border:1px solid var(--border); padding:16px; border-radius:8px; margin-bottom:16px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
-              <div>
-                <div style="font-size:14px; font-weight:700; color:var(--text);">Item Loot Drop Rates</div>
-                <small style="font-size:12px; color:var(--text-muted);">Adjust drop chances for each of the 6 loot table rolls (3 Trinkets, 2 Talismans, 1 Artifact).</small>
-              </div>
-              <div style="display:flex; gap:8px; align-items:center;">
-                <button type="button" class="btn-secondary" style="width:auto; padding:6px 12px; font-size:12px; font-weight:600; border-radius:6px;" onclick="qmResetLootDropRates()">
-                  Reset Defaults
-                </button>
-                <button type="button" class="btn btn-primary" style="width:auto; padding:6px 14px; font-size:12px; font-weight:700; border-radius:6px; margin:0;" onclick="qmSaveLootDropRates()">
-                  Save Drop Rates
-                </button>
-              </div>
-            </div>
+            <div style="font-size:14px; font-weight:700; color:var(--text); margin-bottom:12px;">Drop Rates</div>
 
             <div id="qm-loot-rng-controls" style="display:flex; flex-direction:column; gap:8px;">
               <!-- Rendered dynamically by renderQMLootDropControls() -->
             </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:12px;">
+              <button type="button" class="btn-secondary" style="width:100%; padding:10px; font-size:13px; font-weight:600; border-radius:6px; margin:0;" onclick="qmResetLootDropRates()">
+                Reset Defaults
+              </button>
+              <button type="button" class="btn btn-primary" style="width:100%; padding:10px; font-size:13px; font-weight:700; border-radius:6px; margin:0;" onclick="qmSaveLootDropRates()">
+                Save
+              </button>
+            </div>
           </div>
 
-          <!-- Custom Item Creator (Phase 2) -->
+          <!-- Card 3: Create Custom Item -->
           <div class="card" style="background:#18181b; border:1px solid var(--border); padding:16px; border-radius:8px; margin-bottom:16px;">
             <div style="font-size:14px; font-weight:700; color:var(--text); margin-bottom:12px;">Create Custom Item</div>
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap:10px; align-items:end;">
-              <div style="grid-column: span 2;">
-                <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Item Name</label>
-                <input type="text" id="qm-custom-item-name" class="form-control" placeholder="Item Name" style="margin:0;">
-              </div>
+            <div style="margin-bottom:10px;">
+              <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Item Name</label>
+              <input type="text" id="qm-custom-item-name" class="form-control" placeholder="Item Name" style="margin:0;">
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; align-items:end;">
               <div>
                 <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Type</label>
-                <select id="qm-custom-item-category" class="form-control" style="margin:0;" onchange="onQMCustomItemTypeChange()">
+                <select id="qm-custom-item-category" class="form-control" style="margin:0; padding:8px 6px; font-size:13px;" onchange="onQMCustomItemTypeChange()">
                   <option value="Trinket" selected>Trinket</option>
                   <option value="Talismans">Talisman</option>
                   <option value="Artifacts">Artifact</option>
@@ -578,35 +564,31 @@
               </div>
               <div>
                 <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Cost</label>
-                <input type="number" id="qm-custom-item-cost" class="form-control" value="5" min="0" style="margin:0;">
+                <input type="number" id="qm-custom-item-cost" class="form-control" value="5" min="0" style="margin:0; padding:8px 6px; font-size:13px; text-align:center;">
               </div>
               <div>
                 <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Durability</label>
-                <input type="number" id="qm-custom-item-durability" class="form-control" value="1" min="1" style="margin:0;">
+                <input type="number" id="qm-custom-item-durability" class="form-control" value="1" min="1" style="margin:0; padding:8px 6px; font-size:13px; text-align:center;">
               </div>
             </div>
             <button type="button" class="btn btn-primary" style="margin-top:12px;" onclick="qmCreateCustomItem()">Add Custom Item</button>
           </div>
 
-          <!-- Store Catalog & Item Economy (Phase 1 & 2) -->
+          <!-- Card 4: Shop Price and Durability -->
           <div class="card" style="background:#18181b; border:1px solid var(--border); padding:16px; border-radius:8px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
-              <div>
-                <div style="font-size:14px; font-weight:700; color:var(--text);">Store Catalog &amp; Item Economy</div>
-                <small style="font-size:12px; color:var(--text-muted);">Adjust cost and durability for baked-in items or manage custom realm items.</small>
-              </div>
-              <div style="display:flex; gap:8px; align-items:center;">
-                <button type="button" class="btn-secondary" style="width:auto; padding:6px 12px; font-size:12px; font-weight:600; border-radius:6px;" onclick="qmResetAllItemDefaults()">
-                  Reset Defaults
-                </button>
-                <button type="button" class="btn btn-primary" style="width:auto; padding:6px 14px; font-size:12px; font-weight:700; border-radius:6px; margin:0;" onclick="qmSaveAllItemEconomy()">
-                  Save All
-                </button>
-              </div>
-            </div>
+            <div style="font-size:14px; font-weight:700; color:var(--text); margin-bottom:12px;">Shop Price and Durability</div>
 
             <div id="qm-item-economy-list">
               <p class="empty-state" style="margin:0;">Loading item catalog...</p>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:12px;">
+              <button type="button" class="btn-secondary" style="width:100%; padding:10px; font-size:13px; font-weight:600; border-radius:6px; margin:0;" onclick="qmResetAllItemDefaults()">
+                Reset Defaults
+              </button>
+              <button type="button" class="btn btn-primary" style="width:100%; padding:10px; font-size:13px; font-weight:700; border-radius:6px; margin:0;" onclick="qmSaveAllItemEconomy()">
+                Save All
+              </button>
             </div>
           </div>
         </div>
@@ -736,7 +718,7 @@
   <script src="js/qm-panel/qm-panel.js?v=3"></script>
   <script src="js/qm-panel/qm-battles.js?v=8"></script>
   <script src="js/qm-panel/qm-quests.js?v=4"></script>
-  <script src="js/qm-panel/qm-items.js?v=5"></script>
+  <script src="js/qm-panel/qm-items.js?v=6"></script>
   <script src="js/qm-panel/qm-tools.js?v=2"></script>
   <script src="js/core/app.js?v=33"></script>
 </body>
