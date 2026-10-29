@@ -150,3 +150,35 @@ const STORE_CATALOG = [
   { id: 'magic-cloak-enigmas', item_name: 'Cloak of Enigmas', category: 'Artifacts', durability_max: 20, base_cost: 140 },
   { id: 'magic-ankh-ran', item_name: 'Ankh of Ran', category: 'Artifacts', durability_max: 20, base_cost: 120 }
 ];
+
+// Multi-Team Battle System Definitions (Up to 6 Player Color Teams + Monsters NPC Line)
+const BATTLE_PLAYER_TEAMS = [
+  { key: 'red',    label: 'Red Team',    shortLabel: 'Red',    icon: '🔴', color: '#ef4444', border: 'rgba(239, 68, 68, 0.45)',  btnClass: 'btn-team-red',    boxClass: 'team-box-red',    placementLabel: '1st Place', defaultReward: 15 },
+  { key: 'blue',   label: 'Blue Team',   shortLabel: 'Blue',   icon: '🔵', color: '#38bdf8', border: 'rgba(56, 189, 248, 0.45)', btnClass: 'btn-team-blue',   boxClass: 'team-box-blue',   placementLabel: '2nd Place', defaultReward: 10 },
+  { key: 'yellow', label: 'Yellow Team', shortLabel: 'Yellow', icon: '🟡', color: '#facc15', border: 'rgba(250, 204, 21, 0.45)', btnClass: 'btn-team-yellow', boxClass: 'team-box-yellow', placementLabel: '3rd Place', defaultReward: 10 },
+  { key: 'green',  label: 'Green Team',  shortLabel: 'Green',  icon: '🟢', color: '#4ade80', border: 'rgba(74, 222, 128, 0.45)', btnClass: 'btn-team-green',  boxClass: 'team-box-green',  placementLabel: '4th Place', defaultReward: 10 },
+  { key: 'purple', label: 'Purple Team', shortLabel: 'Purple', icon: '🟣', color: '#c084fc', border: 'rgba(192, 132, 252, 0.45)', btnClass: 'btn-team-purple', boxClass: 'team-box-purple', placementLabel: '5th Place', defaultReward: 10 },
+  { key: 'orange', label: 'Orange Team', shortLabel: 'Orange', icon: '🟠', color: '#fb923c', border: 'rgba(251, 146, 60, 0.45)', btnClass: 'btn-team-orange', boxClass: 'team-box-orange', placementLabel: '6th Place', defaultReward: 10 }
+];
+
+const BATTLE_MONSTER_TEAM = {
+  key: 'monster',
+  label: 'Monsters',
+  shortLabel: 'Monsters',
+  icon: '👹',
+  color: '#f43f5e',
+  border: 'rgba(244, 63, 94, 0.5)',
+  btnClass: 'btn-team-monster',
+  boxClass: 'team-box-monster',
+  defaultReward: 10
+};
+
+const BATTLE_PLACEMENT_LABELS = [
+  '1st Place',
+  '2nd Place',
+  '3rd Place',
+  '4th Place',
+  '5th Place',
+  '6th Place'
+];
+

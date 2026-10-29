@@ -181,6 +181,12 @@ CREATE TABLE IF NOT EXISTS public.quests (
   discipline TEXT DEFAULT 'Service',
   allow_mid_join BOOLEAN DEFAULT FALSE,
   rng_loot_drops BOOLEAN DEFAULT FALSE,
+  battle_mode TEXT DEFAULT 'pvp',
+  battle_teams JSONB DEFAULT '["red","blue"]'::jsonb,
+  placement_rewards JSONB DEFAULT '[15,10,10,10,10,10]'::jsonb,
+  monster_reward INTEGER DEFAULT 10,
+  durability_wear INTEGER DEFAULT 1,
+  defeat_penalty TEXT DEFAULT 'none',
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -200,7 +206,13 @@ ALTER TABLE public.quests
   ADD COLUMN IF NOT EXISTS verification_method TEXT DEFAULT 'Quest Master',
   ADD COLUMN IF NOT EXISTS discipline TEXT DEFAULT 'Service',
   ADD COLUMN IF NOT EXISTS allow_mid_join BOOLEAN DEFAULT FALSE,
-  ADD COLUMN IF NOT EXISTS rng_loot_drops BOOLEAN DEFAULT FALSE;
+  ADD COLUMN IF NOT EXISTS rng_loot_drops BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS battle_mode TEXT DEFAULT 'pvp',
+  ADD COLUMN IF NOT EXISTS battle_teams JSONB DEFAULT '["red","blue"]'::jsonb,
+  ADD COLUMN IF NOT EXISTS placement_rewards JSONB DEFAULT '[15,10,10,10,10,10]'::jsonb,
+  ADD COLUMN IF NOT EXISTS monster_reward INTEGER DEFAULT 10,
+  ADD COLUMN IF NOT EXISTS durability_wear INTEGER DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS defeat_penalty TEXT DEFAULT 'none';
 
 CREATE INDEX IF NOT EXISTS idx_quests_qm_park ON public.quests (park, qm_id);
 CREATE INDEX IF NOT EXISTS idx_quests_category_active ON public.quests (category, is_active);
@@ -234,15 +246,20 @@ CREATE TABLE IF NOT EXISTS public.quest_queues (
 CREATE INDEX IF NOT EXISTS idx_quest_queues_quest ON public.quest_queues (quest_id, status);
 
 -- ------------------------------------------------------------------------------
--- 8. Queue Members (Heroes Line)
+-- 8. Queue Members (Battle Teams & Monster Line)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.queue_members (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   queue_id UUID NOT NULL REFERENCES public.quest_queues(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  role_name TEXT DEFAULT 'Hero',
+  role_name TEXT DEFAULT 'red',
+  team TEXT DEFAULT 'red',
   created_at TIMESTAMPTZ DEFAULT now()
 );
+
+ALTER TABLE public.queue_members
+  ADD COLUMN IF NOT EXISTS role_name TEXT DEFAULT 'red',
+  ADD COLUMN IF NOT EXISTS team TEXT DEFAULT 'red';
 
 CREATE INDEX IF NOT EXISTS idx_queue_members_queue ON public.queue_members (queue_id);
 

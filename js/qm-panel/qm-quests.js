@@ -237,6 +237,32 @@ async function fetchQMQuests() {
       }
     });
 
+    const openCardIds = new Set(
+      Array.from(container.querySelectorAll('details.quest-accordion[open]'))
+        .map(el => el.getAttribute('data-quest-id'))
+        .filter(Boolean)
+    );
+
+    const escapeAttr = (str) => String(str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    const disciplinesList = (typeof QUEST_DISCIPLINES !== 'undefined' && Array.isArray(QUEST_DISCIPLINES))
+      ? QUEST_DISCIPLINES
+      : [
+          { name: 'Service', icon: '🌹' },
+          { name: 'Bardic', icon: '🎵' },
+          { name: 'Roleplay', icon: '🎭' },
+          { name: 'Exploration', icon: '🌿' },
+          { name: 'Crafting', icon: '🛠' },
+          { name: 'Arts & Sciences', icon: '🎨' },
+          { name: 'Knowledge', icon: '📚' },
+          { name: 'Challenge', icon: '🏆' },
+          { name: 'Trial', icon: '🏅' }
+        ];
+
     container.innerHTML = nonBattleQuests.map(q => {
       const rules = typeof getQuestDurabilityRules === 'function' ? getQuestDurabilityRules(q) : { maxActive: 0, maxCompletions: 0, verificationMethod: 'Quest Master' };
       const maxActive = rules.maxActive || 0;
@@ -247,6 +273,7 @@ async function fetchQMQuests() {
 
       const activeList = activeByQuest.get(q.id) || [];
       const activeCount = activeList.length;
+      const isOpen = openCardIds.has(String(q.id));
 
       const borderColor = q.is_active ? 'rgba(34, 197, 94, 0.4)' : 'rgba(255, 255, 255, 0.1)';
       const statusBadge = q.is_active
@@ -254,7 +281,7 @@ async function fetchQMQuests() {
         : '<span class="badge badge-draft" style="color:#94a3b8; border-color:#52525b; font-size:11px; font-weight:700; white-space:nowrap; padding:3px 8px;">⚪ Quest Closed</span>';
 
       return `
-        <details class="quest-accordion" data-quest-id="${q.id}" style="border: 2px solid ${borderColor}; margin-bottom: 12px;">
+        <details class="quest-accordion" data-quest-id="${q.id}" ${isOpen ? 'open' : ''} style="border: 2px solid ${borderColor}; margin-bottom: 12px;">
           <summary>
             <span class="quest-summary-title" style="font-size:14px; font-weight:700;">${discIcon} ${q.title}</span>
             <span class="quest-summary-actions">
@@ -323,9 +350,67 @@ async function fetchQMQuests() {
                   Open
                 </button>
               `}
+              <button type="button" class="btn-secondary" style="min-height:40px; padding:8px 14px; font-size:13px; font-weight:bold; border-radius:6px; background:#27272a; border:1px solid #3f3f46; color:#e4e4e7; cursor:pointer;" onclick="toggleQMQuestEdit('${q.id}')" title="Edit quest details">
+                ✏️ Edit
+              </button>
               <button class="btn-delete" style="min-height:40px; padding:8px 14px; font-size:13px; font-weight:bold; justify-content:center; border-radius:6px;" onclick="qmDeleteQuest('${q.id}', '${(q.title || '').replace(/'/g, "\\'")}')" title="Delete quest from catalog">
                 🗑️ Delete
               </button>
+            </div>
+
+            <!-- 5. INLINE EDIT FORM (TOGGLED VIA EDIT BUTTON) -->
+            <div id="qm-quest-edit-form-${q.id}" class="hidden" style="margin-top:12px; padding:12px; background:#18181b; border:1px solid var(--primary); border-radius:8px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.08);">
+                <span style="font-weight:700; font-size:13px; color:var(--primary);">✏️ Edit Quest</span>
+                <button type="button" onclick="toggleQMQuestEdit('${q.id}', false)" style="background:transparent; border:none; color:var(--text-muted); font-size:16px; cursor:pointer; padding:0 4px;">✕</button>
+              </div>
+
+              <div class="form-group" style="margin-bottom:8px;">
+                <label style="font-size:12px;">Quest Title</label>
+                <input type="text" id="qm-edit-quest-title-${q.id}" class="form-control" value="${escapeAttr(q.title)}">
+              </div>
+
+              <div class="form-row" style="margin-bottom:8px;">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label style="font-size:12px;">Discipline</label>
+                  <select id="qm-edit-quest-discipline-${q.id}" class="form-control">
+                    ${disciplinesList.map(d => `<option value="${d.name}" ${d.name === discName ? 'selected' : ''}>${d.icon} ${d.name}</option>`).join('')}
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label style="font-size:12px;">Reward Gold</label>
+                  <input type="number" id="qm-edit-quest-gold-${q.id}" class="form-control" value="${Number(q.reward_gold) || 0}" min="0">
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-bottom:8px;">
+                <label style="font-size:12px;">Description & Objectives</label>
+                <textarea id="qm-edit-quest-description-${q.id}" class="form-control" style="min-height:75px;">${escapeAttr(q.description || '')}</textarea>
+              </div>
+
+              <div class="form-group" style="margin-bottom:10px;">
+                <label style="font-size:12px;">Verification System</label>
+                <select id="qm-edit-quest-verification-${q.id}" class="form-control">
+                  <option value="Quest Master" ${verificationMethod === 'Quest Master' ? 'selected' : ''}>Questmaster</option>
+                  <option value="Honor" ${verificationMethod === 'Honor' ? 'selected' : ''}>Honor</option>
+                </select>
+              </div>
+
+              <div class="form-group" style="margin-bottom:12px;">
+                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; margin:0;">
+                  <input type="checkbox" id="qm-edit-quest-repeatable-${q.id}" ${q.repeatable ? 'checked' : ''} style="width:16px; height:16px;">
+                  <span>Repeatable Quest</span>
+                </label>
+              </div>
+
+              <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" onclick="toggleQMQuestEdit('${q.id}', false)" style="background:#27272a; border:1px solid var(--border); color:var(--text); padding:8px 14px; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer;">
+                  Cancel
+                </button>
+                <button type="button" id="btn-save-quest-${q.id}" onclick="qmSaveEditedQuest('${q.id}')" style="background:var(--primary); border:none; color:#ffffff; padding:8px 16px; border-radius:6px; font-size:13px; font-weight:700; cursor:pointer;">
+                  Save Changes
+                </button>
+              </div>
             </div>
           </div>
         </details>
@@ -441,4 +526,99 @@ async function toggleQuestDeployment(questId, currentActiveState) {
   await fetchQuests();
   await fetchMonsterEncounters();
 }
+
+function toggleQMQuestEdit(questId, forceOpen = null) {
+  const formEl = document.getElementById(`qm-quest-edit-form-${questId}`);
+  if (!formEl) return;
+  const shouldOpen = forceOpen !== null ? forceOpen : formEl.classList.contains('hidden');
+  if (shouldOpen) {
+    formEl.classList.remove('hidden');
+    document.getElementById(`qm-edit-quest-title-${questId}`)?.focus();
+  } else {
+    formEl.classList.add('hidden');
+  }
+}
+
+async function qmSaveEditedQuest(questId) {
+  if (!questId) return;
+
+  const title = document.getElementById(`qm-edit-quest-title-${questId}`)?.value.trim();
+  const discipline = document.getElementById(`qm-edit-quest-discipline-${questId}`)?.value || 'Service';
+  const goldInput = document.getElementById(`qm-edit-quest-gold-${questId}`);
+  const reward_gold = goldInput ? (parseInt(goldInput.value, 10) || 0) : 0;
+  const description = document.getElementById(`qm-edit-quest-description-${questId}`)?.value.trim() || '';
+  const verification_method = document.getElementById(`qm-edit-quest-verification-${questId}`)?.value || 'Quest Master';
+  const repeatable = Boolean(document.getElementById(`qm-edit-quest-repeatable-${questId}`)?.checked);
+
+  if (!title) {
+    alert("Please enter a Quest Title.");
+    return;
+  }
+
+  const saveBtn = document.getElementById(`btn-save-quest-${questId}`);
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerText = "Saving...";
+  }
+
+  try {
+    const scenario_card = `<!-- RULES: ${JSON.stringify({ discipline, verification_method, repeatable })} -->`;
+
+    const updatePayload = {
+      title,
+      discipline,
+      reward_gold,
+      description,
+      scenario_card,
+      repeatable,
+      verification_method
+    };
+
+    let { error } = await supabaseClient
+      .from('quests')
+      .update(updatePayload)
+      .eq('id', questId);
+
+    // Resilient fallback if any optional column is missing in Supabase schema cache
+    if (error) {
+      console.warn("Initial quest update error, attempting schema fallback:", error.message);
+      let fallbackPayload = { ...updatePayload };
+      const colMatch = error.message.match(/'([^']+)' column/) || error.message.match(/column ["']?([^"'\s]+)["']? of relation/);
+      if (colMatch && colMatch[1] && colMatch[1] in fallbackPayload) {
+        delete fallbackPayload[colMatch[1]];
+      }
+      delete fallbackPayload.discipline;
+      delete fallbackPayload.verification_method;
+      if (error.message.includes('repeatable')) delete fallbackPayload.repeatable;
+
+      const retry = await supabaseClient
+        .from('quests')
+        .update(fallbackPayload)
+        .eq('id', questId);
+      error = retry.error;
+    }
+
+    if (error) {
+      alert("Failed to update quest: " + error.message);
+      return;
+    }
+
+    alert(`✨ Quest "${title}" updated!`);
+    await fetchQMQuests();
+    await fetchUserSlotState();
+    await fetchQuests();
+  } catch (err) {
+    console.error("Error updating quest:", err);
+    alert("Error updating quest: " + (err.message || err));
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerText = "Save Changes";
+    }
+  }
+}
+
+window.toggleQMQuestEdit = toggleQMQuestEdit;
+window.qmSaveEditedQuest = qmSaveEditedQuest;
+
 

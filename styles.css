@@ -675,6 +675,74 @@ button:focus-visible, select:focus-visible {
   box-shadow: 0 0 16px rgba(244, 63, 94, 0.25);
 }
 
+.queue-box.span-full {
+  grid-column: 1 / -1;
+}
+
+/* Multi-Team Box Color Themes (Red, Blue, Yellow, Green, Purple, Orange, Monster) */
+.queue-box.team-box-red {
+  border-color: rgba(239, 68, 68, 0.45);
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.1) 0%, rgba(15, 23, 42, 0.6) 100%);
+}
+.queue-box.team-box-red.joined-active {
+  border-color: #ef4444;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.28);
+}
+
+.queue-box.team-box-blue {
+  border-color: rgba(56, 189, 248, 0.45);
+  background: linear-gradient(180deg, rgba(2, 132, 199, 0.1) 0%, rgba(15, 23, 42, 0.6) 100%);
+}
+.queue-box.team-box-blue.joined-active {
+  border-color: #38bdf8;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.28);
+}
+
+.queue-box.team-box-yellow {
+  border-color: rgba(250, 204, 21, 0.45);
+  background: linear-gradient(180deg, rgba(202, 138, 4, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%);
+}
+.queue-box.team-box-yellow.joined-active {
+  border-color: #facc15;
+  box-shadow: 0 0 16px rgba(250, 204, 21, 0.28);
+}
+
+.queue-box.team-box-green {
+  border-color: rgba(74, 222, 128, 0.45);
+  background: linear-gradient(180deg, rgba(22, 163, 74, 0.1) 0%, rgba(15, 23, 42, 0.6) 100%);
+}
+.queue-box.team-box-green.joined-active {
+  border-color: #4ade80;
+  box-shadow: 0 0 16px rgba(74, 222, 128, 0.28);
+}
+
+.queue-box.team-box-purple {
+  border-color: rgba(192, 132, 252, 0.45);
+  background: linear-gradient(180deg, rgba(147, 51, 234, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%);
+}
+.queue-box.team-box-purple.joined-active {
+  border-color: #c084fc;
+  box-shadow: 0 0 16px rgba(192, 132, 252, 0.28);
+}
+
+.queue-box.team-box-orange {
+  border-color: rgba(251, 146, 60, 0.45);
+  background: linear-gradient(180deg, rgba(234, 88, 12, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%);
+}
+.queue-box.team-box-orange.joined-active {
+  border-color: #fb923c;
+  box-shadow: 0 0 16px rgba(251, 146, 60, 0.28);
+}
+
+.queue-box.team-box-monster {
+  border-color: rgba(244, 63, 94, 0.5);
+  background: linear-gradient(180deg, rgba(159, 18, 57, 0.16) 0%, rgba(15, 23, 42, 0.65) 100%);
+}
+.queue-box.team-box-monster.joined-active {
+  border-color: #f43f5e;
+  box-shadow: 0 0 16px rgba(244, 63, 94, 0.3);
+}
+
 .queue-header-row {
   display: flex;
   align-items: center;
@@ -778,6 +846,163 @@ button:focus-visible, select:focus-visible {
 .btn-battle-monster:hover {
   filter: brightness(1.1);
   box-shadow: 0 6px 18px rgba(225, 29, 72, 0.5);
+}
+
+/* Multi-Team Action & Victor Button Themes */
+.btn-team-red {
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  color: #ffffff;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.3);
+}
+.btn-team-red:hover { filter: brightness(1.12); }
+
+.btn-team-blue {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3);
+}
+.btn-team-blue:hover { filter: brightness(1.12); }
+
+.btn-team-yellow {
+  background: linear-gradient(135deg, #ca8a04 0%, #a16207 100%);
+  color: #ffffff;
+  border: 1px solid rgba(250, 204, 21, 0.45);
+  box-shadow: 0 4px 14px rgba(202, 138, 4, 0.3);
+}
+.btn-team-yellow:hover { filter: brightness(1.12); }
+
+.btn-team-green {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  color: #ffffff;
+  border: 1px solid rgba(74, 222, 128, 0.4);
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.3);
+}
+.btn-team-green:hover { filter: brightness(1.12); }
+
+.btn-team-purple {
+  background: linear-gradient(135deg, #9333ea 0%, #6b21a8 100%);
+  color: #ffffff;
+  border: 1px solid rgba(192, 132, 252, 0.4);
+  box-shadow: 0 4px 14px rgba(147, 51, 234, 0.3);
+}
+.btn-team-purple:hover { filter: brightness(1.12); }
+
+.btn-team-orange {
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+  color: #ffffff;
+  border: 1px solid rgba(251, 146, 60, 0.4);
+  box-shadow: 0 4px 14px rgba(234, 88, 12, 0.3);
+}
+.btn-team-orange:hover { filter: brightness(1.12); }
+
+.btn-team-monster {
+  background: linear-gradient(135deg, #e11d48 0%, #881337 100%);
+  color: #ffffff;
+  border: 1px solid rgba(244, 63, 94, 0.45);
+  box-shadow: 0 4px 14px rgba(225, 29, 72, 0.35);
+}
+.btn-team-monster:hover { filter: brightness(1.12); }
+
+/* PvP / PvM Slider & Teams Config List */
+.battle-mode-slider {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  background: #121214;
+  padding: 5px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+
+.battle-mode-btn {
+  padding: 10px 8px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.battle-mode-btn.active-pvp {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  border-color: rgba(56, 189, 248, 0.5);
+  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.3);
+}
+
+.battle-mode-btn.active-pvm {
+  background: linear-gradient(135deg, #e11d48 0%, #9f1239 100%);
+  color: #ffffff;
+  border-color: rgba(244, 63, 94, 0.5);
+  box-shadow: 0 2px 10px rgba(225, 29, 72, 0.3);
+}
+
+.battle-teams-config-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.battle-team-config-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: #121214;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: opacity 0.15s ease, border-color 0.15s ease;
+}
+
+.battle-team-config-row.is-unchecked {
+  opacity: 0.5;
+}
+
+.battle-team-config-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  user-select: none;
+  margin: 0;
+}
+
+.battle-team-config-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.battle-team-config-right span {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.battle-team-config-right input[type="number"] {
+  width: 68px;
+  padding: 6px 8px;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  border-radius: 6px;
+  border: 1px solid #3f3f46;
+  background: #1e1e22;
+  color: var(--gold);
 }
 
 .btn-battle-leave {
