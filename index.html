@@ -25,7 +25,7 @@
     })();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="stylesheet" href="styles.css?v=26">
+  <link rel="stylesheet" href="styles.css?v=27">
   <style>
     html.recovery-mode main.container,
     html.recovery-mode nav.bottom-nav {
@@ -283,12 +283,12 @@
         <h2 style="margin:0 0 12px 0;">QM Panel</h2>
 
         <div class="qm-subnav qm-subnav-grid">
-          <button id="qm-subnav-battle" class="qm-subnav-btn active" onclick="switchQMSubTab('battle')">⚔️ Forge Battle</button>
-          <button id="qm-subnav-queues" class="qm-subnav-btn" onclick="switchQMSubTab('queues')">⚔️ Battle Catalog</button>
-          <button id="qm-subnav-items" class="qm-subnav-btn" onclick="switchQMSubTab('items')">📦 Items</button>
-          <button id="qm-subnav-quest" class="qm-subnav-btn" onclick="switchQMSubTab('quest')">📜 Forge Quest</button>
-          <button id="qm-subnav-library" class="qm-subnav-btn" onclick="switchQMSubTab('library')">📜 Quest Catalog</button>
-          <button id="qm-subnav-economy" class="qm-subnav-btn" onclick="switchQMSubTab('economy')">🛠️ QM Tools</button>
+          <button id="qm-subnav-battle" class="qm-subnav-btn active" onclick="switchQMSubTab('battle')">Forge Battle</button>
+          <button id="qm-subnav-queues" class="qm-subnav-btn" onclick="switchQMSubTab('queues')">Battle Catalog</button>
+          <button id="qm-subnav-items" class="qm-subnav-btn" onclick="switchQMSubTab('items')">Items</button>
+          <button id="qm-subnav-quest" class="qm-subnav-btn" onclick="switchQMSubTab('quest')">Forge Quest</button>
+          <button id="qm-subnav-library" class="qm-subnav-btn" onclick="switchQMSubTab('library')">Quest Catalog</button>
+          <button id="qm-subnav-economy" class="qm-subnav-btn" onclick="switchQMSubTab('economy')">QM Tools</button>
         </div>
 
         <!-- SUB-TAB 1: BATTLE CREATOR -->
@@ -312,39 +312,33 @@
             <div class="battle-teams-check-grid" id="qm-battle-teams-list">
               <label class="battle-team-check-item">
                 <input type="checkbox" id="qm-team-check-red" checked>
-                <span style="color:#f87171;">🔴 Red Team</span>
+                <span>Red Team</span>
               </label>
               <label class="battle-team-check-item">
                 <input type="checkbox" id="qm-team-check-blue" checked>
-                <span style="color:#38bdf8;">🔵 Blue Team</span>
+                <span>Blue Team</span>
               </label>
               <label class="battle-team-check-item">
                 <input type="checkbox" id="qm-team-check-yellow">
-                <span style="color:#facc15;">🟡 Yellow Team</span>
+                <span>Yellow Team</span>
               </label>
               <label class="battle-team-check-item">
                 <input type="checkbox" id="qm-team-check-green">
-                <span style="color:#4ade80;">🟢 Green Team</span>
+                <span>Green Team</span>
               </label>
               <label class="battle-team-check-item">
                 <input type="checkbox" id="qm-team-check-purple">
-                <span style="color:#c084fc;">🟣 Purple Team</span>
+                <span>Purple Team</span>
               </label>
               <label class="battle-team-check-item">
                 <input type="checkbox" id="qm-team-check-orange">
-                <span style="color:#fb923c;">🟠 Orange Team</span>
+                <span>Orange Team</span>
               </label>
-              <div class="battle-team-monster-row">
-                <label class="battle-team-monster-left">
-                  <input type="checkbox" id="qm-team-check-monster">
-                  <span style="color:#fda4af;">👹 Monsters</span>
-                </label>
-                <div class="battle-team-monster-right">
-                  <span>Reward</span>
-                  <input type="number" id="qm-team-reward-monster" value="10" min="0">
-                  <span>g</span>
-                </div>
-              </div>
+              <label class="battle-team-check-item">
+                <input type="checkbox" id="qm-team-check-monster">
+                <span>Monsters</span>
+              </label>
+              <input type="number" id="qm-team-reward-monster" class="battle-monster-reward-input" value="10" min="0">
             </div>
           </div>
 
@@ -419,9 +413,9 @@
                 <input type="checkbox" id="qm-battle-allow-mid-join" style="width:16px; height:16px;">
                 <span>Allow Mid-Battle Joining (e.g. Ditch Battles)</span>
               </label>
-              <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; margin:0; color:var(--gold);">
+              <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; margin:0; color:var(--text);">
                 <input type="checkbox" id="qm-battle-rng-loot" style="width:16px; height:16px;">
-                <span>🎲 Roll Item Loot Drops on Victory</span>
+                <span>Roll Item Loot Drops on Victory</span>
               </label>
             </div>
 
@@ -440,8 +434,8 @@
                 <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Defeat Penalty</label>
                 <select id="qm-battle-defeat-penalty" class="form-control" style="padding:6px 8px; font-size:13px;">
                   <option value="none" selected>None (Standard)</option>
-                  <option value="items_lost">💀 Items Lost (Pouch Only)</option>
-                  <option value="total_ruin">☠️ Total Ruin (Pouch + Bank + Gold)</option>
+                  <option value="items_lost">Items Lost (Pouch Only)</option>
+                  <option value="total_ruin">Total Ruin (Pouch + Bank + Gold)</option>
                 </select>
               </div>
             </div>
@@ -649,7 +643,7 @@
   <script src="js/battle/battle.js?v=6"></script>
   <script src="js/quests/quests.js?v=33"></script>
   <script src="js/qm-panel/qm-panel.js?v=2"></script>
-  <script src="js/qm-panel/qm-battles.js?v=6"></script>
+  <script src="js/qm-panel/qm-battles.js?v=7"></script>
   <script src="js/qm-panel/qm-quests.js?v=3"></script>
   <script src="js/qm-panel/qm-items.js?v=2"></script>
   <script src="js/qm-panel/qm-tools.js?v=2"></script>

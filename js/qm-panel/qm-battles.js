@@ -665,12 +665,12 @@ async function fetchQMQueues() {
 
     // Inline Edit Team Checkboxes
     const editTeamChecksHtml = QM_TEAM_KEYS.map(tk => {
-      const meta = typeof getBattleTeamMeta === 'function' ? getBattleTeamMeta(tk) : { label: tk, icon: '⚔️', color: '#ffffff' };
+      const meta = typeof getBattleTeamMeta === 'function' ? getBattleTeamMeta(tk) : { label: tk };
       const isChecked = playerTeams.includes(tk);
       return `
         <label class="battle-team-check-item">
           <input type="checkbox" id="qm-edit-team-check-${tk}-${q.id}" ${isChecked ? 'checked' : ''}>
-          <span style="color:${meta.color};">${meta.icon} ${meta.label}</span>
+          <span>${meta.label}</span>
         </label>
       `;
     }).join('');
@@ -772,17 +772,11 @@ async function fetchQMQueues() {
               </label>
               <div class="battle-teams-check-grid">
                 ${editTeamChecksHtml}
-                <div class="battle-team-monster-row">
-                  <label class="battle-team-monster-left">
-                    <input type="checkbox" id="qm-edit-team-check-monster-${q.id}" ${rules.hasMonsters ? 'checked' : ''}>
-                    <span style="color:#fda4af;">👹 Monsters</span>
-                  </label>
-                  <div class="battle-team-monster-right">
-                    <span>Reward</span>
-                    <input type="number" id="qm-edit-team-reward-monster-${q.id}" value="${monsterReward}" min="0">
-                    <span>g</span>
-                  </div>
-                </div>
+                <label class="battle-team-check-item">
+                  <input type="checkbox" id="qm-edit-team-check-monster-${q.id}" ${rules.hasMonsters ? 'checked' : ''}>
+                  <span>Monsters</span>
+                </label>
+                <input type="number" id="qm-edit-team-reward-monster-${q.id}" class="battle-monster-reward-input" value="${monsterReward}" min="0">
               </div>
             </div>
 
@@ -854,9 +848,9 @@ async function fetchQMQueues() {
                   <input type="checkbox" id="qm-edit-battle-midjoin-${q.id}" ${rules.allowMidJoin ? 'checked' : ''} style="width:15px; height:15px;">
                   <span>Allow Mid-Battle Joining</span>
                 </label>
-                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12px; margin:0; color:var(--gold);">
+                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12px; margin:0; color:var(--text);">
                   <input type="checkbox" id="qm-edit-battle-rngloot-${q.id}" ${rules.rngLootDrops ? 'checked' : ''} style="width:15px; height:15px;">
-                  <span>🎲 Roll Item Loot Drops on Victory</span>
+                  <span>Roll Item Loot Drops on Victory</span>
                 </label>
               </div>
 
@@ -874,8 +868,8 @@ async function fetchQMQueues() {
                   <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Defeat Penalty</label>
                   <select id="qm-edit-battle-penalty-${q.id}" class="form-control" style="padding:6px 8px; font-size:12px;">
                     <option value="none" ${curPenalty === 'none' ? 'selected' : ''}>None (Standard)</option>
-                    <option value="items_lost" ${curPenalty === 'items_lost' ? 'selected' : ''}>💀 Items Lost (Pouch Only)</option>
-                    <option value="total_ruin" ${curPenalty === 'total_ruin' ? 'selected' : ''}>☠️ Total Ruin (Pouch + Bank + Gold)</option>
+                    <option value="items_lost" ${curPenalty === 'items_lost' ? 'selected' : ''}>Items Lost (Pouch Only)</option>
+                    <option value="total_ruin" ${curPenalty === 'total_ruin' ? 'selected' : ''}>Total Ruin (Pouch + Bank + Gold)</option>
                   </select>
                 </div>
               </div>
