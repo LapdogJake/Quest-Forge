@@ -1,5 +1,5 @@
 // ==============================================================================
-// Quest-Forge: Player Battle Tab (Multi-Team PvP / PvM Queues & Battle Cards)
+// Quest-Forge: Player Battle Tab (Multi-Team Queues & Battle Cards)
 // ==============================================================================
 
 async function fetchMonsterEncounters() {
@@ -9,10 +9,33 @@ async function fetchMonsterEncounters() {
   }
 }
 
+function getSavedBattleTeamFallback(questId, userId) {
+  if (!questId || !userId) return '';
+  try {
+    return localStorage.getItem(`qf_battle_team_${questId}_${userId}`) || '';
+  } catch (_) {
+    return '';
+  }
+}
+
+function setSavedBattleTeamFallback(questId, userId, teamKey) {
+  if (!questId || !userId) return;
+  try {
+    if (teamKey) {
+      localStorage.setItem(`qf_battle_team_${questId}_${userId}`, teamKey);
+    } else {
+      localStorage.removeItem(`qf_battle_team_${questId}_${userId}`);
+    }
+  } catch (_) {}
+}
+
 // Fetch live queue rosters and render the Player Battle Tab (#available-combat-quests)
 async function renderBattleBoard(combatQuests, myQueueMemberships, activePark, activeQMName) {
   const combatContainer = document.getElementById('available-combat-quests');
   if (!combatContainer) return;
+
+  const combatQuestById = new Map();
+  (combatQuests || []).forEach(q => combatQuestById.set(q.id, q));
 
   const joinedQueueMap = new Map();
   (myQueueMemberships || []).forEach(m => {
@@ -20,100 +43,152 @@ async function renderBattleBoard(combatQuests, myQueueMemberships, activePark, a
     const quest = queue?.quests;
     if (!queue || !quest || queue.status === 'completed') return;
     if (quest.category === 'Battle' || quest.category === 'Combat') {
-      joinedQueueMap.set(quest.id, queue.id);
+      const questObj = combatQuestById.get(quest.id) || quest;
+      const rules = typeof getQuestDurabilityRules === 'function'
+        ? getQuestDurabilityRules(questObj)
+        : { activeTeams: ['red', 'blue'] };
+      const rawTeam = m.team || m.role_name || getSavedBattleTeamFallback(quest.id, currentUser?.id);
+      const normTeam = typeof normalizeBattleMemberTeam === 'function'
+        ? normalizeBattleMemberTeam(rawTeam, rules.activeTeams)
+        : (rules.activeTeams[0] || 'red');
+      joinedQueueMap.set(quest.id, {
+        queueId: queue.id,
+        teamKey: normTeam
+      });
     }
   });
 
-  const combatQuestById = new Map();
-  (combatQuests || []).forEach(q => combatQuestById.set(q.id, q));
+  // Also check activeMonsterClaim in case the player joined Blue/Yellow/Monster via encounter_monsters fallback
+  if (activeMonsterClaim && activeMonsterClaim.quest_queues?.quest_id) {
+    const mQuestId = activeMonsterClaim.quest_queues.quest_id;
+    const questObj = combatQuestById.get(mQuestId) || activeMonsterClaim.quest_queues?.quests;
+    const rules = typeof getQuestDurabilityRules === 'function'
+      ? getQuestDurabilityRules(questObj)
+      : { activeTeams: ['red', 'blue'] };
+    const rawTeam = activeMonsterClaim.team || activeMonsterClaim.role_name || getSavedBattleTeamFallback(mQuestId, currentUser?.id) || 'monster';
+    const normTeam = typeof normalizeBattleMemberTeam === 'function'
+      ? normalizeBattleMemberTeam(rawTeam, rules.activeTeams)
+      : 'monster';
+    joinedQueueMap.set(mQuestId, {
+      queueId: activeMonsterClaim.queue_id,
+      teamKey: normTeam,
+      monsterClaimId: activeMonsterClaim.id
+    });
+  }
 
   const combatQuestIds = (combatQuests || []).map(q => q.id);
   const queueRosterByQuest = new Map();
 
   if (combatQuestIds.length > 0) {
-    const { data: queuedBattleLines } = await supabaseClient
+    // Do NOT use .order('created_at') on quest_queues as older schemas may not have created_at on quest_queues
+    let { data: queuedBattleLines, error: queueErr } = await supabaseClient
       .from('quest_queues')
       .select('id, quest_id, status, queue_members(*, profiles(id, username, quest_abilities)), encounter_monsters(*, profiles(id, username, quest_abilities))')
       .in('quest_id', combatQuestIds)
-      .in('status', ['waiting', 'active'])
-      .order('created_at', { ascending: false });
+      .in('status', ['waiting', 'active']);
+
+    if (queueErr || !queuedBattleLines) {
+      const fallbackRes = await supabaseClient
+        .from('quest_queues')
+        .select('id, quest_id, status, queue_members(*), encounter_monsters(*)')
+        .in('quest_id', combatQuestIds)
+        .in('status', ['waiting', 'active']);
+      queuedBattleLines = fallbackRes.data || [];
+    }
 
     (queuedBattleLines || []).forEach(line => {
-      if (!line || !line.quest_id || queueRosterByQuest.has(line.quest_id)) return;
+      if (!line || !line.quest_id) return;
 
       const questObj = combatQuestById.get(line.quest_id);
       const rules = typeof getQuestDurabilityRules === 'function'
         ? getQuestDurabilityRules(questObj)
         : { activeTeams: ['red', 'blue'], playerTeams: ['red', 'blue'], hasMonsters: false };
 
-      const rostersByTeam = {};
-      rules.activeTeams.forEach(tk => { rostersByTeam[tk] = []; });
+      // Initialize or merge with existing entry for this quest_id (handles multiple open queue rows gracefully)
+      let entry = queueRosterByQuest.get(line.quest_id);
+      if (!entry) {
+        const rostersByTeam = {};
+        rules.activeTeams.forEach(tk => { rostersByTeam[tk] = []; });
+        entry = {
+          queueId: line.id,
+          queueStatus: line.status,
+          rostersByTeam,
+          joinedTeamKey: null,
+          joinedQueueId: null,
+          joinedMonsterClaimId: null
+        };
+        queueRosterByQuest.set(line.quest_id, entry);
+      } else {
+        if (line.status === 'active') entry.queueStatus = 'active';
+        if ((line.queue_members?.length || 0) > 0 || (line.encounter_monsters?.length || 0) > 0) {
+          entry.queueId = line.id;
+        }
+      }
 
-      let joinedTeamKey = null;
-      let joinedQueueId = null;
-      let joinedMonsterClaimId = null;
+      const rostersByTeam = entry.rostersByTeam;
 
-      // 1. Process queue_members (supports all 6 player color teams + 'monster')
+      // 1. Process queue_members
       (line.queue_members || []).forEach(member => {
-        const rawTeam = member.team || member.role_name || '';
+        const uid = member.user_id || member.profiles?.id;
+        const isMe = Boolean(currentUser && uid === currentUser.id);
+        const rawTeam = member.team || member.role_name || (isMe ? getSavedBattleTeamFallback(line.quest_id, uid) : '');
         const teamKey = typeof normalizeBattleMemberTeam === 'function'
           ? normalizeBattleMemberTeam(rawTeam, rules.activeTeams)
           : (rules.activeTeams[0] || 'red');
 
         if (!rostersByTeam[teamKey]) rostersByTeam[teamKey] = [];
-        rostersByTeam[teamKey].push({
-          id: member.id,
-          userId: member.user_id || member.profiles?.id,
-          username: member.profiles?.username || 'Hero',
-          abilities: member.profiles?.quest_abilities || [],
-          sourceTable: 'queue_members',
-          teamKey
-        });
+        const alreadyInTeam = rostersByTeam[teamKey].some(m => m.userId && m.userId === uid);
+        if (!alreadyInTeam) {
+          const fallbackName = isMe ? (currentProfile?.username || currentUser?.username || 'Hero') : 'Hero';
+          rostersByTeam[teamKey].push({
+            id: member.id,
+            userId: uid,
+            username: member.profiles?.username || fallbackName,
+            abilities: member.profiles?.quest_abilities || (isMe ? (currentProfile?.quest_abilities || []) : []),
+            sourceTable: 'queue_members',
+            teamKey
+          });
+        }
 
-        if (currentUser && (member.user_id === currentUser.id || member.profiles?.id === currentUser.id)) {
-          joinedTeamKey = teamKey;
-          joinedQueueId = line.id;
+        if (isMe) {
+          entry.joinedTeamKey = teamKey;
+          entry.joinedQueueId = line.id;
         }
       });
 
-      // 2. Process encounter_monsters (legacy Monster table fallback)
+      // 2. Process encounter_monsters (supports Monster Line AND fallback team storage if queue_members lacks role_name)
       (line.encounter_monsters || []).forEach(member => {
-        const targetTeam = rules.activeTeams.includes('monster')
-          ? 'monster'
-          : (rules.activeTeams[1] || rules.activeTeams[0] || 'monster');
+        if (member.status === 'completed') return;
+        const uid = member.user_id || member.profiles?.id;
+        const isMe = Boolean(currentUser && uid === currentUser.id);
+        const rawTeam = member.team || member.role_name || (isMe ? getSavedBattleTeamFallback(line.quest_id, uid) : 'monster');
+        const targetTeam = typeof normalizeBattleMemberTeam === 'function'
+          ? normalizeBattleMemberTeam(rawTeam, rules.activeTeams)
+          : (rules.activeTeams.includes('monster') ? 'monster' : (rules.activeTeams[1] || rules.activeTeams[0] || 'monster'));
 
         if (!rostersByTeam[targetTeam]) rostersByTeam[targetTeam] = [];
-        const uid = member.user_id || member.profiles?.id;
-        const alreadyListed = rostersByTeam[targetTeam].some(m => m.userId && m.userId === uid);
+        const alreadyListed = Object.values(rostersByTeam).some(list => list.some(m => m.userId && m.userId === uid));
         if (!alreadyListed) {
+          const fallbackName = isMe ? (currentProfile?.username || currentUser?.username || 'Fighter') : 'Fighter';
           rostersByTeam[targetTeam].push({
             id: member.id,
             userId: uid,
-            username: member.profiles?.username || 'Monster',
-            abilities: member.profiles?.quest_abilities || [],
+            username: member.profiles?.username || fallbackName,
+            abilities: member.profiles?.quest_abilities || (isMe ? (currentProfile?.quest_abilities || []) : []),
             sourceTable: 'encounter_monsters',
             teamKey: targetTeam
           });
         }
 
-        if (currentUser && uid === currentUser.id) {
-          joinedTeamKey = targetTeam;
-          joinedQueueId = line.id;
-          joinedMonsterClaimId = member.id;
+        if (isMe) {
+          entry.joinedTeamKey = targetTeam;
+          entry.joinedQueueId = line.id;
+          entry.joinedMonsterClaimId = member.id;
         }
       });
 
-      queueRosterByQuest.set(line.quest_id, {
-        queueId: line.id,
-        queueStatus: line.status,
-        rostersByTeam,
-        joinedTeamKey,
-        joinedQueueId,
-        joinedMonsterClaimId,
-        // Legacy properties for backward compatibility
-        heroPlayers: rostersByTeam[rules.playerTeams[0] || 'red'] || [],
-        monsterPlayers: rostersByTeam['monster'] || rostersByTeam[rules.playerTeams[1] || 'blue'] || []
-      });
+      entry.heroPlayers = rostersByTeam[rules.playerTeams[0] || 'red'] || [];
+      entry.monsterPlayers = rostersByTeam['monster'] || rostersByTeam[rules.playerTeams[1] || 'blue'] || [];
     });
   }
 
@@ -136,7 +211,7 @@ function renderMonsterQuestCard(q, activeMonsterClaim, monsterRoster = null, isB
 }
 
 // Render a Multi-Team Battle Card on the Player Battle Tab (#available-combat-quests)
-function renderBattleQuestCard(q, joinedQueueId = null, queueRoster = null, isCardOpen = false) {
+function renderBattleQuestCard(q, joinedInfo = null, queueRoster = null, isCardOpen = false) {
   const isSlotLocked = Boolean(activeBattleQuest || activeMonsterClaim);
   const rules = typeof getQuestDurabilityRules === 'function'
     ? getQuestDurabilityRules(q)
@@ -158,10 +233,31 @@ function renderBattleQuestCard(q, joinedQueueId = null, queueRoster = null, isCa
     ? rules.activeTeams
     : ['red', 'blue'];
 
+  const joinedQueueIdFromMap = typeof joinedInfo === 'object' && joinedInfo !== null ? joinedInfo.queueId : joinedInfo;
+  const joinedTeamFromMap = typeof joinedInfo === 'object' && joinedInfo !== null ? joinedInfo.teamKey : null;
+  const joinedMonsterIdFromMap = typeof joinedInfo === 'object' && joinedInfo !== null ? joinedInfo.monsterClaimId : null;
+
   const rostersByTeam = queueRoster?.rostersByTeam || {};
-  const myTeamKey = queueRoster?.joinedTeamKey || (joinedQueueId ? activeTeams[0] : null);
-  const myQueueId = queueRoster?.joinedQueueId || joinedQueueId || '';
-  const myMonsterClaimId = queueRoster?.joinedMonsterClaimId || (activeMonsterClaim && activeMonsterClaim.quest_queues?.quest_id === q.id ? activeMonsterClaim.id : '');
+  const myTeamKey = queueRoster?.joinedTeamKey || joinedTeamFromMap || (joinedQueueIdFromMap ? ( getSavedBattleTeamFallback(q.id, currentUser?.id) || activeTeams[0] ) : null);
+  const myQueueId = queueRoster?.joinedQueueId || joinedQueueIdFromMap || '';
+  const myMonsterClaimId = queueRoster?.joinedMonsterClaimId || joinedMonsterIdFromMap || (activeMonsterClaim && activeMonsterClaim.quest_queues?.quest_id === q.id ? activeMonsterClaim.id : '');
+
+  // Ensure that if the current user is joined to myTeamKey, their name is always visible in that team's roster list
+  if (myTeamKey && currentUser) {
+    if (!rostersByTeam[myTeamKey]) rostersByTeam[myTeamKey] = [];
+    const meAlreadyInList = rostersByTeam[myTeamKey].some(p =>
+      p.userId === currentUser.id || p.username === currentProfile?.username || p.username === currentUser.username
+    );
+    if (!meAlreadyInList) {
+      rostersByTeam[myTeamKey].push({
+        id: myMonsterClaimId || 'self',
+        userId: currentUser.id,
+        username: currentProfile?.username || currentUser.username || 'Hero',
+        abilities: currentProfile?.quest_abilities || [],
+        teamKey: myTeamKey
+      });
+    }
+  }
 
   const isLive = queueRoster?.queueStatus === 'active';
   const isOpen = Boolean(isCardOpen);
@@ -185,7 +281,6 @@ function renderBattleQuestCard(q, joinedQueueId = null, queueRoster = null, isCa
     const teamPlayers = rostersByTeam[teamKey] || [];
     const isJoinedThisTeam = myTeamKey === teamKey;
 
-    // Span full width if odd number of total boxes and this is either the Monster line first or the final odd player team
     const isOddTotal = activeTeams.length % 2 === 1;
     const shouldSpanFull = isOddTotal && (teamKey === 'monster' || (!activeTeams.includes('monster') && idx === activeTeams.length - 1));
 
@@ -234,7 +329,7 @@ function renderBattleQuestCard(q, joinedQueueId = null, queueRoster = null, isCa
     } else {
       if (isJoinedThisTeam) {
         actionBtnHtml = `
-          <button class="btn-battle-action btn-battle-leave" onclick="leaveBattleTeam('${myQueueId}', '${myMonsterClaimId}')">
+          <button class="btn-battle-action btn-battle-leave" onclick="leaveBattleTeam('${myQueueId}', '${myMonsterClaimId}', '${q.id}')">
             LEAVE
           </button>
         `;
@@ -352,31 +447,35 @@ async function joinBattleTeam(questId, teamKey = 'red') {
   const { data: questRow } = await supabaseClient.from('quests').select('*').eq('id', questId).maybeSingle();
   const rules = typeof getQuestDurabilityRules === 'function' ? getQuestDurabilityRules(questRow) : { allowMidJoin: false };
 
+  // Fetch open queues for this quest without .order('created_at') so older schemas never error out
   const { data: existingQueues } = await supabaseClient
     .from('quest_queues')
     .select('*')
     .eq('quest_id', questId)
-    .in('status', ['waiting', 'active'])
-    .order('created_at', { ascending: false })
-    .limit(1);
+    .in('status', ['waiting', 'active']);
 
-  if (existingQueues && existingQueues.length > 0 && existingQueues[0].status === 'active' && !rules.allowMidJoin) {
+  const activeQueueRow = (existingQueues || []).find(q => q.status === 'active') || (existingQueues || [])[0] || null;
+
+  if (activeQueueRow && activeQueueRow.status === 'active' && !rules.allowMidJoin) {
     alert("⚠️ This battle is currently active in combat! You cannot join or switch sides while the battle is live.");
     return;
   }
 
   let queueId = null;
 
-  if (existingQueues && existingQueues.length > 0 && (existingQueues[0].status === 'waiting' || existingQueues[0].status === 'active')) {
-    queueId = existingQueues[0].id;
+  if (activeQueueRow) {
+    queueId = activeQueueRow.id;
   } else {
-    const { data: newQueue, error } = await supabaseClient
+    let { data: newQueue, error } = await supabaseClient
       .from('quest_queues')
-      .insert({ quest_id: questId, leader_id: currentUser.id, status: 'waiting' })
+      .insert({ quest_id: questId, status: 'waiting' })
       .select()
       .single();
 
-    if (error) { alert("Error opening line: " + error.message); return; }
+    if (error) {
+      alert("Error opening line: " + error.message);
+      return;
+    }
     queueId = newQueue.id;
   }
 
@@ -384,6 +483,9 @@ async function joinBattleTeam(questId, teamKey = 'red') {
   const meta = typeof getBattleTeamMeta === 'function'
     ? getBattleTeamMeta(normalizedKey)
     : { label: normalizedKey, icon: '⚔️' };
+
+  // Save local fallback so the client always remembers the exact team joined
+  setSavedBattleTeamFallback(questId, currentUser.id, normalizedKey);
 
   // Insert into queue_members with team & role_name, with resilient schema fallback
   let joinError = null;
@@ -398,15 +500,22 @@ async function joinBattleTeam(questId, teamKey = 'red') {
       .insert({ queue_id: queueId, user_id: currentUser.id, role_name: normalizedKey });
 
     if (err2) {
-      // Fallback if 'role_name' also wasn't present on queue_members
-      if (normalizedKey === 'monster') {
+      // Fallback if 'role_name' also isn't present on queue_members:
+      // For any non-Red team (Blue, Yellow, Green, Purple, Orange, Monster), encounter_monsters has role_name!
+      if (normalizedKey !== 'red') {
         const { error: monsterErr } = await supabaseClient.from('encounter_monsters').insert({
           queue_id: queueId,
           user_id: currentUser.id,
-          role_name: 'monster',
+          role_name: normalizedKey,
           status: 'claimed'
         });
-        joinError = monsterErr;
+        if (monsterErr) {
+          // Final fallback if encounter_monsters also rejected
+          const { error: err3 } = await supabaseClient
+            .from('queue_members')
+            .insert({ queue_id: queueId, user_id: currentUser.id });
+          joinError = err3;
+        }
       } else {
         const { error: err3 } = await supabaseClient
           .from('queue_members')
@@ -429,14 +538,31 @@ async function joinBattleTeam(questId, teamKey = 'red') {
   }
 }
 
-async function leaveBattleTeam(queueId, monsterClaimId = '') {
+async function leaveBattleTeam(queueId, monsterClaimId = '', questId = '') {
+  if (questId && currentUser) {
+    setSavedBattleTeamFallback(questId, currentUser.id, '');
+  }
+
   const ops = [];
   if (queueId) {
     ops.push(supabaseClient.from('queue_members').delete().eq('queue_id', queueId).eq('user_id', currentUser.id));
     ops.push(supabaseClient.from('encounter_monsters').delete().eq('queue_id', queueId).eq('user_id', currentUser.id));
   }
-  if (monsterClaimId) {
+  if (monsterClaimId && monsterClaimId !== 'self') {
     ops.push(supabaseClient.from('encounter_monsters').delete().eq('id', monsterClaimId));
+  }
+  // Also clean up across any other open queues for this questId so duplicate queues never trap the player
+  if (questId && currentUser) {
+    const { data: openQs } = await supabaseClient
+      .from('quest_queues')
+      .select('id')
+      .eq('quest_id', questId)
+      .in('status', ['waiting', 'active']);
+    const qIds = (openQs || []).map(q => q.id).filter(Boolean);
+    if (qIds.length > 0) {
+      ops.push(supabaseClient.from('queue_members').delete().in('queue_id', qIds).eq('user_id', currentUser.id));
+      ops.push(supabaseClient.from('encounter_monsters').delete().in('queue_id', qIds).eq('user_id', currentUser.id));
+    }
   }
   await Promise.allSettled(ops);
 

@@ -87,7 +87,7 @@ async function fetchUserSlotState() {
 
   const { data: queueMemberships } = await supabaseClient
     .from('queue_members')
-    .select('queue_id, quest_queues(*, quests(*))')
+    .select('*, quest_queues(*, quests(*))')
     .eq('user_id', currentUser.id);
 
   const { data: monsterClaims } = await supabaseClient
@@ -173,7 +173,7 @@ async function fetchQuests() {
 
   const { data: myQueueMemberships } = await supabaseClient
     .from('queue_members')
-    .select('queue_id, quest_queues(*, quests(*))')
+    .select('*, quest_queues(*, quests(*))')
     .eq('user_id', currentUser.id);
 
   const activeQuestIds = userQuests ? userQuests.filter(uq => uq.status === 'accepted').map(uq => uq.quest_id) : [];

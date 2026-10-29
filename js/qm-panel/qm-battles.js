@@ -339,7 +339,7 @@ async function fetchQMQueues() {
   }
 
   const questIds = battleQuests.map(q => q.id);
-  const { data: openQueues } = await supabaseClient
+  let { data: openQueues, error: openQErr } = await supabaseClient
     .from('quest_queues')
     .select(`
       *,
@@ -347,13 +347,33 @@ async function fetchQMQueues() {
       encounter_monsters(*, profiles(id, username, quest_abilities))
     `)
     .in('quest_id', questIds)
-    .in('status', ['waiting', 'active'])
-    .order('created_at', { ascending: false });
+    .in('status', ['waiting', 'active']);
+
+  if (openQErr || !openQueues) {
+    const fallbackQ = await supabaseClient
+      .from('quest_queues')
+      .select('*, queue_members(*), encounter_monsters(*)')
+      .in('quest_id', questIds)
+      .in('status', ['waiting', 'active']);
+    openQueues = fallbackQ.data || [];
+  }
 
   const queuesByQuest = new Map();
   (openQueues || []).forEach(qq => {
     if (!queuesByQuest.has(qq.quest_id)) {
-      queuesByQuest.set(qq.quest_id, qq);
+      queuesByQuest.set(qq.quest_id, {
+        ...qq,
+        queue_members: [...(qq.queue_members || [])],
+        encounter_monsters: [...(qq.encounter_monsters || [])]
+      });
+    } else {
+      const existing = queuesByQuest.get(qq.quest_id);
+      if (qq.status === 'active') existing.status = 'active';
+      if ((qq.queue_members?.length || 0) > 0 || (qq.encounter_monsters?.length || 0) > 0) {
+        existing.id = qq.id;
+      }
+      existing.queue_members.push(...(qq.queue_members || []));
+      existing.encounter_monsters.push(...(qq.encounter_monsters || []));
     }
   });
 
@@ -468,31 +488,41 @@ async function fetchQMQueues() {
     activeTeams.forEach(tk => { rostersByTeam[tk] = []; });
 
     (activeQueue?.queue_members || []).forEach(m => {
-      const rawTeam = m.team || m.role_name || '';
+      const uid = m.user_id || m.profiles?.id;
+      const isMe = Boolean(currentUser && uid === currentUser.id);
+      const rawTeam = m.team || m.role_name || (isMe && typeof getSavedBattleTeamFallback === 'function' ? getSavedBattleTeamFallback(q.id, uid) : '');
       const teamKey = typeof normalizeBattleMemberTeam === 'function'
         ? normalizeBattleMemberTeam(rawTeam, activeTeams)
         : (activeTeams[0] || 'red');
       if (!rostersByTeam[teamKey]) rostersByTeam[teamKey] = [];
-      rostersByTeam[teamKey].push({
-        id: m.id,
-        userId: m.user_id || m.profiles?.id,
-        username: m.profiles?.username || 'Hero',
-        abilities: Array.isArray(m.profiles?.quest_abilities) ? m.profiles.quest_abilities : [],
-        sourceTable: 'queue_members'
-      });
+      if (!rostersByTeam[teamKey].some(existing => existing.userId && existing.userId === uid)) {
+        const fallbackName = isMe ? (currentProfile?.username || currentUser?.username || 'Hero') : 'Hero';
+        rostersByTeam[teamKey].push({
+          id: m.id,
+          userId: uid,
+          username: m.profiles?.username || fallbackName,
+          abilities: Array.isArray(m.profiles?.quest_abilities) ? m.profiles.quest_abilities : [],
+          sourceTable: 'queue_members'
+        });
+      }
     });
 
     (activeQueue?.encounter_monsters || []).forEach(m => {
-      const targetTeam = activeTeams.includes('monster')
-        ? 'monster'
-        : (activeTeams[1] || activeTeams[0] || 'monster');
-      if (!rostersByTeam[targetTeam]) rostersByTeam[targetTeam] = [];
+      if (m.status === 'completed') return;
       const uid = m.user_id || m.profiles?.id;
-      if (!rostersByTeam[targetTeam].some(existing => existing.userId && existing.userId === uid)) {
+      const isMe = Boolean(currentUser && uid === currentUser.id);
+      const rawTeam = m.team || m.role_name || (isMe && typeof getSavedBattleTeamFallback === 'function' ? getSavedBattleTeamFallback(q.id, uid) : 'monster');
+      const targetTeam = typeof normalizeBattleMemberTeam === 'function'
+        ? normalizeBattleMemberTeam(rawTeam, activeTeams)
+        : (activeTeams.includes('monster') ? 'monster' : (activeTeams[1] || activeTeams[0] || 'monster'));
+      if (!rostersByTeam[targetTeam]) rostersByTeam[targetTeam] = [];
+      const alreadyInAnyTeam = Object.values(rostersByTeam).some(list => list.some(existing => existing.userId && existing.userId === uid));
+      if (!alreadyInAnyTeam) {
+        const fallbackName = isMe ? (currentProfile?.username || currentUser?.username || 'Fighter') : 'Fighter';
         rostersByTeam[targetTeam].push({
           id: m.id,
           userId: uid,
-          username: m.profiles?.username || 'Monster',
+          username: m.profiles?.username || fallbackName,
           abilities: Array.isArray(m.profiles?.quest_abilities) ? m.profiles.quest_abilities : [],
           sourceTable: 'encounter_monsters'
         });
@@ -1024,7 +1054,8 @@ async function fetchBattleResolutionContext(queueId, questId) {
 
   (queueData?.queue_members || []).forEach(m => {
     if (!m.user_id) return;
-    const rawTeam = m.team || m.role_name || '';
+    const isMe = Boolean(currentUser && m.user_id === currentUser.id);
+    const rawTeam = m.team || m.role_name || (isMe && typeof getSavedBattleTeamFallback === 'function' ? getSavedBattleTeamFallback(questId, m.user_id) : '');
     const tk = typeof normalizeBattleMemberTeam === 'function'
       ? normalizeBattleMemberTeam(rawTeam, activeTeams)
       : (activeTeams[0] || 'red');
@@ -1035,8 +1066,12 @@ async function fetchBattleResolutionContext(queueId, questId) {
   });
 
   (queueData?.encounter_monsters || []).forEach(m => {
-    if (!m.user_id) return;
-    const tk = activeTeams.includes('monster') ? 'monster' : (activeTeams[1] || activeTeams[0] || 'monster');
+    if (!m.user_id || m.status === 'completed') return;
+    const isMe = Boolean(currentUser && m.user_id === currentUser.id);
+    const rawTeam = m.team || m.role_name || (isMe && typeof getSavedBattleTeamFallback === 'function' ? getSavedBattleTeamFallback(questId, m.user_id) : 'monster');
+    const tk = typeof normalizeBattleMemberTeam === 'function'
+      ? normalizeBattleMemberTeam(rawTeam, activeTeams)
+      : (activeTeams.includes('monster') ? 'monster' : (activeTeams[1] || activeTeams[0] || 'monster'));
     if (!teamUserIds[tk]) teamUserIds[tk] = [];
     if (!teamUserIds[tk].includes(m.user_id)) {
       teamUserIds[tk].push(m.user_id);
