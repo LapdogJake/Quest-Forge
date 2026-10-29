@@ -6,8 +6,17 @@ let currentRealmItemConfig = {
   overrides: {},
   custom_items: [],
   loot_rates: null,
+  buyback_percent: 100,
   configRowId: null
 };
+
+// Resolve the active buy-back percentage for item selling (0 to 100, default 100%)
+function getActiveBuybackPercent(config = currentRealmItemConfig) {
+  if (config && config.buyback_percent !== undefined && config.buyback_percent !== null && Number.isFinite(Number(config.buyback_percent))) {
+    return Math.max(0, Math.min(100, Math.round(Number(config.buyback_percent))));
+  }
+  return 100;
+}
 
 function getRealmItemConfigStorageKey(park, qmId) {
   const normPark = (typeof normalizeParkName === 'function')
@@ -173,7 +182,8 @@ async function fetchRealmItemConfig(customPark = null, customQMId = null) {
       localStorage.setItem(storageKey, JSON.stringify({
         overrides: loadedConfig.overrides || {},
         custom_items: loadedConfig.custom_items || [],
-        loot_rates: loadedConfig.loot_rates || null
+        loot_rates: loadedConfig.loot_rates || null,
+        buyback_percent: (loadedConfig.buyback_percent !== undefined && loadedConfig.buyback_percent !== null) ? Number(loadedConfig.buyback_percent) : 100
       }));
     } catch (_) {}
   }
@@ -182,6 +192,9 @@ async function fetchRealmItemConfig(customPark = null, customQMId = null) {
     overrides: (loadedConfig && typeof loadedConfig.overrides === 'object' && loadedConfig.overrides) ? loadedConfig.overrides : {},
     custom_items: (loadedConfig && Array.isArray(loadedConfig.custom_items)) ? loadedConfig.custom_items : [],
     loot_rates: (loadedConfig && loadedConfig.loot_rates) ? loadedConfig.loot_rates : null,
+    buyback_percent: (loadedConfig && loadedConfig.buyback_percent !== undefined && loadedConfig.buyback_percent !== null && Number.isFinite(Number(loadedConfig.buyback_percent)))
+      ? Math.max(0, Math.min(100, Math.round(Number(loadedConfig.buyback_percent))))
+      : 100,
     configRowId: foundRowId
   };
 
@@ -207,7 +220,8 @@ async function saveRealmItemConfig(newConfig = currentRealmItemConfig) {
   const serializedPayload = {
     overrides: newConfig.overrides || {},
     custom_items: newConfig.custom_items || [],
-    loot_rates: newConfig.loot_rates || null
+    loot_rates: newConfig.loot_rates || null,
+    buyback_percent: getActiveBuybackPercent(newConfig)
   };
   const jsonString = JSON.stringify(serializedPayload);
 
@@ -305,6 +319,7 @@ async function saveRealmItemConfig(newConfig = currentRealmItemConfig) {
   currentRealmItemConfig.overrides = serializedPayload.overrides;
   currentRealmItemConfig.custom_items = serializedPayload.custom_items;
   currentRealmItemConfig.loot_rates = serializedPayload.loot_rates;
+  currentRealmItemConfig.buyback_percent = serializedPayload.buyback_percent;
 
   rebuildActiveStoreCatalog(currentRealmItemConfig);
 
@@ -507,9 +522,68 @@ async function qmResetLootDropRates() {
   await saveRealmItemConfig(currentRealmItemConfig);
 }
 
+// Render the Buy Percentage slider & input inside #qm-subtab-items
+function renderQMBuybackControls() {
+  const sliderEl = document.getElementById('qm-buyback-slider');
+  const numEl = document.getElementById('qm-buyback-num');
+  const noteEl = document.getElementById('qm-buyback-default-note');
+  const pct = getActiveBuybackPercent(currentRealmItemConfig);
+
+  if (sliderEl) sliderEl.value = String(pct);
+  if (numEl) numEl.value = String(pct);
+  if (noteEl) {
+    noteEl.textContent = pct !== 100
+      ? `Default: 100% (Modified to ${pct}%)`
+      : 'Default: 100% (1-for-1)';
+  }
+}
+
+// Sync the Buy Percentage slider and number input in real time
+function syncQMBuybackInput(source) {
+  const sliderEl = document.getElementById('qm-buyback-slider');
+  const numEl = document.getElementById('qm-buyback-num');
+  if (!sliderEl || !numEl) return;
+
+  if (source === 'slider') {
+    numEl.value = sliderEl.value;
+  } else {
+    const raw = parseFloat(numEl.value);
+    if (Number.isFinite(raw)) {
+      const clamped = Math.max(0, Math.min(100, Math.round(raw)));
+      sliderEl.value = String(clamped);
+    }
+  }
+}
+
+// Save the realm's Buy Percentage (0-100%)
+async function qmSaveBuybackPercent() {
+  const numEl = document.getElementById('qm-buyback-num');
+  const sliderEl = document.getElementById('qm-buyback-slider');
+  const raw = parseFloat(numEl ? numEl.value : (sliderEl ? sliderEl.value : '100'));
+  const pct = Number.isFinite(raw) ? Math.max(0, Math.min(100, Math.round(raw))) : 100;
+
+  currentRealmItemConfig.buyback_percent = pct;
+  await saveRealmItemConfig(currentRealmItemConfig);
+  alert(`Buy-back percentage saved (${pct}%)!`);
+}
+
+// Reset the realm's Buy Percentage back to 100% (1-for-1)
+async function qmResetBuybackPercent() {
+  if (getActiveBuybackPercent(currentRealmItemConfig) === 100) {
+    alert('Buy-back percentage is already set to the default 100% (1-for-1).');
+    return;
+  }
+  if (!confirm('Reset buy-back percentage back to 100% (1-for-1)?')) {
+    return;
+  }
+  currentRealmItemConfig.buyback_percent = 100;
+  await saveRealmItemConfig(currentRealmItemConfig);
+}
+
 // Render the QM Item Economy & Custom Item list inside #qm-item-economy-list
 function renderQMItemsPanel() {
   renderQMLootDropControls();
+  renderQMBuybackControls();
   fetchQMRealmPlayers(false);
   const container = document.getElementById('qm-item-economy-list');
   if (!container) return;

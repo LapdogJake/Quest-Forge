@@ -43,13 +43,15 @@ function switchItemsSubTab(subTab) {
 // 2. Item Pricing, Category, & Durability Helpers
 // ------------------------------------------------------------------------------
 
-// Linear 1:1 Item Value & Durability Calculator (Based on buy-side store pricing)
-// Formula: Floor(buyPrice * (currentDurability / maxDurability))
+// Linear Item Value & Durability Calculator (Scaled by realm buy-back percentage)
+// Formula: Floor(buyPrice * (currentDurability / maxDurability) * (buybackPercent / 100))
 function calculateItemValue(basePrice, currentDurability, maxDurability) {
   const price = Math.max(0, Number(basePrice || 0));
-  if (!maxDurability || maxDurability <= 0) return price;
+  const buybackPct = (typeof getActiveBuybackPercent === 'function') ? getActiveBuybackPercent() : 100;
+  const pctMultiplier = Math.max(0, Math.min(100, Number(buybackPct))) / 100;
+  if (!maxDurability || maxDurability <= 0) return Math.floor(price * pctMultiplier);
   const ratio = Math.min(1, Math.max(0, currentDurability) / maxDurability);
-  return Math.floor(price * ratio);
+  return Math.floor(price * ratio * pctMultiplier);
 }
 
 // Lookup official buy-side store catalog price for an item

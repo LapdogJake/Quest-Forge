@@ -76,7 +76,8 @@ button:focus-visible, select:focus-visible {
 .card-monsters,
 .card-store,
 .card-items,
-.card-library {
+.card-library,
+.card-admin {
   border-top: 4px solid #3f3f46;
 }
 
@@ -283,6 +284,7 @@ button:focus-visible, select:focus-visible {
   margin-top: 12px;
 }
 
+details.store-category,
 .store-catalog-list details.store-category {
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -290,6 +292,7 @@ button:focus-visible, select:focus-visible {
   overflow: hidden;
 }
 
+details.store-category > summary.store-category-summary,
 .store-catalog-list details.store-category summary.store-category-summary {
   cursor: pointer;
   padding: 12px 14px;
@@ -306,24 +309,29 @@ button:focus-visible, select:focus-visible {
   transition: background 0.15s ease;
 }
 
+details.store-category[open] > summary.store-category-summary,
 .store-catalog-list details.store-category[open] summary.store-category-summary {
   border-bottom: 1px solid var(--border);
 }
 
+details.store-category > summary.store-category-summary:hover,
 .store-catalog-list details.store-category summary.store-category-summary:hover {
   background: #242429;
 }
 
+details.store-category > summary.store-category-summary::-webkit-details-marker,
 .store-catalog-list details.store-category summary.store-category-summary::-webkit-details-marker {
   display: none;
 }
 
+details.store-category > summary.store-category-summary:after,
 .store-catalog-list details.store-category summary.store-category-summary:after {
   content: '+';
   font-size: 18px;
   color: var(--text-muted);
 }
 
+details.store-category[open] > summary.store-category-summary:after,
 .store-catalog-list details.store-category[open] summary.store-category-summary:after {
   content: '−';
 }
