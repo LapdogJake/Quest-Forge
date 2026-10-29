@@ -39,18 +39,27 @@ const STORAGE_LIMITS = {
 };
 
 // RNG Mystery Loot Drop Rates (per encounter resolution)
+const DEFAULT_RNG_LOOT_DROP_SLOTS = {
+  trinket: [25, 25, 25], // 3 Trinket drops @ 25% each
+  talisman: [5, 5],      // 2 Talisman drops @ 5% each
+  artifact: [0.4]        // 1 Artifact drop @ 0.4% (1 in 250)
+};
+
 const RNG_LOOT_DROP_RATES = {
   trinket: {
     rolls: 3,
-    chance: 0.25 // 25% drop rate per roll
+    chance: 0.25, // 25% drop rate per roll
+    slots: [25, 25, 25]
   },
   talisman: {
     rolls: 2,
-    chance: 0.05 // 5% drop rate per roll
+    chance: 0.05, // 5% drop rate per roll
+    slots: [5, 5]
   },
   artifact: {
     rolls: 1,
-    chance: 1 / 250 // 1 in 250 (0.4%)
+    chance: 1 / 250, // 1 in 250 (0.4%)
+    slots: [0.4]
   }
 };
 
@@ -114,7 +123,7 @@ const AMTGARD_ROP_QUEST_ABILITY_DETAILS = {
 };
 
 // Official magic item catalog seed used by the store UI with explicit per-item unique durability
-const STORE_CATALOG = [
+const DEFAULT_STORE_CATALOG = [
   // Trinkets (Durability: 1)
   { id: 'magic-potion-barkskin', item_name: 'Potion of Barkskin', category: 'Trinket', durability_max: 1, base_cost: 3 },
   { id: 'magic-potion-refreshment', item_name: 'Potion of Refreshment', category: 'Trinket', durability_max: 1, base_cost: 3 },
@@ -150,6 +159,9 @@ const STORE_CATALOG = [
   { id: 'magic-cloak-enigmas', item_name: 'Cloak of Enigmas', category: 'Artifacts', durability_max: 20, base_cost: 140 },
   { id: 'magic-ankh-ran', item_name: 'Ankh of Ran', category: 'Artifacts', durability_max: 20, base_cost: 120 }
 ];
+
+// Active Store Catalog (defaults to DEFAULT_STORE_CATALOG + QM Realm Overrides & Custom Items)
+const STORE_CATALOG = DEFAULT_STORE_CATALOG.map(item => ({ ...item, is_custom: false }));
 
 // Multi-Team Battle System Definitions (Up to 6 Player Color Teams + Monsters NPC Line)
 const BATTLE_PLAYER_TEAMS = [

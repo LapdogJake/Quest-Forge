@@ -211,6 +211,7 @@ ALTER TABLE public.quests
   ADD COLUMN IF NOT EXISTS battle_teams JSONB DEFAULT '["red","blue"]'::jsonb,
   ADD COLUMN IF NOT EXISTS placement_rewards JSONB DEFAULT '[15,10,10,10,10,10]'::jsonb,
   ADD COLUMN IF NOT EXISTS monster_reward INTEGER DEFAULT 10,
+  ADD COLUMN IF NOT EXISTS battle_config JSONB,
   ADD COLUMN IF NOT EXISTS durability_wear INTEGER DEFAULT 1,
   ADD COLUMN IF NOT EXISTS defeat_penalty TEXT DEFAULT 'none';
 
@@ -243,6 +244,10 @@ CREATE TABLE IF NOT EXISTS public.quest_queues (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+ALTER TABLE public.quest_queues
+  ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'waiting',
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now();
+
 CREATE INDEX IF NOT EXISTS idx_quest_queues_quest ON public.quest_queues (quest_id, status);
 
 -- ------------------------------------------------------------------------------
@@ -259,7 +264,8 @@ CREATE TABLE IF NOT EXISTS public.queue_members (
 
 ALTER TABLE public.queue_members
   ADD COLUMN IF NOT EXISTS role_name TEXT DEFAULT 'red',
-  ADD COLUMN IF NOT EXISTS team TEXT DEFAULT 'red';
+  ADD COLUMN IF NOT EXISTS team TEXT DEFAULT 'red',
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS idx_queue_members_queue ON public.queue_members (queue_id);
 
@@ -271,8 +277,14 @@ CREATE TABLE IF NOT EXISTS public.encounter_monsters (
   queue_id UUID NOT NULL REFERENCES public.quest_queues(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   role_name TEXT DEFAULT 'Monster',
+  status TEXT DEFAULT 'claimed',
   created_at TIMESTAMPTZ DEFAULT now()
 );
+
+ALTER TABLE public.encounter_monsters
+  ADD COLUMN IF NOT EXISTS role_name TEXT DEFAULT 'Monster',
+  ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'claimed',
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS idx_encounter_monsters_queue ON public.encounter_monsters (queue_id);
 

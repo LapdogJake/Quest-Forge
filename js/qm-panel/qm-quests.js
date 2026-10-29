@@ -142,7 +142,7 @@ async function fetchQMQuests() {
 
     // Only non-battle (Quest) quests belonging to the active park & QM are shown in the Quest Catalog tab
     const nonBattleQuests = (quests || []).filter(q => {
-      if (q.category === 'Battle' || q.category === 'Combat') return false;
+      if (q.category === 'Battle' || q.category === 'Combat' || q.category === 'RealmConfig' || q.title === '__REALM_ITEM_CONFIG__') return false;
 
       // Lenient park check (handles curly/straight apostrophes, case, null/unassigned)
       const normQPark = typeof normalizeParkName === 'function' ? normalizeParkName(q.park) : (q.park || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();

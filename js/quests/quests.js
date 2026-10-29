@@ -199,6 +199,7 @@ async function fetchQuests() {
 
   // Filter available quests strictly by the player's active park AND active QM reign
   const parkQuests = (allQuests || []).filter(q => {
+    if (q.category === 'RealmConfig' || q.title === '__REALM_ITEM_CONFIG__') return false;
     const normQPark = typeof normalizeParkName === 'function' ? normalizeParkName(q.park) : (q.park || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
     const parkMatches = !normQPark || !normActivePark || (normQPark === normActivePark);
     const isMyQuest = Boolean(myUserId && q.qm_id === myUserId);

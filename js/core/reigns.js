@@ -271,6 +271,7 @@ async function saveActivePark(newPark, kingdom = null, qmId = null, qmUsername =
   }
 
   // 7. Fetch isolated inventory, quests, and battle queues for the newly active QM realm
+  if (typeof fetchRealmItemConfig === 'function') await fetchRealmItemConfig(newPark, targetQMId);
   if (typeof fetchUserInventory === 'function') await fetchUserInventory();
   if (typeof fetchUserSlotState === 'function') await fetchUserSlotState();
   if (typeof fetchQuests === 'function') await fetchQuests();

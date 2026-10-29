@@ -23,6 +23,8 @@ function switchQMSubTab(subTabName) {
     fetchQMQuests();
   } else if (normalized === 'queues' && typeof fetchQMQueues === 'function') {
     fetchQMQueues();
+  } else if (normalized === 'items' && typeof fetchRealmItemConfig === 'function') {
+    fetchRealmItemConfig();
   }
 }
 

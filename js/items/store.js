@@ -12,21 +12,29 @@ function renderStoreCatalog() {
   const categories = ['Trinket', 'Talismans', 'Artifacts'];
 
   container.innerHTML = categories.map(category => {
-    const items = STORE_CATALOG.filter(item => item.category === category);
+    const items = STORE_CATALOG.filter(item => {
+      const c = item.category;
+      if (category === 'Trinket') return c === 'Trinket' || c === 'Trinkets';
+      if (category === 'Talismans') return c === 'Talismans' || c === 'Talisman';
+      if (category === 'Artifacts') return c === 'Artifacts' || c === 'Artifact' || c === 'Legendary';
+      return c === category;
+    });
 
     return `<details class="store-category" open>
       <summary class="store-category-summary">${category}</summary>
       <div class="item-grid store-category-items">
         ${items.map(item => {
           const maxDur = item.durability_max || (typeof getItemDurabilityMax === 'function' ? getItemDurabilityMax(item.item_name) : 1);
+          const safeName = String(item.item_name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+          const htmlName = String(item.item_name || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
           return `<div class="item-card">
             <div class="item-info">
-              <h4>${item.item_name}</h4>
+              <h4>${htmlName}</h4>
               <small style="color:var(--text-muted);">Durability: ${maxDur}/${maxDur}</small>
             </div>
             <div class="item-actions">
-              <button class="btn-buy" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="buyItem('${item.item_name}', ${item.base_cost})">
-                ${isCombatLocked ? '🔒 In Battle' : `Buy (${item.base_cost}g)`}
+              <button class="btn-buy" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="buyItem('${safeName}', ${Number(item.base_cost) || 0})">
+                ${isCombatLocked ? '🔒 In Battle' : `Buy (${Number(item.base_cost) || 0}g)`}
               </button>
             </div>
           </div>`;

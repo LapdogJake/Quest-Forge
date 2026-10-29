@@ -144,6 +144,7 @@ async function initDashboard() {
       initQuestAbilitiesUI();
     }
 
+    if (typeof fetchRealmItemConfig === 'function') await fetchRealmItemConfig();
     if (typeof fetchUserSlotState === 'function') await fetchUserSlotState();
     if (typeof fetchQuests === 'function') fetchQuests();
     if (typeof fetchMonsterEncounters === 'function') fetchMonsterEncounters();

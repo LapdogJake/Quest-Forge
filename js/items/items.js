@@ -54,10 +54,10 @@ function calculateItemValue(basePrice, currentDurability, maxDurability) {
 
 // Lookup official buy-side store catalog price for an item
 function getItemStorePrice(itemName, fallbackCost = 1) {
-  if (!itemName) return Math.max(1, Number(fallbackCost || 1));
+  if (!itemName) return Math.max(0, Number(fallbackCost ?? 1));
   const normalized = itemName.replace(/’/g, "'").trim().toLowerCase();
   const match = STORE_CATALOG.find(item => item.item_name.replace(/’/g, "'").trim().toLowerCase() === normalized);
-  return match?.base_cost !== undefined ? match.base_cost : Math.max(1, Number(fallbackCost || 1));
+  return match?.base_cost !== undefined ? Number(match.base_cost) : Math.max(0, Number(fallbackCost ?? 1));
 }
 
 // Catalog category matchers
@@ -68,12 +68,15 @@ function getCategoryForItemName(itemName) {
   return match?.category || null;
 }
 
-function getItemDurabilityMax(itemName) {
-  if (!itemName) return 1;
+function getItemDurabilityMax(itemName, fallbackMax = null) {
+  if (!itemName) return Number(fallbackMax) || 1;
   const normalized = itemName.replace(/’/g, "'").trim().toLowerCase();
   const match = STORE_CATALOG.find(item => item.item_name.replace(/’/g, "'").trim().toLowerCase() === normalized);
-  if (match && Number.isFinite(match.durability_max)) {
-    return match.durability_max;
+  if (match && Number.isFinite(Number(match.durability_max)) && Number(match.durability_max) > 0) {
+    return Number(match.durability_max);
+  }
+  if (fallbackMax !== null && Number.isFinite(Number(fallbackMax)) && Number(fallbackMax) > 0) {
+    return Number(fallbackMax);
   }
   const cat = match?.category || getCategoryForItemName(itemName);
   return getCategoryDurabilityMax(cat);
@@ -121,13 +124,14 @@ function renderPouchItems(pouchItems, pouchCounts, isCombatLocked) {
 
     const itemsHtml = catItems.map(item => {
       const itemName = item?.item_name || 'Item';
-      const durabilityMax = getItemDurabilityMax(itemName) || Number(item?.durability_max) || 1;
+      const htmlName = String(itemName).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const durabilityMax = getItemDurabilityMax(itemName, item?.durability_max);
       const durabilityCurrent = Number(item?.durability_current !== undefined && item?.durability_current !== null ? item.durability_current : durabilityMax);
       const normalizedCurrent = Math.max(0, durabilityCurrent);
 
       return `<div class="item-card">
         <div class="item-info">
-          <h4>${itemName}</h4>
+          <h4>${htmlName}</h4>
           <small style="color:var(--text-muted);">Durability: ${normalizedCurrent}/${durabilityMax}</small>
         </div>
         <div class="item-actions">
@@ -160,7 +164,9 @@ function renderBankItems(bankItems, bankCounts, isCombatLocked) {
 
     const itemsHtml = catItems.map(item => {
       const itemName = item?.item_name || 'Item';
-      const durabilityMax = getItemDurabilityMax(itemName) || Number(item?.durability_max) || 1;
+      const safeName = String(itemName).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      const htmlName = String(itemName).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const durabilityMax = getItemDurabilityMax(itemName, item?.durability_max);
       const durabilityCurrent = Number(item?.durability_current !== undefined && item?.durability_current !== null ? item.durability_current : durabilityMax);
       const normalizedCurrent = Math.max(0, durabilityCurrent);
       const buyStorePrice = getItemStorePrice(itemName, item?.base_cost);
@@ -168,14 +174,14 @@ function renderBankItems(bankItems, bankCounts, isCombatLocked) {
 
       return `<div class="item-card">
         <div class="item-info">
-          <h4>${itemName}</h4>
+          <h4>${htmlName}</h4>
           <small style="color:var(--text-muted);">Durability: ${normalizedCurrent}/${durabilityMax}</small>
         </div>
         <div class="item-actions">
           <button class="btn-transfer" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="transferItemStorage('${item.id}', 'pouch')">
             ${isCombatLocked ? '🔒 Locked' : '↰ Pouch'}
           </button>
-          <button class="btn-sell" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="sellItem('${item.id}', ${sellGoldValue}, '${itemName}')">
+          <button class="btn-sell" ${isCombatLocked ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="sellItem('${item.id}', ${sellGoldValue}, '${safeName}')">
             Sell (${sellGoldValue}g)
           </button>
         </div>
