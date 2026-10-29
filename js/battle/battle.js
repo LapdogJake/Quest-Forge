@@ -285,6 +285,7 @@ function renderBattleQuestCard(q, joinedQueueId = null, queueRoster = null, isCa
     <span class="badge badge-type" style="color:var(--gold); border-color:var(--gold); font-weight:bold;">+${winGold}g Win</span>
     ${middleBadgesHtml}
     <span class="badge badge-type" style="color:#94a3b8; border-color:#64748b;">+${lossGold}g Loss</span>
+    ${rules.hasMonsters ? `<span class="badge badge-type" style="color:#fda4af; border-color:rgba(244,63,94,0.4);">👹 +${rules.monsterReward ?? 10}g Monster</span>` : ''}
   `;
 
   return `

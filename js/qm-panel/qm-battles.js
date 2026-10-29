@@ -115,6 +115,10 @@ function readBattleConfigFromForm(questId = null) {
     reward_gold_defeat
   ].slice(0, 6);
 
+  const monsterRewardInput = getQMFormEl(`${prefix}-team-reward-monster`, questId);
+  const monsterVal = monsterRewardInput ? parseInt(monsterRewardInput.value, 10) : 10;
+  const monster_reward = Number.isFinite(monsterVal) && monsterVal >= 0 ? monsterVal : 10;
+
   return {
     battle_mode: includeMonster ? 'pvm' : 'pvp',
     battle_teams,
@@ -123,7 +127,7 @@ function readBattleConfigFromForm(questId = null) {
     monsters_are_npc: includeMonster,
     extra_placements,
     placement_rewards,
-    monster_reward: reward_gold_defeat,
+    monster_reward,
     reward_gold,
     reward_gold_defeat
   };
@@ -274,6 +278,7 @@ async function createBattle() {
   syncQMPlacementControls(0, null);
 
   if (document.getElementById('qm-team-check-monster')) document.getElementById('qm-team-check-monster').checked = false;
+  if (document.getElementById('qm-team-reward-monster')) document.getElementById('qm-team-reward-monster').value = '10';
   QM_TEAM_KEYS.forEach((tk, idx) => {
     const cEl = document.getElementById(`qm-team-check-${tk}`);
     if (cEl) cEl.checked = idx < 2;
@@ -438,6 +443,7 @@ async function fetchQMQueues() {
 
     const victoryGold = rules.victoryGold ?? Number(q.reward_gold) ?? 15;
     const defeatGold = rules.defeatGold ?? Number(q.reward_gold_defeat) ?? 10;
+    const monsterReward = Number.isFinite(rules.monsterReward) ? Number(rules.monsterReward) : 10;
 
     let state = 'closed';
     if (activeQueue) {
@@ -513,7 +519,7 @@ async function fetchQMQueues() {
       ${middleBadgesHtml}
       <span class="badge badge-type" style="color:#94a3b8; border-color:#64748b;">+${defeatGold}g Loss</span>
       ${rules.hasMonsters
-        ? '<span class="badge badge-monster" title="Monster line does not lose gear durability">Monsters are NPCs</span>'
+        ? `<span class="badge badge-type" style="color:#fda4af; border-color:rgba(244,63,94,0.4);">👹 +${monsterReward}g Monster</span>`
         : ''}
       ${rules.durabilityWear === 0
         ? '<span class="badge badge-active">No Gear Wear</span>'
@@ -608,7 +614,7 @@ async function fetchQMQueues() {
         </div>
       `;
     } else {
-      const teamSelectorsHtml = activeTeams.map((teamKey, tIdx) => {
+      const teamSelectorsHtml = playerTeams.map((teamKey, tIdx) => {
         const meta = typeof getBattleTeamMeta === 'function'
           ? getBattleTeamMeta(teamKey)
           : { label: teamKey, icon: '⚔️', color: '#38bdf8' };
@@ -627,6 +633,13 @@ async function fetchQMQueues() {
         `;
       }).join('');
 
+      const monsterFixedRowHtml = rules.hasMonsters ? `
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 8px; background:rgba(24,24,27,0.75); border:1px solid rgba(244,63,94,0.25); border-radius:6px;">
+          <span style="font-size:12px; font-weight:700; color:#fda4af;">👹 Monsters</span>
+          <span style="font-size:12px; font-weight:700; color:var(--gold);">Flat +${monsterReward}g</span>
+        </div>
+      ` : '';
+
       resolutionHtml = `
         <div style="background:rgba(15,23,42,0.65); border:1px solid rgba(251,191,36,0.3); border-radius:8px; padding:10px; margin-top:4px; margin-bottom:10px;">
           <div style="font-size:11px; font-weight:700; color:var(--gold); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">
@@ -634,10 +647,18 @@ async function fetchQMQueues() {
           </div>
           <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:8px;">
             ${teamSelectorsHtml}
+            ${monsterFixedRowHtml}
           </div>
-          <button class="btn-battle-action btn-battle-hero" style="width:100%; min-height:40px; font-size:13px;" onclick="qmFinishRankedBattle('${queueId}', '${q.id}')">
-            🏆 Complete &amp; Pay Placements
-          </button>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn-battle-action btn-battle-hero" style="flex:2; min-height:40px; font-size:13px;" onclick="qmFinishRankedBattle('${queueId}', '${q.id}')">
+              🏆 Complete &amp; Pay Placements
+            </button>
+            ${rules.hasMonsters ? `
+              <button class="btn-battle-action btn-team-monster" style="flex:1; min-height:40px; font-size:12px;" onclick="qmFinishBattle('${queueId}', '${q.id}', 'monster')">
+                👹 Monsters Won
+              </button>
+            ` : ''}
+          </div>
         </div>
       `;
     }
@@ -750,54 +771,61 @@ async function fetchQMQueues() {
                 Teams
               </label>
               <div class="battle-teams-check-grid">
-                <label class="battle-team-check-item span-full">
-                  <input type="checkbox" id="qm-edit-team-check-monster-${q.id}" ${rules.hasMonsters ? 'checked' : ''}>
-                  <span style="color:#fda4af;">👹 Monsters (NPC Line)</span>
-                </label>
                 ${editTeamChecksHtml}
+                <div class="battle-team-monster-row">
+                  <label class="battle-team-monster-left">
+                    <input type="checkbox" id="qm-edit-team-check-monster-${q.id}" ${rules.hasMonsters ? 'checked' : ''}>
+                    <span style="color:#fda4af;">👹 Monsters</span>
+                  </label>
+                  <div class="battle-team-monster-right">
+                    <span>Reward</span>
+                    <input type="number" id="qm-edit-team-reward-monster-${q.id}" value="${monsterReward}" min="0">
+                    <span>g</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- Inline Separate Dynamic Rewards Box -->
+            <!-- Inline Sleek Dynamic Rewards Box (No Header Title, + / − on Bottom Right) -->
             <div class="battle-rewards-box" style="background:#121214; margin-bottom:10px;">
-              <div class="battle-rewards-header">
-                <span style="font-weight:600; font-size:12px; color:var(--text);">Rewards</span>
-                <div class="battle-rewards-header-actions">
-                  <button type="button" id="qm-edit-btn-remove-placement-${q.id}" class="btn-placement-step ${curExtraCount > 0 ? '' : 'hidden'}" onclick="removeQMBattlePlacement('${q.id}')" title="Remove last placement">−</button>
-                  <button type="button" id="qm-edit-btn-add-placement-${q.id}" class="btn-placement-step" ${curExtraCount >= 4 ? 'disabled' : ''} onclick="addQMBattlePlacement('${q.id}')" title="Add 2nd / 3rd / 4th / 5th Place">+</button>
-                </div>
-              </div>
               <input type="hidden" id="qm-edit-extra-placements-count-${q.id}" value="${curExtraCount}">
 
-              <div class="battle-rewards-grid">
-                <div class="battle-reward-field">
-                  <label>Victory</label>
-                  <input type="number" id="qm-edit-battle-gold-victory-${q.id}" value="${victoryGold}" min="0">
+              <div class="battle-rewards-row">
+                <div class="battle-rewards-grid">
+                  <div class="battle-reward-field">
+                    <label>Victory</label>
+                    <input type="number" id="qm-edit-battle-gold-victory-${q.id}" value="${victoryGold}" min="0">
+                  </div>
+
+                  <div class="battle-reward-field ${curExtraCount >= 1 ? '' : 'hidden'}" id="qm-edit-placement-wrap-2-${q.id}">
+                    <label>2nd Place</label>
+                    <input type="number" id="qm-edit-battle-gold-place-2-${q.id}" value="${extraPlacements[0] ?? ''}" placeholder="0" min="0">
+                  </div>
+
+                  <div class="battle-reward-field ${curExtraCount >= 2 ? '' : 'hidden'}" id="qm-edit-placement-wrap-3-${q.id}">
+                    <label>3rd Place</label>
+                    <input type="number" id="qm-edit-battle-gold-place-3-${q.id}" value="${extraPlacements[1] ?? ''}" placeholder="0" min="0">
+                  </div>
+
+                  <div class="battle-reward-field ${curExtraCount >= 3 ? '' : 'hidden'}" id="qm-edit-placement-wrap-4-${q.id}">
+                    <label>4th Place</label>
+                    <input type="number" id="qm-edit-battle-gold-place-4-${q.id}" value="${extraPlacements[2] ?? ''}" placeholder="0" min="0">
+                  </div>
+
+                  <div class="battle-reward-field ${curExtraCount >= 4 ? '' : 'hidden'}" id="qm-edit-placement-wrap-5-${q.id}">
+                    <label>5th Place</label>
+                    <input type="number" id="qm-edit-battle-gold-place-5-${q.id}" value="${extraPlacements[3] ?? ''}" placeholder="0" min="0">
+                  </div>
+
+                  <div class="battle-reward-field">
+                    <label>Defeat</label>
+                    <input type="number" id="qm-edit-battle-gold-defeat-${q.id}" value="${defeatGold}" min="0">
+                  </div>
                 </div>
 
-                <div class="battle-reward-field ${curExtraCount >= 1 ? '' : 'hidden'}" id="qm-edit-placement-wrap-2-${q.id}">
-                  <label>2nd Place</label>
-                  <input type="number" id="qm-edit-battle-gold-place-2-${q.id}" value="${extraPlacements[0] ?? ''}" placeholder="0" min="0">
-                </div>
-
-                <div class="battle-reward-field ${curExtraCount >= 2 ? '' : 'hidden'}" id="qm-edit-placement-wrap-3-${q.id}">
-                  <label>3rd Place</label>
-                  <input type="number" id="qm-edit-battle-gold-place-3-${q.id}" value="${extraPlacements[1] ?? ''}" placeholder="0" min="0">
-                </div>
-
-                <div class="battle-reward-field ${curExtraCount >= 3 ? '' : 'hidden'}" id="qm-edit-placement-wrap-4-${q.id}">
-                  <label>4th Place</label>
-                  <input type="number" id="qm-edit-battle-gold-place-4-${q.id}" value="${extraPlacements[2] ?? ''}" placeholder="0" min="0">
-                </div>
-
-                <div class="battle-reward-field ${curExtraCount >= 4 ? '' : 'hidden'}" id="qm-edit-placement-wrap-5-${q.id}">
-                  <label>5th Place</label>
-                  <input type="number" id="qm-edit-battle-gold-place-5-${q.id}" value="${extraPlacements[3] ?? ''}" placeholder="0" min="0">
-                </div>
-
-                <div class="battle-reward-field">
-                  <label>Defeat</label>
-                  <input type="number" id="qm-edit-battle-gold-defeat-${q.id}" value="${defeatGold}" min="0">
+                <div class="battle-rewards-actions-bottom">
+                  <button type="button" id="qm-edit-btn-remove-placement-${q.id}" class="btn-placement-step ${curExtraCount > 0 ? '' : 'hidden'}" onclick="removeQMBattlePlacement('${q.id}')" title="Remove last placement">−</button>
+                  <button type="button" id="qm-edit-btn-add-placement-${q.id}" class="btn-placement-step" ${curExtraCount >= 4 ? 'disabled' : ''} onclick="addQMBattlePlacement('${q.id}')" title="Add 2nd / 3rd / 4th / 5th Place">+</button>
                 </div>
               </div>
             </div>
@@ -1044,10 +1072,16 @@ async function qmFinishBattle(queueId, questId, winningTeamOrVictoryGold = 'red'
 
   const victoryGold = rules.victoryGold ?? Number(questData?.reward_gold) ?? 15;
   const defeatGold = rules.defeatGold ?? Number(questData?.reward_gold_defeat) ?? 10;
+  const monsterGold = Number.isFinite(rules.monsterReward) ? Number(rules.monsterReward) : 10;
 
   const payoutByTeam = {};
   activeTeams.forEach(tk => {
-    payoutByTeam[tk] = tk === winningTeam ? victoryGold : defeatGold;
+    if (tk === 'monster') {
+      // Monsters always receive their flat Monster reward outside Victory/Defeat
+      payoutByTeam[tk] = monsterGold;
+    } else {
+      payoutByTeam[tk] = tk === winningTeam ? victoryGold : defeatGold;
+    }
   });
 
   const wearAmount = Number.isFinite(rules.durabilityWear) ? Number(rules.durabilityWear) : 1;
@@ -1064,7 +1098,9 @@ async function qmFinishBattle(queueId, questId, winningTeamOrVictoryGold = 'red'
     const meta = typeof getBattleTeamMeta === 'function' ? getBattleTeamMeta(tk) : { label: tk, icon: '⚔️' };
     const count = (teamUserIds[tk] || []).length;
     const gold = payoutByTeam[tk] ?? 0;
-    const statusTag = tk === winningTeam ? 'VICTORY' : 'DEFEAT';
+    const statusTag = tk === 'monster'
+      ? 'MONSTER REWARD'
+      : (tk === winningTeam ? 'VICTORY' : 'DEFEAT');
     return `• ${meta.icon} ${meta.label} (${count} players): +${gold}g each (${statusTag})`;
   }).join('\n');
 
@@ -1105,11 +1141,13 @@ async function qmFinishRankedBattle(queueId, questId) {
 
   const payoutByTeam = {};
   const tierByTeam = {};
+  const playerTeams = rules.playerTeams || activeTeams.filter(tk => tk !== 'monster');
+  const monsterGold = Number.isFinite(rules.monsterReward) ? Number(rules.monsterReward) : 10;
 
-  let firstPlaceTeamKey = activeTeams[0] || 'red';
+  let firstPlaceTeamKey = playerTeams[0] || 'red';
   let bestTierIdx = 99;
 
-  activeTeams.forEach((tk, idx) => {
+  playerTeams.forEach((tk, idx) => {
     const selectEl = document.getElementById(`qm-rank-select-${resolvedQuestId}-${tk}`);
     const defaultIdx = Math.min(idx, placementTiers.length - 1);
     const tierIdx = selectEl ? parseInt(selectEl.value, 10) : defaultIdx;
@@ -1125,9 +1163,16 @@ async function qmFinishRankedBattle(queueId, questId) {
     }
   });
 
+  if (activeTeams.includes('monster')) {
+    payoutByTeam['monster'] = monsterGold;
+  }
+
   const teamSummaryLines = activeTeams.map(tk => {
     const meta = typeof getBattleTeamMeta === 'function' ? getBattleTeamMeta(tk) : { label: tk, icon: '⚔️' };
     const count = (teamUserIds[tk] || []).length;
+    if (tk === 'monster') {
+      return `• ${meta.icon} ${meta.label} (${count} players): Monster Reward → +${monsterGold}g each`;
+    }
     const tier = tierByTeam[tk] || placementTiers[placementTiers.length - 1];
     return `• ${meta.icon} ${meta.label} (${count} players): ${tier.label} → +${tier.gold}g each`;
   }).join('\n');

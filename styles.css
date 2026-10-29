@@ -943,6 +943,66 @@ button:focus-visible, select:focus-visible {
   grid-column: 1 / -1;
 }
 
+.battle-team-monster-row {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: #121214;
+  border: 1px solid rgba(244, 63, 94, 0.25);
+  transition: border-color 0.15s ease;
+}
+
+.battle-team-monster-row:hover {
+  border-color: rgba(244, 63, 94, 0.45);
+}
+
+.battle-team-monster-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0;
+  user-select: none;
+}
+
+.battle-team-monster-left input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.battle-team-monster-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.battle-team-monster-right span {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.battle-team-monster-right input[type="number"] {
+  width: 64px;
+  padding: 5px 6px;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  border-radius: 6px;
+  border: 1px solid #3f3f46;
+  background: #18181b;
+  color: var(--gold);
+}
+
 .battle-rewards-box {
   background: #18181b;
   padding: 12px;
@@ -951,27 +1011,27 @@ button:focus-visible, select:focus-visible {
   margin-bottom: 14px;
 }
 
-.battle-rewards-header {
+.battle-rewards-row {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
+  align-items: flex-end;
+  gap: 8px;
 }
 
-.battle-rewards-header-actions {
+.battle-rewards-actions-bottom {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 .btn-placement-step {
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 35px;
   border-radius: 6px;
   border: 1px solid #3f3f46;
   background: #27272a;
   color: var(--gold);
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 800;
   line-height: 1;
   cursor: pointer;
@@ -997,8 +1057,9 @@ button:focus-visible, select:focus-visible {
 }
 
 .battle-rewards-grid {
+  flex: 1;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
   gap: 8px;
 }
 
