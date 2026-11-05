@@ -7,7 +7,9 @@ let currentRealmItemConfig = {
   custom_items: [],
   loot_rates: null,
   buyback_percent: 100,
-  configRowId: null
+  configRowId: null,
+  configQMId: null,
+  configPark: null
 };
 
 // Resolve the active buy-back percentage for item selling (0 to 100, default 100%)
@@ -67,6 +69,7 @@ function rebuildActiveStoreCatalog(config = currentRealmItemConfig) {
     .map(ci => ({
       id: ci.id || ('custom-' + String(ci.item_name).toLowerCase().replace(/[^a-z0-9]+/g, '-')),
       item_name: String(ci.item_name).trim(),
+      description: String(ci.description || '').trim(),
       category: normalizeCatalogCategory(ci.category),
       base_cost: Math.max(0, Math.round(Number(ci.base_cost ?? 5))),
       durability_max: Math.max(1, Math.round(Number(ci.durability_max ?? 1))),
@@ -139,28 +142,31 @@ async function fetchRealmItemConfig(customPark = null, customQMId = null) {
   let foundRowId = null;
 
   try {
-    const { data: rows, error } = await supabaseClient
-      .from('quests')
-      .select('id, title, description, scenario_card, park, qm_id, category')
-      .eq('title', '__REALM_ITEM_CONFIG__');
+    if (activeQMId) {
+      const { data: rows, error } = await supabaseClient
+        .from('quests')
+        .select('id, title, description, scenario_card, park, qm_id, category')
+        .eq('title', '__REALM_ITEM_CONFIG__')
+        .eq('qm_id', activeQMId);
 
-    if (!error && Array.isArray(rows) && rows.length > 0) {
-      const matchingRow = rows.find(r => {
-        const normRPark = (typeof normalizeParkName === 'function')
-          ? normalizeParkName(r.park || '')
-          : String(r.park || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
-        const parkMatches = !normRPark || !normActivePark || (normRPark === normActivePark);
-        const qmMatches = !r.qm_id || !activeQMId || (r.qm_id === activeQMId);
-        return parkMatches && qmMatches;
-      });
+      if (!error && Array.isArray(rows) && rows.length > 0) {
+        const matchingRow = rows.find(r => {
+          const normRPark = (typeof normalizeParkName === 'function')
+            ? normalizeParkName(r.park || '')
+            : String(r.park || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
+          const parkMatches = Boolean(normRPark && normActivePark && normRPark === normActivePark);
+          const qmMatches = Boolean(r.qm_id && activeQMId && String(r.qm_id) === String(activeQMId));
+          return parkMatches && qmMatches;
+        });
 
-      if (matchingRow) {
-        foundRowId = matchingRow.id;
-        const rawJson = matchingRow.description || matchingRow.scenario_card || '';
-        if (rawJson) {
-          try {
-            loadedConfig = JSON.parse(rawJson);
-          } catch (_) {}
+        if (matchingRow) {
+          foundRowId = matchingRow.id;
+          const rawJson = matchingRow.description || matchingRow.scenario_card || '';
+          if (rawJson) {
+            try {
+              loadedConfig = JSON.parse(rawJson);
+            } catch (_) {}
+          }
         }
       }
     }
@@ -168,16 +174,16 @@ async function fetchRealmItemConfig(customPark = null, customQMId = null) {
     console.warn('Could not query realm item config from Supabase:', err);
   }
 
-  // Fallback to localStorage cache if no DB row found yet
+  // Fallback to localStorage cache (strictly scoped by activePark + activeQMId) if no DB row found yet
   const storageKey = getRealmItemConfigStorageKey(activePark, activeQMId);
-  if (!loadedConfig) {
+  if (!loadedConfig && activeQMId) {
     try {
       const cached = localStorage.getItem(storageKey);
       if (cached) {
         loadedConfig = JSON.parse(cached);
       }
     } catch (_) {}
-  } else {
+  } else if (loadedConfig && activeQMId) {
     try {
       localStorage.setItem(storageKey, JSON.stringify({
         overrides: loadedConfig.overrides || {},
@@ -195,7 +201,9 @@ async function fetchRealmItemConfig(customPark = null, customQMId = null) {
     buyback_percent: (loadedConfig && loadedConfig.buyback_percent !== undefined && loadedConfig.buyback_percent !== null && Number.isFinite(Number(loadedConfig.buyback_percent)))
       ? Math.max(0, Math.min(100, Math.round(Number(loadedConfig.buyback_percent))))
       : 100,
-    configRowId: foundRowId
+    configRowId: foundRowId,
+    configQMId: activeQMId || null,
+    configPark: normActivePark || null
   };
 
   rebuildActiveStoreCatalog(currentRealmItemConfig);
@@ -203,19 +211,37 @@ async function fetchRealmItemConfig(customPark = null, customQMId = null) {
   if (typeof renderStoreCatalog === 'function') {
     renderStoreCatalog();
   }
+  if (typeof renderRulesLibrary === 'function') {
+    renderRulesLibrary();
+  }
   renderQMItemsPanel();
 
   return currentRealmItemConfig;
 }
 
-// Persist the active park & QM realm's item config
+// Persist the active park & QM realm's item config (strictly scoped to the owning Questmaster)
 async function saveRealmItemConfig(newConfig = currentRealmItemConfig) {
   const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
   const activeKingdom = typeof getActiveKingdom === 'function' ? getActiveKingdom() : "The Freeholds of Amtgard";
+  const normActivePark = (typeof normalizeParkName === 'function')
+    ? normalizeParkName(activePark)
+    : String(activePark || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
+
+  // Prevent a QM from accidentally modifying or overwriting another QM's realm config in the same park
+  if (currentUser?.id && currentQMId && String(currentQMId) !== String(currentUser.id)) {
+    alert("You are currently viewing another Questmaster's group. Switch your Active Questmaster on the Profile tab to your own reign before modifying item settings.");
+    return;
+  }
+
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  const rawQMId = currentQMId || currentUser?.id || null;
-  const activeQMId = (rawQMId && uuidRegex.test(rawQMId)) ? rawQMId : (currentUser?.id && uuidRegex.test(currentUser.id) ? currentUser.id : null);
-  const activeQMUsername = currentQMUsername || currentProfile?.username || 'Questmaster';
+  const rawQMId = currentUser?.id || currentQMId || null;
+  const activeQMId = (rawQMId && uuidRegex.test(rawQMId)) ? rawQMId : null;
+  const activeQMUsername = currentProfile?.username || currentQMUsername || 'Questmaster';
+
+  if (!activeQMId) {
+    alert('Unable to determine your Questmaster account ID. Please re-login and try again.');
+    return;
+  }
 
   const serializedPayload = {
     overrides: newConfig.overrides || {},
@@ -225,31 +251,36 @@ async function saveRealmItemConfig(newConfig = currentRealmItemConfig) {
   };
   const jsonString = JSON.stringify(serializedPayload);
 
-  // 1. Save immediately to localStorage
+  // 1. Save immediately to localStorage (scoped to park + activeQMId)
   try {
     const storageKey = getRealmItemConfigStorageKey(activePark, activeQMId);
     localStorage.setItem(storageKey, jsonString);
   } catch (_) {}
 
-  // 2. Persist to Supabase quests table as hidden RealmConfig row
+  // 2. Persist to Supabase quests table as hidden RealmConfig row owned strictly by activeQMId
   try {
-    let targetRowId = newConfig.configRowId || currentRealmItemConfig.configRowId || null;
+    const canReuseCachedRow =
+      (newConfig.configRowId || currentRealmItemConfig.configRowId) &&
+      String(currentRealmItemConfig.configQMId || '') === String(activeQMId) &&
+      String(currentRealmItemConfig.configPark || '') === String(normActivePark);
+
+    let targetRowId = canReuseCachedRow
+      ? (newConfig.configRowId || currentRealmItemConfig.configRowId)
+      : null;
 
     if (!targetRowId) {
       const { data: existingRows } = await supabaseClient
         .from('quests')
         .select('id, park, qm_id')
-        .eq('title', '__REALM_ITEM_CONFIG__');
-
-      const normActivePark = (typeof normalizeParkName === 'function')
-        ? normalizeParkName(activePark)
-        : String(activePark || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
+        .eq('title', '__REALM_ITEM_CONFIG__')
+        .eq('qm_id', activeQMId);
 
       const matched = (existingRows || []).find(r => {
         const normRPark = (typeof normalizeParkName === 'function')
           ? normalizeParkName(r.park || '')
           : String(r.park || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
-        return (!normRPark || normRPark === normActivePark) && (!r.qm_id || !activeQMId || r.qm_id === activeQMId);
+        return Boolean(normRPark && normActivePark && normRPark === normActivePark) &&
+               Boolean(r.qm_id && activeQMId && String(r.qm_id) === String(activeQMId));
       });
 
       if (matched) targetRowId = matched.id;
@@ -263,12 +294,15 @@ async function saveRealmItemConfig(newConfig = currentRealmItemConfig) {
           scenario_card: jsonString,
           is_active: false
         })
-        .eq('id', targetRowId);
+        .eq('id', targetRowId)
+        .eq('qm_id', activeQMId);
 
       if (updErr) {
         console.warn('Error updating realm item config row:', updErr.message);
       } else {
         currentRealmItemConfig.configRowId = targetRowId;
+        currentRealmItemConfig.configQMId = activeQMId;
+        currentRealmItemConfig.configPark = normActivePark;
       }
     } else {
       const insertPayload = {
@@ -292,12 +326,6 @@ async function saveRealmItemConfig(newConfig = currentRealmItemConfig) {
 
       if (insErr) {
         let fallbackPayload = { ...insertPayload };
-        if (insErr.message.includes('qm_id') || insErr.message.includes('qm_username')) {
-          delete fallbackPayload.qm_id;
-          delete fallbackPayload.qm_username;
-        }
-        if (insErr.message.includes('park')) delete fallbackPayload.park;
-        if (insErr.message.includes('kingdom')) delete fallbackPayload.kingdom;
         if (insErr.message.includes('scenario_card')) delete fallbackPayload.scenario_card;
 
         const retry = await supabaseClient
@@ -310,6 +338,8 @@ async function saveRealmItemConfig(newConfig = currentRealmItemConfig) {
 
       if (insData && insData.id) {
         currentRealmItemConfig.configRowId = insData.id;
+        currentRealmItemConfig.configQMId = activeQMId;
+        currentRealmItemConfig.configPark = normActivePark;
       }
     }
   } catch (err) {
@@ -325,6 +355,9 @@ async function saveRealmItemConfig(newConfig = currentRealmItemConfig) {
 
   if (typeof renderStoreCatalog === 'function') {
     renderStoreCatalog();
+  }
+  if (typeof renderRulesLibrary === 'function') {
+    renderRulesLibrary();
   }
   renderQMItemsPanel();
   if (typeof fetchUserInventory === 'function') {
@@ -347,11 +380,13 @@ function onQMCustomItemTypeChange() {
 // Create a new Custom Item for the park
 async function qmCreateCustomItem() {
   const nameInput = document.getElementById('qm-custom-item-name');
+  const descInput = document.getElementById('qm-custom-item-description');
   const catSelect = document.getElementById('qm-custom-item-category');
   const costInput = document.getElementById('qm-custom-item-cost');
   const durInput = document.getElementById('qm-custom-item-durability');
 
   const rawName = (nameInput?.value || '').trim();
+  const rawDesc = (descInput?.value || '').trim();
   if (!rawName) {
     alert('Please enter an Item Name.');
     return;
@@ -373,6 +408,7 @@ async function qmCreateCustomItem() {
   const newCustomItem = {
     id: 'custom-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
     item_name: rawName,
+    description: rawDesc,
     category,
     base_cost,
     durability_max
@@ -386,10 +422,11 @@ async function qmCreateCustomItem() {
   await saveRealmItemConfig(currentRealmItemConfig);
 
   if (nameInput) nameInput.value = '';
+  if (descInput) descInput.value = '';
   if (costInput) costInput.value = '5';
   onQMCustomItemTypeChange();
 
-  alert(`Added custom item "${rawName}" to the Store!`);
+  alert(`Added custom item "${rawName}" to the Store and Library!`);
 }
 
 // Render the 6 adjustable RNG drop rate sliders & inputs (#qm-loot-rng-controls)
@@ -606,23 +643,32 @@ function renderQMItemsPanel() {
         .replace(/"/g, '&quot;');
 
       if (item.is_custom) {
-        return `<div class="qm-economy-item-row" data-item-id="${item.id}" data-is-custom="true" style="display:grid; grid-template-columns: minmax(120px, 1fr) 74px 74px; gap:8px; align-items:center; padding:8px 10px; background:#121214; border:1px solid #27272a; border-radius:6px; margin-bottom:6px;">
-          <div style="min-width:0;">
-            <input type="text" id="qm-item-name-${item.id}" class="form-control" value="${escapedName}" style="margin:0 0 4px 0; padding:5px 8px; font-size:13px;" title="Custom Item Name">
-            <div style="display:flex; align-items:center; gap:6px;">
-              <select id="qm-item-cat-${item.id}" class="form-control" style="margin:0; padding:3px 6px; font-size:11px; width:auto;" title="Item Type">
-                <option value="Trinket" ${catObj.key === 'Trinket' ? 'selected' : ''}>Trinket</option>
-                <option value="Talismans" ${catObj.key === 'Talismans' ? 'selected' : ''}>Talisman</option>
-                <option value="Artifacts" ${catObj.key === 'Artifacts' ? 'selected' : ''}>Artifact</option>
-              </select>
-              <button type="button" class="btn-delete" style="width:auto; padding:3px 7px; font-size:11px; border-radius:4px; margin:0;" onclick="qmDeleteCustomItem('${safeId}')" title="Delete custom item">Delete</button>
+        const escapedDesc = String(item.description || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+        return `<div class="qm-economy-item-row" data-item-id="${item.id}" data-is-custom="true" style="padding:8px 10px; background:#121214; border:1px solid #27272a; border-radius:6px; margin-bottom:6px;">
+          <div style="display:grid; grid-template-columns: minmax(120px, 1fr) 74px 74px; gap:8px; align-items:center;">
+            <div style="min-width:0;">
+              <input type="text" id="qm-item-name-${item.id}" class="form-control" value="${escapedName}" style="margin:0 0 4px 0; padding:5px 8px; font-size:13px;" title="Custom Item Name">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <select id="qm-item-cat-${item.id}" class="form-control" style="margin:0; padding:3px 6px; font-size:11px; width:auto;" title="Item Type">
+                  <option value="Trinket" ${catObj.key === 'Trinket' ? 'selected' : ''}>Trinket</option>
+                  <option value="Talismans" ${catObj.key === 'Talismans' ? 'selected' : ''}>Talisman</option>
+                  <option value="Artifacts" ${catObj.key === 'Artifacts' ? 'selected' : ''}>Artifact</option>
+                </select>
+                <button type="button" class="btn-delete" style="width:auto; padding:3px 7px; font-size:11px; border-radius:4px; margin:0;" onclick="qmDeleteCustomItem('${safeId}')" title="Delete custom item">Delete</button>
+              </div>
+            </div>
+            <div>
+              <input type="number" id="qm-item-cost-${item.id}" class="form-control" value="${item.base_cost}" min="0" style="margin:0; padding:5px 6px; font-size:13px; text-align:center;" title="Cost">
+            </div>
+            <div>
+              <input type="number" id="qm-item-dur-${item.id}" class="form-control" value="${item.durability_max}" min="1" style="margin:0; padding:5px 6px; font-size:13px; text-align:center;" title="Durability">
             </div>
           </div>
-          <div>
-            <input type="number" id="qm-item-cost-${item.id}" class="form-control" value="${item.base_cost}" min="0" style="margin:0; padding:5px 6px; font-size:13px; text-align:center;" title="Cost">
-          </div>
-          <div>
-            <input type="number" id="qm-item-dur-${item.id}" class="form-control" value="${item.durability_max}" min="1" style="margin:0; padding:5px 6px; font-size:13px; text-align:center;" title="Durability">
+          <div style="margin-top:6px;">
+            <textarea id="qm-item-desc-${item.id}" class="form-control" rows="2" placeholder="Item rules and description (shown in Library)" style="margin:0; padding:5px 8px; font-size:12px; min-height:46px; resize:vertical;">${escapedDesc}</textarea>
           </div>
         </div>`;
       }
@@ -673,8 +719,10 @@ async function qmSaveSingleItem(itemId) {
   const customIndex = (currentRealmItemConfig.custom_items || []).findIndex(ci => ci.id === itemId);
   if (customIndex !== -1) {
     const nameInput = document.getElementById(`qm-item-name-${itemId}`);
+    const descInput = document.getElementById(`qm-item-desc-${itemId}`);
     const catSelect = document.getElementById(`qm-item-cat-${itemId}`);
     const updatedName = (nameInput?.value || '').trim();
+    const updatedDesc = descInput ? descInput.value.trim() : (currentRealmItemConfig.custom_items[customIndex].description || '');
     if (!updatedName) {
       alert('Custom item name cannot be empty.');
       return;
@@ -682,6 +730,7 @@ async function qmSaveSingleItem(itemId) {
     currentRealmItemConfig.custom_items[customIndex] = {
       ...currentRealmItemConfig.custom_items[customIndex],
       item_name: updatedName,
+      description: updatedDesc,
       category: normalizeCatalogCategory(catSelect?.value || currentRealmItemConfig.custom_items[customIndex].category),
       base_cost: newCost,
       durability_max: newDur
@@ -729,11 +778,14 @@ async function qmSaveAllItemEconomy() {
       const idx = nextCustomItems.findIndex(ci => ci.id === itemId);
       if (idx !== -1) {
         const nameInput = document.getElementById(`qm-item-name-${itemId}`);
+        const descInput = document.getElementById(`qm-item-desc-${itemId}`);
         const catSelect = document.getElementById(`qm-item-cat-${itemId}`);
         const trimmedName = (nameInput?.value || '').trim() || nextCustomItems[idx].item_name;
+        const trimmedDesc = descInput ? descInput.value.trim() : (nextCustomItems[idx].description || '');
         nextCustomItems[idx] = {
           ...nextCustomItems[idx],
           item_name: trimmedName,
+          description: trimmedDesc,
           category: normalizeCatalogCategory(catSelect?.value || nextCustomItems[idx].category),
           base_cost: newCost,
           durability_max: newDur
@@ -870,7 +922,9 @@ async function rollItemLootDrops(winnerUserIds, isBattle = true, customQMId = nu
       console.error(`Error fetching inventory for user ${uid} during loot roll:`, invFetchErr);
     }
 
-    const parkItems = (userItems || []).filter(item => !item.qm_id || !activeQMId || item.qm_id === activeQMId);
+    const parkItems = (userItems || []).filter(item =>
+      activeQMId ? String(item.qm_id || '') === String(activeQMId) : !item.qm_id
+    );
     let runningPouch = parkItems.filter(item => !item.storage_location || item.storage_location === 'pouch');
     let runningBank = parkItems.filter(item => item.storage_location === 'bank');
 
@@ -961,7 +1015,7 @@ async function rollItemLootDrops(winnerUserIds, isBattle = true, customQMId = nu
       if (currentUser && currentUser.id === uid) {
         alert(`🎲 MYSTERY LOOT DROP!\n\nYou discovered:\n• ${awardedNames.join('\n• ')}`);
         try {
-          localStorage.setItem('qf_last_inventory_seen_' + currentUser.id, new Date().toISOString());
+          localStorage.setItem(`qf_last_inventory_seen_${currentUser.id}_${activePark}_${activeQMId || 'default'}`, new Date().toISOString());
         } catch (e) {}
       }
     }
@@ -1010,17 +1064,17 @@ async function fetchQMRealmPlayers(forceRefresh = false) {
     const parkSheetByUser = new Map();
     allParkProfiles.forEach(pp => {
       if (!pp || !pp.user_id) return;
-      if (normMatch(pp.park) && (!pp.qm_id || !activeQMId || pp.qm_id === activeQMId)) {
-        const existing = parkSheetByUser.get(pp.user_id);
-        if (!existing || (activeQMId && pp.qm_id === activeQMId)) {
-          parkSheetByUser.set(pp.user_id, pp);
-        }
+      const matchesQM = activeQMId ? (String(pp.qm_id || '') === String(activeQMId)) : !pp.qm_id;
+      if (normMatch(pp.park) && matchesQM) {
+        parkSheetByUser.set(pp.user_id, pp);
       }
     });
 
     const invUserIdsInPark = new Set();
     allInvRows.forEach(ir => {
-      if (ir && ir.user_id && normMatch(ir.park) && (!ir.qm_id || !activeQMId || ir.qm_id === activeQMId)) {
+      if (!ir || !ir.user_id) return;
+      const matchesQM = activeQMId ? (String(ir.qm_id || '') === String(activeQMId)) : !ir.qm_id;
+      if (normMatch(ir.park) && matchesQM) {
         invUserIdsInPark.add(ir.user_id);
       }
     });
@@ -1035,7 +1089,7 @@ async function fetchQMRealmPlayers(forceRefresh = false) {
       })
       .map(prof => {
         const sheet = parkSheetByUser.get(prof.id);
-        const gold = sheet !== undefined ? (Number(sheet.gold) || 0) : (Number(prof.gold) || 0);
+        const gold = sheet !== undefined ? (Number(sheet.gold) || 0) : 0;
         return {
           userId: prof.id,
           username: prof.username || 'Adventurer',
@@ -1044,14 +1098,14 @@ async function fetchQMRealmPlayers(forceRefresh = false) {
         };
       });
 
-    // Fallback: if no players matched the park filter yet, include all profiles so QM can still search anyone
+    // Fallback: if no players matched the park filter yet, include all profiles so QM can still search anyone (starting at 0g in this QM's realm)
     if (realmPlayers.length === 0 && allProfiles.length > 0) {
       realmPlayers = allProfiles.map(prof => {
         const sheet = parkSheetByUser.get(prof.id);
         return {
           userId: prof.id,
           username: prof.username || 'Adventurer',
-          gold: sheet !== undefined ? (Number(sheet.gold) || 0) : (Number(prof.gold) || 0),
+          gold: sheet !== undefined ? (Number(sheet.gold) || 0) : 0,
           parkProfileId: sheet?.id || null
         };
       });
@@ -1148,9 +1202,9 @@ async function renderQMSelectedPlayerPanel(userId) {
   const playerName = cachedPlayer?.username || 'Adventurer';
   const escapedPlayerName = String(playerName).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-  // Fetch fresh gold & inventory for this player
-  let playerGold = cachedPlayer?.gold ?? 0;
-  let parkProfileId = cachedPlayer?.parkProfileId || null;
+  // Fetch fresh gold & inventory for this player strictly within this QM's realm
+  let playerGold = 0;
+  let parkProfileId = null;
 
   try {
     let sheetQuery = supabaseClient
@@ -1159,27 +1213,41 @@ async function renderQMSelectedPlayerPanel(userId) {
       .eq('user_id', userId)
       .eq('park', activePark);
 
-    const { data: sheetRows } = await sheetQuery;
+    if (activeQMId) {
+      sheetQuery = sheetQuery.eq('qm_id', activeQMId);
+    } else {
+      sheetQuery = sheetQuery.is('qm_id', null);
+    }
+
+    const { data: sheetRows } = await sheetQuery.limit(1);
     if (Array.isArray(sheetRows) && sheetRows.length > 0) {
-      const matchedSheet = sheetRows.find(r => !r.qm_id || !activeQMId || r.qm_id === activeQMId) || sheetRows[0];
-      if (matchedSheet) {
-        parkProfileId = matchedSheet.id;
-        playerGold = Number(matchedSheet.gold) || 0;
-        if (cachedPlayer) {
-          cachedPlayer.gold = playerGold;
-          cachedPlayer.parkProfileId = parkProfileId;
-        }
-      }
+      const matchedSheet = sheetRows[0];
+      parkProfileId = matchedSheet.id;
+      playerGold = Number(matchedSheet.gold) || 0;
+    }
+    if (cachedPlayer) {
+      cachedPlayer.gold = playerGold;
+      cachedPlayer.parkProfileId = parkProfileId;
     }
   } catch (_) {}
 
-  const { data: rawItems } = await supabaseClient
+  let invQuery = supabaseClient
     .from('user_inventory')
     .select('*')
     .eq('user_id', userId)
     .eq('park', activePark);
 
-  const playerItems = (rawItems || []).filter(item => !item.qm_id || !activeQMId || item.qm_id === activeQMId);
+  if (activeQMId) {
+    invQuery = invQuery.eq('qm_id', activeQMId);
+  } else {
+    invQuery = invQuery.is('qm_id', null);
+  }
+
+  const { data: rawItems } = await invQuery;
+
+  const playerItems = (rawItems || []).filter(item =>
+    activeQMId ? String(item.qm_id || '') === String(activeQMId) : !item.qm_id
+  );
   const pouchItems = playerItems.filter(item => !item.storage_location || item.storage_location === 'pouch');
   const bankItems = playerItems.filter(item => item.storage_location === 'bank');
 
@@ -1303,25 +1371,37 @@ function onQMGrantItemSelectChange() {
   durInput.value = String(Math.max(1, dur || 1));
 }
 
-// Save edited Gold for the selected player
+// Save edited Gold for the selected player (strictly isolated to the QM's own realm)
 async function qmSavePlayerGold(silent = false) {
   if (!qmSelectedPlayerId) return;
   const goldInput = document.getElementById('qm-edit-player-gold');
   if (!goldInput) return;
 
+  if (currentUser?.id && currentQMId && String(currentQMId) !== String(currentUser.id)) {
+    if (!silent) alert("You are currently viewing another Questmaster's group. Switch your Active Questmaster on the Profile tab to your own reign before modifying player gold.");
+    return;
+  }
+
   const newGold = Math.max(0, Math.round(Number(goldInput.value) || 0));
   const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
   const activeKingdom = typeof getActiveKingdom === 'function' ? getActiveKingdom() : "The Freeholds of Amtgard";
-  const activeQMId = currentQMId || currentUser?.id || null;
+  const activeQMId = currentUser?.id || currentQMId || null;
 
   try {
-    const { data: rows } = await supabaseClient
+    let sheetQuery = supabaseClient
       .from('user_park_profiles')
       .select('id, qm_id')
       .eq('user_id', qmSelectedPlayerId)
       .eq('park', activePark);
 
-    const matchedRow = (rows || []).find(r => !r.qm_id || !activeQMId || r.qm_id === activeQMId) || (rows || [])[0];
+    if (activeQMId) {
+      sheetQuery = sheetQuery.eq('qm_id', activeQMId);
+    } else {
+      sheetQuery = sheetQuery.is('qm_id', null);
+    }
+
+    const { data: rows } = await sheetQuery.limit(1);
+    const matchedRow = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
 
     if (matchedRow) {
       await supabaseClient
@@ -1336,23 +1416,17 @@ async function qmSavePlayerGold(silent = false) {
           park: activePark,
           kingdom: activeKingdom,
           qm_id: activeQMId,
-          role: 'player',
+          role: (activeQMId && String(qmSelectedPlayerId) === String(activeQMId)) ? 'questmaster' : 'player',
           gold: newGold
         });
     }
-
-    // Also update base profiles.gold as fallback
-    await supabaseClient
-      .from('profiles')
-      .update({ gold: newGold })
-      .eq('id', qmSelectedPlayerId);
 
     // Update cache & UI
     const cached = qmRealmPlayersCache.find(p => p.userId === qmSelectedPlayerId);
     if (cached) cached.gold = newGold;
 
-    // If editing the currently logged-in user, sync header gold immediately
-    if (currentUser && currentUser.id === qmSelectedPlayerId) {
+    // If editing the currently logged-in user in this realm, sync header gold immediately
+    if (currentUser && currentUser.id === qmSelectedPlayerId && String(currentQMId || '') === String(activeQMId || '')) {
       if (currentParkProfile) currentParkProfile.gold = newGold;
       if (currentProfile) currentProfile.gold = newGold;
       if (typeof syncGoldDisplays === 'function') syncGoldDisplays(newGold);
@@ -1371,6 +1445,11 @@ async function qmSavePlayerGold(silent = false) {
 async function qmGrantItemToPlayer() {
   if (!qmSelectedPlayerId) return;
 
+  if (currentUser?.id && currentQMId && String(currentQMId) !== String(currentUser.id)) {
+    alert("You are currently viewing another Questmaster's group. Switch your Active Questmaster on the Profile tab to your own reign before granting items.");
+    return;
+  }
+
   const selectEl = document.getElementById('qm-grant-item-select');
   const locEl = document.getElementById('qm-grant-item-location');
   const durEl = document.getElementById('qm-grant-item-durability');
@@ -1384,7 +1463,7 @@ async function qmGrantItemToPlayer() {
 
   const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
   const activeKingdom = typeof getActiveKingdom === 'function' ? getActiveKingdom() : "The Freeholds of Amtgard";
-  const activeQMId = currentQMId || currentUser?.id || null;
+  const activeQMId = currentUser?.id || currentQMId || null;
 
   const payload = {
     user_id: qmSelectedPlayerId,
@@ -1401,11 +1480,6 @@ async function qmGrantItemToPlayer() {
 
   let insPayload = { ...payload };
   let { error } = await supabaseClient.from('user_inventory').insert(insPayload);
-  if (error && error.message && error.message.includes('qm_id')) {
-    delete insPayload.qm_id;
-    const retry = await supabaseClient.from('user_inventory').insert(insPayload);
-    error = retry.error;
-  }
   if (error && error.message && error.message.includes('storage_location')) {
     delete insPayload.storage_location;
     const retry = await supabaseClient.from('user_inventory').insert(insPayload);
@@ -1435,8 +1509,9 @@ async function qmSavePlayerInventoryItem(invId, silent = false) {
   const storage_location = locEl?.value === 'bank' ? 'bank' : 'pouch';
   const durability_max = Math.max(1, Math.round(Number(maxEl.value) || 1));
   const durability_current = Math.max(0, Math.round(Number(curEl.value) ?? durability_max));
+  const activeQMId = currentUser?.id || currentQMId || null;
 
-  const { error } = await supabaseClient
+  let updQuery = supabaseClient
     .from('user_inventory')
     .update({
       storage_location,
@@ -1444,6 +1519,9 @@ async function qmSavePlayerInventoryItem(invId, silent = false) {
       durability_max
     })
     .eq('id', invId);
+  if (activeQMId) updQuery = updQuery.eq('qm_id', activeQMId);
+
+  const { error } = await updQuery;
 
   if (error) {
     if (!silent) alert('Failed to update item: ' + error.message);
@@ -1463,10 +1541,14 @@ async function qmDeletePlayerInventoryItem(invId) {
   if (!invId) return;
   if (!confirm('Remove this item from the player?')) return;
 
-  const { error } = await supabaseClient
+  const activeQMId = currentUser?.id || currentQMId || null;
+  let delQuery = supabaseClient
     .from('user_inventory')
     .delete()
     .eq('id', invId);
+  if (activeQMId) delQuery = delQuery.eq('qm_id', activeQMId);
+
+  const { error } = await delQuery;
 
   if (error) {
     alert('Failed to remove item: ' + error.message);

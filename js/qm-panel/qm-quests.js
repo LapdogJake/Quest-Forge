@@ -275,13 +275,12 @@ async function fetchQMQuests() {
       const activeCount = activeList.length;
       const isOpen = openCardIds.has(String(q.id));
 
-      const borderColor = q.is_active ? 'rgba(34, 197, 94, 0.4)' : 'rgba(255, 255, 255, 0.1)';
       const statusBadge = q.is_active
         ? '<span class="badge badge-active" style="background:#16a34a; color:white; border-color:#22c55e; font-size:11px; font-weight:700; white-space:nowrap; padding:3px 8px;">🟢 Quest Open</span>'
         : '<span class="badge badge-draft" style="color:#94a3b8; border-color:#52525b; font-size:11px; font-weight:700; white-space:nowrap; padding:3px 8px;">⚪ Quest Closed</span>';
 
       return `
-        <details class="quest-accordion" data-quest-id="${q.id}" ${isOpen ? 'open' : ''} style="border: 2px solid ${borderColor}; margin-bottom: 12px;">
+        <details class="quest-accordion" data-quest-id="${q.id}" ${isOpen ? 'open' : ''} style="border: 1px solid var(--border); margin-bottom: 12px;">
           <summary>
             <span class="quest-summary-title" style="font-size:14px; font-weight:700;">${discIcon} ${q.title}</span>
             <span class="quest-summary-actions">
@@ -290,7 +289,7 @@ async function fetchQMQuests() {
             </span>
           </summary>
 
-          <div class="quest-accordion-content" style="padding-top:6px;">
+          <div class="quest-accordion-content">
             <!-- 1. BADGES CONTAINER -->
             <div class="tag-container" style="margin-bottom:8px;">
               <span class="badge badge-discipline">${discIcon} ${discName}</span>
@@ -441,6 +440,16 @@ async function qmVerifyCompleteQuest(userQuestId, userId, questId, rewardGold, q
     // 2. Award gold to user in active park/QM
     if (typeof awardGoldToUser === 'function') {
       await awardGoldToUser(userId, rewardGold);
+    }
+
+    // 2b. Record lifetime quest completion & gold collected in player_stats
+    if (typeof recordPlayerStatsDelta === 'function') {
+      await recordPlayerStatsDelta(userId, {
+        wins: 0,
+        losses: 0,
+        quests_completed: 1,
+        gold_collected: Math.max(0, Number(rewardGold) || 0)
+      });
     }
 
     // 3. Trigger RNG Loot Drops if quest has them enabled

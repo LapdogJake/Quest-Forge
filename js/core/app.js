@@ -144,6 +144,12 @@ async function initDashboard() {
       initQuestAbilitiesUI();
     }
 
+    if (typeof loadPlayerStats === 'function') {
+      await loadPlayerStats(currentUser.id);
+    } else if (typeof renderPlayerStatsUI === 'function') {
+      renderPlayerStatsUI();
+    }
+
     if (typeof fetchRealmItemConfig === 'function') await fetchRealmItemConfig();
     if (typeof fetchUserSlotState === 'function') await fetchUserSlotState();
     if (typeof fetchQuests === 'function') fetchQuests();

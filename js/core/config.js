@@ -103,6 +103,26 @@ const AMTGARD_ROP_QUEST_ABILITIES = [
   "Prepared"
 ];
 
+// Amtgard Player Classes (Stored in player_stats)
+const AMTGARD_PLAYER_CLASSES = [
+  "Anti-Paladin",
+  "Archer",
+  "Assassin",
+  "Barbarian",
+  "Bard",
+  "Druid",
+  "Healer",
+  "Monk",
+  "Monster",
+  "Paladin",
+  "Peasant",
+  "Scout",
+  "Warrior",
+  "Wizard",
+  "Color",
+  "Reeve"
+];
+
 const AMTGARD_ROP_QUEST_ABILITY_DETAILS = {
   "Affinity for Nature": "Player is in tune with nature, and the beings who live in harmony with nature. Considered a friend by such monsters and NPCs. Has knowledge about animals and natural locations.",
   "Calm": "Player gives off an aura of calm. Has an advantage when negotiating or dealing with non-hostile monsters and NPCs.",

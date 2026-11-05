@@ -22,10 +22,16 @@
         window.__IS_RECOVERY = true;
         document.documentElement.classList.add('recovery-mode');
       }
+      try {
+        var savedTheme = localStorage.getItem('qf_theme_mode');
+        if (savedTheme === 'light') document.documentElement.classList.add('light-mode');
+        var savedTextSize = localStorage.getItem('qf_text_size');
+        if (savedTextSize === 'large') document.documentElement.classList.add('large-text');
+      } catch (_) {}
     })();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="stylesheet" href="styles.css?v=28">
+  <link rel="stylesheet" href="styles.css?v=30">
   <style>
     html.recovery-mode main.container,
     html.recovery-mode nav.bottom-nav {
@@ -66,15 +72,45 @@
             <span id="display-profile-qm" class="group-val">Default</span>
           </div>
           <div class="group-banner-row">
+            <span>Class</span>
+            <span id="display-profile-class" class="group-val">Peasant</span>
+          </div>
+          <div class="group-banner-row">
             <span>Quest Ability</span>
             <span id="display-profile-ability" class="group-val">None</span>
           </div>
         </div>
 
+        <!-- Collapsible Lifetime Stats Accordion -->
+        <div id="stats-accordion-header" class="accordion-header" onclick="toggleLifetimeStatsAccordion()">
+          <span>Lifetime Stats</span>
+          <span id="stats-chevron">+</span>
+        </div>
+        <div id="stats-accordion-body" class="accordion-content hidden">
+          <div class="lifetime-stats-grid">
+            <div class="lifetime-stat-card">
+              <span class="lifetime-stat-label">Wins</span>
+              <span id="stat-lifetime-wins" class="lifetime-stat-value">0</span>
+            </div>
+            <div class="lifetime-stat-card">
+              <span class="lifetime-stat-label">Losses</span>
+              <span id="stat-lifetime-losses" class="lifetime-stat-value">0</span>
+            </div>
+            <div class="lifetime-stat-card">
+              <span class="lifetime-stat-label">Quests Completed</span>
+              <span id="stat-lifetime-quests" class="lifetime-stat-value">0</span>
+            </div>
+            <div class="lifetime-stat-card">
+              <span class="lifetime-stat-label">Gold Collected</span>
+              <span id="stat-lifetime-gold" class="lifetime-stat-value" style="color:var(--gold);">0</span>
+            </div>
+          </div>
+        </div>
+
         <!-- Collapsible Transfer Realm Accordion -->
-        <div class="accordion-header" onclick="toggleParkSelectorAccordion()">
+        <div id="park-selector-accordion-header" class="accordion-header" onclick="toggleParkSelectorAccordion()">
           <span>Transfer Realm</span>
-          <span id="park-selector-chevron">▼</span>
+          <span id="park-selector-chevron">+</span>
         </div>
         <div id="park-selector-accordion-body" class="accordion-content hidden">
           <div class="form-group" style="margin-bottom: 8px;">
@@ -105,10 +141,41 @@
           </div>
         </div>
 
+        <!-- Collapsible Class Accordion -->
+        <div id="class-accordion-header" class="accordion-header" onclick="togglePlayerClassAccordion()">
+          <span>Class</span>
+          <span id="class-chevron">+</span>
+        </div>
+        <div id="class-accordion-body" class="accordion-content hidden">
+          <div class="form-group" style="margin-bottom:8px;">
+            <select id="profile-class-select" class="form-control">
+              <option value="Anti-Paladin">Anti-Paladin</option>
+              <option value="Archer">Archer</option>
+              <option value="Assassin">Assassin</option>
+              <option value="Barbarian">Barbarian</option>
+              <option value="Bard">Bard</option>
+              <option value="Druid">Druid</option>
+              <option value="Healer">Healer</option>
+              <option value="Monk">Monk</option>
+              <option value="Monster">Monster</option>
+              <option value="Paladin">Paladin</option>
+              <option value="Peasant" selected>Peasant</option>
+              <option value="Scout">Scout</option>
+              <option value="Warrior">Warrior</option>
+              <option value="Wizard">Wizard</option>
+              <option value="Color">Color</option>
+              <option value="Reeve">Reeve</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" style="margin-top:10px; font-size:13px;" onclick="savePlayerClass()">
+            Save Class
+          </button>
+        </div>
+
         <!-- Collapsible Quest Abilities Accordion -->
-        <div class="accordion-header" onclick="toggleQuestAbilitiesAccordion()">
+        <div id="abilities-accordion-header" class="accordion-header" onclick="toggleQuestAbilitiesAccordion()">
           <span>Quest Ability</span>
-          <span id="abilities-chevron">▼</span>
+          <span id="abilities-chevron">+</span>
         </div>
         <div id="abilities-accordion-body" class="accordion-content hidden">
           <div class="form-group" style="margin-bottom:8px;">
@@ -119,6 +186,35 @@
           <button class="btn btn-primary" style="margin-top:10px; font-size:13px;" onclick="saveQuestAbilities()">
             Save Ability
           </button>
+        </div>
+
+        <!-- Collapsible Settings Accordion -->
+        <div id="settings-accordion-header" class="accordion-header" onclick="toggleProfileSettingsAccordion()">
+          <span>Settings</span>
+          <span id="settings-chevron">+</span>
+        </div>
+        <div id="settings-accordion-body" class="accordion-content hidden">
+          <div class="profile-setting-row">
+            <div class="profile-setting-info">
+              <span class="profile-setting-title">Appearance</span>
+              <small class="profile-setting-sub">Switch between dark and light mode</small>
+            </div>
+            <div class="profile-segment-group">
+              <button type="button" id="btn-theme-dark" class="profile-segment-btn active" onclick="setProfileThemeMode('dark')">Dark</button>
+              <button type="button" id="btn-theme-light" class="profile-segment-btn" onclick="setProfileThemeMode('light')">Light</button>
+            </div>
+          </div>
+
+          <div class="profile-setting-row" style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border);">
+            <div class="profile-setting-info">
+              <span class="profile-setting-title">Text Size</span>
+              <small class="profile-setting-sub">Larger text for easier reading</small>
+            </div>
+            <div class="profile-segment-group">
+              <button type="button" id="btn-text-normal" class="profile-segment-btn active" onclick="setProfileTextSize('normal')">Standard</button>
+              <button type="button" id="btn-text-large" class="profile-segment-btn" onclick="setProfileTextSize('large')">Large</button>
+            </div>
+          </div>
         </div>
 
         <button class="btn btn-danger" onclick="handleSignOut()">Sign Out</button>
@@ -556,6 +652,10 @@
                 <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Item Name</label>
                 <input type="text" id="qm-custom-item-name" class="form-control" placeholder="Item Name" style="margin:0;">
               </div>
+              <div style="margin-bottom:10px;">
+                <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Description</label>
+                <textarea id="qm-custom-item-description" class="form-control" placeholder="Item rules and description (shown in Library)" rows="3" style="margin:0; min-height:66px; resize:vertical;"></textarea>
+              </div>
               <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; align-items:end;">
                 <div>
                   <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Type</label>
@@ -740,23 +840,23 @@
   </nav>
 
   <!-- Modular Scripts -->
-  <script src="js/core/config.js?v=32"></script>
-  <script src="js/core/state.js?v=29"></script>
+  <script src="js/core/config.js?v=33"></script>
+  <script src="js/core/state.js?v=30"></script>
   <script src="js/core/utils.js?v=49"></script>
-  <script src="js/core/reigns.js?v=34"></script>
-  <script src="js/profile/profile.js?v=2"></script>
-  <script src="js/items/items.js?v=4"></script>
-  <script src="js/items/store.js?v=31"></script>
-  <script src="js/library/library.js?v=42"></script>
-  <script src="js/library/chronicles.js?v=5"></script>
+  <script src="js/core/reigns.js?v=36"></script>
+  <script src="js/profile/profile.js?v=5"></script>
+  <script src="js/items/items.js?v=5"></script>
+  <script src="js/items/store.js?v=32"></script>
+  <script src="js/library/library.js?v=44"></script>
+  <script src="js/library/chronicles.js?v=6"></script>
   <script src="js/battle/battle.js?v=7"></script>
-  <script src="js/quests/quests.js?v=35"></script>
-  <script src="js/qm-panel/qm-panel.js?v=3"></script>
-  <script src="js/qm-panel/qm-battles.js?v=8"></script>
-  <script src="js/qm-panel/qm-quests.js?v=4"></script>
-  <script src="js/qm-panel/qm-items.js?v=7"></script>
-  <script src="js/qm-panel/qm-tools.js?v=2"></script>
-  <script src="js/core/app.js?v=33"></script>
+  <script src="js/quests/quests.js?v=37"></script>
+  <script src="js/qm-panel/qm-panel.js?v=4"></script>
+  <script src="js/qm-panel/qm-battles.js?v=10"></script>
+  <script src="js/qm-panel/qm-quests.js?v=7"></script>
+  <script src="js/qm-panel/qm-items.js?v=10"></script>
+  <script src="js/qm-panel/qm-tools.js?v=3"></script>
+  <script src="js/core/app.js?v=34"></script>
 </body>
 
 </html>

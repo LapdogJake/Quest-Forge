@@ -14,4 +14,6 @@ let activeBattleQuest = null;
 let activeAdventureQuest = null;
 let activeLarpieQuest = null; // Legacy alias for activeAdventureQuest
 let activeMonsterClaim = null;
+let currentPlayerStats = null;
+
 

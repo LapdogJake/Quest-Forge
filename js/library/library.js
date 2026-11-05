@@ -499,14 +499,82 @@ const RULES_DATA = [
 
 const LIBRARY_DATA = RULES_DATA;
 
-// Render the Rules Tab content (combining items, magic item rules, and abilities)
+// Build the dynamic "New Magic Items" card list from the active realm's custom items
+function buildNewMagicItemsLibraryContent() {
+  const customItems = (typeof STORE_CATALOG !== 'undefined' && Array.isArray(STORE_CATALOG))
+    ? STORE_CATALOG.filter(item => item && item.is_custom)
+    : ((typeof currentRealmItemConfig !== 'undefined' && Array.isArray(currentRealmItemConfig?.custom_items))
+        ? currentRealmItemConfig.custom_items
+        : []);
+
+  if (!customItems || customItems.length === 0) {
+    return `
+      <div class="library-section-body">
+        <p class="empty-state" style="margin:6px 0; font-size:12px; color:var(--text-muted);">No custom magic items have been forged in this realm yet.</p>
+      </div>
+    `;
+  }
+
+  const escapeHtml = (str) => String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
+  const cardsHtml = customItems.map(item => {
+    const catRaw = String(item.category || 'Trinket');
+    const isArtifact = catRaw === 'Artifacts' || catRaw === 'Artifact' || catRaw === 'Legendary';
+    const catLabel = isArtifact ? 'Artifact' : (catRaw === 'Talismans' || catRaw === 'Talisman' ? 'Talisman' : 'Trinket');
+    const titleColor = isArtifact ? 'var(--gold)' : 'var(--primary)';
+    const durMax = Number(item.durability_max) || 1;
+    const descHtml = escapeHtml(item.description || 'No additional rules specified.').replace(/\n/g, '<br>');
+
+    return `
+      <div style="background:#121214; padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+        <div style="font-weight:bold; color:${titleColor}; font-size:14px; margin-bottom:4px;">${escapeHtml(item.item_name)}</div>
+        <div style="font-size:12px; line-height:1.6; color:var(--text);">
+          <div><strong>Type:</strong> ${catLabel} &nbsp;|&nbsp; <strong>Durability:</strong> ${durMax}</div>
+          <div style="margin-top:2px;">${descHtml}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="library-section-body">
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        ${cardsHtml}
+      </div>
+    </div>
+  `;
+}
+
+// Render the Rules Tab content (combining items, custom magic items, magic item rules, and abilities)
 function renderRulesLibrary() {
   const container = document.getElementById('library-rules-container') || document.getElementById('library-content-container');
   if (!container) return;
 
-  container.innerHTML = RULES_DATA.map((section) => {
+  const openSectionIds = new Set(
+    Array.from(container.querySelectorAll('details.store-category[open]')).map(el => el.id)
+  );
+
+  const sectionsToRender = [];
+  RULES_DATA.forEach((section) => {
+    sectionsToRender.push(section);
+    if (section.id === 'artifacts-rop') {
+      sectionsToRender.push({
+        id: 'new-magic-items',
+        title: 'New Magic Items',
+        content: buildNewMagicItemsLibraryContent()
+      });
+    }
+  });
+
+  container.innerHTML = sectionsToRender.map((section) => {
+    const domId = `library-section-${section.id}`;
+    const openAttr = openSectionIds.has(domId) ? ' open' : '';
     return `
-      <details class="store-category" id="library-section-${section.id}">
+      <details class="store-category" id="${domId}"${openAttr}>
         <summary class="store-category-summary">${section.title}</summary>
         <div class="store-category-items">
           ${section.content}

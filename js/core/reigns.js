@@ -296,3 +296,192 @@ function getActiveQMId() {
 function getActiveQMUsername() {
   return currentQMUsername || "Default Realm";
 }
+
+// ------------------------------------------------------------------------------
+// Global Lifetime Player Stats & Preferences (public.player_stats)
+// ------------------------------------------------------------------------------
+
+function getLocalPlayerStatsFallback(userId) {
+  const defaultStats = {
+    user_id: userId,
+    wins: 0,
+    losses: 0,
+    quests_completed: 0,
+    gold_collected: 0,
+    player_class: localStorage.getItem('qf_player_class_' + userId) || 'Peasant',
+    theme_mode: localStorage.getItem('qf_theme_mode') || 'dark',
+    text_size: localStorage.getItem('qf_text_size') || 'normal'
+  };
+  if (!userId) return defaultStats;
+  try {
+    const raw = localStorage.getItem('qf_player_stats_' + userId);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return { ...defaultStats, ...parsed, user_id: userId };
+    }
+  } catch (_) {}
+  return defaultStats;
+}
+
+function saveLocalPlayerStatsFallback(userId, statsObj) {
+  if (!userId || !statsObj) return;
+  try {
+    localStorage.setItem('qf_player_stats_' + userId, JSON.stringify(statsObj));
+    if (statsObj.player_class) {
+      localStorage.setItem('qf_player_class_' + userId, statsObj.player_class);
+    }
+  } catch (_) {}
+}
+
+async function loadPlayerStats(userId = null) {
+  const targetUserId = userId || currentUser?.id;
+  if (!targetUserId) return null;
+
+  const fallback = getLocalPlayerStatsFallback(targetUserId);
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('player_stats')
+      .select('*')
+      .eq('user_id', targetUserId)
+      .maybeSingle();
+
+    if (!error && data) {
+      const merged = {
+        ...fallback,
+        ...data,
+        wins: Number(data.wins) || 0,
+        losses: Number(data.losses) || 0,
+        quests_completed: Number(data.quests_completed) || 0,
+        gold_collected: Number(data.gold_collected) || 0,
+        player_class: data.player_class || fallback.player_class || 'Peasant',
+        theme_mode: data.theme_mode || fallback.theme_mode || 'dark',
+        text_size: data.text_size || fallback.text_size || 'normal'
+      };
+      saveLocalPlayerStatsFallback(targetUserId, merged);
+      if (currentUser && String(currentUser.id) === String(targetUserId)) {
+        currentPlayerStats = merged;
+        if (typeof applyProfileSettingsToDOM === 'function') {
+          applyProfileSettingsToDOM(merged.theme_mode, merged.text_size);
+        }
+        if (typeof renderPlayerStatsUI === 'function') {
+          renderPlayerStatsUI();
+        }
+      }
+      return merged;
+    }
+
+    // Row does not exist yet: insert initial row if table exists
+    if (!error && !data) {
+      const insertPayload = {
+        user_id: targetUserId,
+        wins: fallback.wins || 0,
+        losses: fallback.losses || 0,
+        quests_completed: fallback.quests_completed || 0,
+        gold_collected: fallback.gold_collected || 0,
+        player_class: fallback.player_class || 'Peasant',
+        theme_mode: fallback.theme_mode || 'dark',
+        text_size: fallback.text_size || 'normal'
+      };
+      const { data: created, error: insertErr } = await supabaseClient
+        .from('player_stats')
+        .upsert(insertPayload, { onConflict: 'user_id' })
+        .select('*')
+        .maybeSingle();
+
+      if (!insertErr && created) {
+        saveLocalPlayerStatsFallback(targetUserId, created);
+        if (currentUser && String(currentUser.id) === String(targetUserId)) {
+          currentPlayerStats = created;
+          if (typeof renderPlayerStatsUI === 'function') renderPlayerStatsUI();
+        }
+        return created;
+      }
+    }
+  } catch (err) {
+    console.warn('Could not load player_stats from Supabase, using local fallback:', err);
+  }
+
+  if (currentUser && String(currentUser.id) === String(targetUserId)) {
+    currentPlayerStats = fallback;
+    if (typeof renderPlayerStatsUI === 'function') renderPlayerStatsUI();
+  }
+  return fallback;
+}
+
+async function recordPlayerStatsDelta(userId, deltas = {}) {
+  if (!userId) return;
+  const dWins = Math.max(0, Number(deltas.wins) || 0);
+  const dLosses = Math.max(0, Number(deltas.losses) || 0);
+  const dQuests = Math.max(0, Number(deltas.quests_completed) || 0);
+  const dGold = Math.max(0, Number(deltas.gold_collected) || 0);
+
+  if (dWins === 0 && dLosses === 0 && dQuests === 0 && dGold === 0) return;
+
+  const fallback = getLocalPlayerStatsFallback(userId);
+  let nextStats = {
+    ...fallback,
+    wins: (Number(fallback.wins) || 0) + dWins,
+    losses: (Number(fallback.losses) || 0) + dLosses,
+    quests_completed: (Number(fallback.quests_completed) || 0) + dQuests,
+    gold_collected: (Number(fallback.gold_collected) || 0) + dGold
+  };
+
+  try {
+    const { data: existing, error: selErr } = await supabaseClient
+      .from('player_stats')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (!selErr) {
+      if (existing) {
+        const updatedPayload = {
+          wins: (Number(existing.wins) || 0) + dWins,
+          losses: (Number(existing.losses) || 0) + dLosses,
+          quests_completed: (Number(existing.quests_completed) || 0) + dQuests,
+          gold_collected: (Number(existing.gold_collected) || 0) + dGold,
+          updated_at: new Date().toISOString()
+        };
+        const { data: savedRow } = await supabaseClient
+          .from('player_stats')
+          .update(updatedPayload)
+          .eq('user_id', userId)
+          .select('*')
+          .maybeSingle();
+
+        nextStats = savedRow || { ...existing, ...updatedPayload };
+      } else {
+        const insertPayload = {
+          user_id: userId,
+          wins: dWins,
+          losses: dLosses,
+          quests_completed: dQuests,
+          gold_collected: dGold,
+          player_class: fallback.player_class || 'Peasant',
+          theme_mode: fallback.theme_mode || 'dark',
+          text_size: fallback.text_size || 'normal',
+          updated_at: new Date().toISOString()
+        };
+        const { data: insertedRow } = await supabaseClient
+          .from('player_stats')
+          .insert(insertPayload)
+          .select('*')
+          .maybeSingle();
+
+        nextStats = insertedRow || insertPayload;
+      }
+    }
+  } catch (err) {
+    console.warn('Could not persist player_stats delta to Supabase:', err);
+  }
+
+  saveLocalPlayerStatsFallback(userId, nextStats);
+
+  if (currentUser && String(currentUser.id) === String(userId)) {
+    currentPlayerStats = nextStats;
+    if (typeof renderPlayerStatsUI === 'function') {
+      renderPlayerStatsUI();
+    }
+  }
+}

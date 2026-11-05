@@ -200,8 +200,14 @@ async function createBattle() {
 
   const activePark = typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest");
   const activeKingdom = typeof getActiveKingdom === 'function' ? getActiveKingdom() : "The Freeholds of Amtgard";
-  const activeQMId = currentQMId || currentUser?.id || null;
-  const activeQMUsername = currentQMUsername || currentProfile?.username || 'Questmaster';
+
+  if (currentUser?.id && currentQMId && String(currentQMId) !== String(currentUser.id)) {
+    alert("You are currently viewing another Questmaster's group. Switch your Active Questmaster on the Profile tab to your own reign before forging battles.");
+    return;
+  }
+
+  const activeQMId = currentUser?.id || currentQMId || null;
+  const activeQMUsername = currentProfile?.username || currentQMUsername || 'Questmaster';
 
   const battlePayload = {
     title,
@@ -326,10 +332,9 @@ async function fetchQMQueues() {
 
   const battleQuests = (allBattleQuests || []).filter(q => {
     const normQPark = typeof normalizeParkName === 'function' ? normalizeParkName(q.park) : (q.park || '').replace(/[\u2018\u2019']/g, "'").trim().toLowerCase();
-    const parkMatches = !normQPark || !normActivePark || (normQPark === normActivePark);
+    const parkMatches = Boolean(normQPark && normActivePark && normQPark === normActivePark);
     if (!parkMatches) return false;
-    const isMyQuest = Boolean(myUserId && q.qm_id === myUserId);
-    const qmMatches = !q.qm_id || !activeQMId || (q.qm_id === activeQMId) || isMyQuest;
+    const qmMatches = Boolean(activeQMId && q.qm_id && String(q.qm_id) === String(activeQMId));
     return qmMatches;
   });
 
@@ -925,10 +930,12 @@ async function fetchQMQueues() {
 // ------------------------------------------------------------------------------
 
 async function qmLaunchBattle(questId) {
-  const { error: questError } = await supabaseClient
+  let launchQuery = supabaseClient
     .from('quests')
     .update({ is_active: true })
     .eq('id', questId);
+  if (currentUser?.id) launchQuery = launchQuery.eq('qm_id', currentUser.id);
+  const { error: questError } = await launchQuery;
 
   if (questError) {
     alert("Error launching battle: " + questError.message);
@@ -980,8 +987,11 @@ async function qmStartCombat(queueId, questId) {
 async function qmCloseBattle(questId, queueId) {
   if (!confirm("Close/withdraw this battle from the field? Active queues will be closed.")) return;
 
+  let closeQuestQuery = supabaseClient.from('quests').update({ is_active: false }).eq('id', questId);
+  if (currentUser?.id) closeQuestQuery = closeQuestQuery.eq('qm_id', currentUser.id);
+
   const updates = [
-    supabaseClient.from('quests').update({ is_active: false }).eq('id', questId)
+    closeQuestQuery
   ];
   if (queueId) {
     updates.push(supabaseClient.from('quest_queues').update({ status: 'completed' }).eq('id', queueId));
@@ -1246,6 +1256,7 @@ async function executeBattleResolutionPayouts({
   const defeatPenalty = rules.defeatPenalty || 'none';
 
   const goldPromises = [];
+  const statsPromises = [];
   const wearPromises = [];
   const penaltyPromises = [];
   const winningUserIds = [];
@@ -1259,6 +1270,14 @@ async function executeBattleResolutionPayouts({
     uids.forEach(uid => {
       if (goldAmt > 0) {
         goldPromises.push(awardFighterGold(uid, goldAmt));
+      }
+      if (typeof recordPlayerStatsDelta === 'function') {
+        statsPromises.push(recordPlayerStatsDelta(uid, {
+          wins: isWinningTeam ? 1 : 0,
+          losses: (!isWinningTeam && !isMonsterNpc) ? 1 : 0,
+          quests_completed: 0,
+          gold_collected: Math.max(0, Number(goldAmt) || 0)
+        }));
       }
       if (!isMonsterNpc && wearAmount > 0) {
         wearPromises.push(applyCombatDurabilityDamage(uid, rules.allowedTypes, wearAmount));
@@ -1292,7 +1311,7 @@ async function executeBattleResolutionPayouts({
     queueUpdates.push(supabaseClient.from('quests').update({ is_active: false }).eq('id', questId));
   }
 
-  await Promise.allSettled([...goldPromises, ...wearPromises, ...penaltyPromises, ...queueUpdates]);
+  await Promise.allSettled([...goldPromises, ...statsPromises, ...wearPromises, ...penaltyPromises, ...queueUpdates]);
 
   alert(`🎉 Battle finished! ${headlineLabel} victorious!\nRewards distributed and combat results processed.${lootNotice}`);
   initDashboard();
@@ -1368,9 +1387,12 @@ async function awardFighterGold(userId, goldAmt) {
 
     if (activeQMId) {
       profileQuery = profileQuery.eq('qm_id', activeQMId);
+    } else {
+      profileQuery = profileQuery.is('qm_id', null);
     }
 
-    const { data: existingParkProfile } = await profileQuery.maybeSingle();
+    const { data: rows } = await profileQuery.limit(1);
+    const existingParkProfile = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
 
     let nextGold = goldAmt;
     if (existingParkProfile) {
@@ -1387,40 +1409,17 @@ async function awardFighterGold(userId, goldAmt) {
           park: activePark,
           kingdom: activeKingdom,
           qm_id: activeQMId,
-          role: (activeQMId && userId === activeQMId) ? 'questmaster' : 'player',
+          role: (activeQMId && String(userId) === String(activeQMId)) ? 'questmaster' : 'player',
           gold: nextGold
         })
         .select('*')
         .maybeSingle();
-      if (inserted && currentUser && currentUser.id === userId) {
+      if (inserted && currentUser && currentUser.id === userId && String(currentQMId || '') === String(activeQMId || '')) {
         currentParkProfile = inserted;
       }
     }
 
-    const { data: p } = await supabaseClient
-      .from('profiles')
-      .select('gold, park_gold')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (p) {
-      let parkGoldMap = p.park_gold;
-      if (typeof parkGoldMap === 'string') {
-        try { parkGoldMap = JSON.parse(parkGoldMap); } catch (e) { parkGoldMap = {}; }
-      }
-      if (!parkGoldMap || typeof parkGoldMap !== 'object') parkGoldMap = {};
-      parkGoldMap[activePark] = nextGold;
-
-      await supabaseClient
-        .from('profiles')
-        .update({
-          gold: (Number(p.gold) || 0) + goldAmt,
-          park_gold: parkGoldMap
-        })
-        .eq('id', userId);
-    }
-
-    if (currentUser && currentUser.id === userId) {
+    if (currentUser && currentUser.id === userId && String(currentQMId || '') === String(activeQMId || '')) {
       if (!currentParkProfile) {
         currentParkProfile = { user_id: userId, park: activePark, kingdom: activeKingdom, qm_id: activeQMId, gold: nextGold };
       } else {
@@ -1576,10 +1575,12 @@ async function qmSaveEditedBattle(questId) {
       rng_loot_drops
     };
 
-    let { error } = await supabaseClient
+    let updateQuery = supabaseClient
       .from('quests')
       .update(updatePayload)
       .eq('id', questId);
+    if (currentUser?.id) updateQuery = updateQuery.eq('qm_id', currentUser.id);
+    let { error } = await updateQuery;
 
     if (error) {
       console.warn("Initial battle update error, attempting schema fallback:", error.message);
@@ -1597,18 +1598,22 @@ async function qmSaveEditedBattle(questId) {
       delete fallbackPayload.allow_mid_join;
       delete fallbackPayload.rng_loot_drops;
 
-      let retry = await supabaseClient
+      let retryQuery = supabaseClient
         .from('quests')
         .update(fallbackPayload)
         .eq('id', questId);
+      if (currentUser?.id) retryQuery = retryQuery.eq('qm_id', currentUser.id);
+      let retry = await retryQuery;
       if (retry.error) {
         delete fallbackPayload.monsters_are_npc;
         delete fallbackPayload.allowed_items;
         delete fallbackPayload.reward_gold_defeat;
-        retry = await supabaseClient
+        let retryQuery2 = supabaseClient
           .from('quests')
           .update(fallbackPayload)
           .eq('id', questId);
+        if (currentUser?.id) retryQuery2 = retryQuery2.eq('qm_id', currentUser.id);
+        retry = await retryQuery2;
       }
       error = retry.error;
     }

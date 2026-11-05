@@ -36,6 +36,7 @@ function updateGroupBannerDisplays() {
   const kingdomEl = document.getElementById('display-profile-kingdom');
   const parkEl = document.getElementById('display-profile-park');
   const qmEl = document.getElementById('display-profile-qm');
+  const classEl = document.getElementById('display-profile-class');
   const abilityEl = document.getElementById('display-profile-ability');
 
   const activeKingdom = currentKingdom || "The Freeholds of Amtgard";
@@ -45,6 +46,10 @@ function updateGroupBannerDisplays() {
   if (kingdomEl) kingdomEl.innerText = activeKingdom;
   if (parkEl) parkEl.innerText = activePark;
   if (qmEl) qmEl.innerText = activeQM;
+  if (classEl) {
+    const activeClass = currentPlayerStats?.player_class || (currentUser?.id ? localStorage.getItem('qf_player_class_' + currentUser.id) : null) || 'Peasant';
+    classEl.innerText = activeClass;
+  }
   if (abilityEl) {
     const rawAbs = (selectedQuestAbilities && selectedQuestAbilities[0]) || (currentParkProfile?.quest_abilities?.[0]) || (currentProfile?.quest_abilities?.[0]) || "";
     abilityEl.innerText = rawAbs || "None";
@@ -57,16 +62,19 @@ function updateGroupBannerDisplays() {
 
 function toggleParkSelectorAccordion() {
   const accordionBody = document.getElementById('park-selector-accordion-body');
+  const accordionHeader = document.getElementById('park-selector-accordion-header');
   const chevron = document.getElementById('park-selector-chevron');
   if (!accordionBody) return;
   const isHidden = accordionBody.classList.contains('hidden');
 
   if (isHidden) {
     accordionBody.classList.remove('hidden');
-    if (chevron) chevron.innerText = "▲";
+    if (accordionHeader) accordionHeader.classList.add('open');
+    if (chevron) chevron.innerText = "−";
   } else {
     accordionBody.classList.add('hidden');
-    if (chevron) chevron.innerText = "▼";
+    if (accordionHeader) accordionHeader.classList.remove('open');
+    if (chevron) chevron.innerText = "+";
   }
 }
 
@@ -189,9 +197,11 @@ async function handleCommitParkChange() {
 
     // Auto-collapse accordion
     const body = document.getElementById('park-selector-accordion-body');
+    const header = document.getElementById('park-selector-accordion-header');
     const chevron = document.getElementById('park-selector-chevron');
     if (body) body.classList.add('hidden');
-    if (chevron) chevron.innerText = "▼";
+    if (header) header.classList.remove('open');
+    if (chevron) chevron.innerText = "+";
   } finally {
     if (btn) {
       btn.disabled = false;
@@ -278,9 +288,11 @@ async function handleBecomeQM() {
 
     // Auto-collapse accordion
     const body = document.getElementById('park-selector-accordion-body');
+    const header = document.getElementById('park-selector-accordion-header');
     const chevron = document.getElementById('park-selector-chevron');
     if (body) body.classList.add('hidden');
-    if (chevron) chevron.innerText = "▼";
+    if (header) header.classList.remove('open');
+    if (chevron) chevron.innerText = "+";
   } catch (err) {
     console.error("Error in handleBecomeQM:", err);
     alert("Could not register as QM: " + err.message);
@@ -298,16 +310,19 @@ async function handleBecomeQM() {
 
 function toggleQuestAbilitiesAccordion() {
   const accordionBody = document.getElementById('abilities-accordion-body');
+  const accordionHeader = document.getElementById('abilities-accordion-header');
   const chevron = document.getElementById('abilities-chevron');
   if (!accordionBody) return;
   const isHidden = accordionBody.classList.contains('hidden');
 
   if (isHidden) {
     accordionBody.classList.remove('hidden');
-    if (chevron) chevron.innerText = "▲";
+    if (accordionHeader) accordionHeader.classList.add('open');
+    if (chevron) chevron.innerText = "−";
   } else {
     accordionBody.classList.add('hidden');
-    if (chevron) chevron.innerText = "▼";
+    if (accordionHeader) accordionHeader.classList.remove('open');
+    if (chevron) chevron.innerText = "+";
   }
 }
 
@@ -364,9 +379,11 @@ async function saveQuestAbilities() {
 
   // Collapse the accordion box
   const accordionBody = document.getElementById('abilities-accordion-body');
+  const accordionHeader = document.getElementById('abilities-accordion-header');
   const chevron = document.getElementById('abilities-chevron');
   if (accordionBody) accordionBody.classList.add('hidden');
-  if (chevron) chevron.innerText = "▼";
+  if (accordionHeader) accordionHeader.classList.remove('open');
+  if (chevron) chevron.innerText = "+";
 
   // Update the new display line
   const abilityEl = document.getElementById('display-profile-ability');
@@ -390,6 +407,236 @@ async function saveQuestAbilities() {
     if (typeof fetchMonsterEncounters === 'function') fetchMonsterEncounters();
   } catch (err) {
     console.warn("Could not save quest abilities to DB:", err);
+  }
+}
+
+// ------------------------------------------------------------------------------
+// Lifetime Stats, Player Class, & Settings (Dark/Light Mode + Text Size)
+// ------------------------------------------------------------------------------
+
+function toggleLifetimeStatsAccordion() {
+  const accordionBody = document.getElementById('stats-accordion-body');
+  const accordionHeader = document.getElementById('stats-accordion-header');
+  const chevron = document.getElementById('stats-chevron');
+  if (!accordionBody) return;
+  const isHidden = accordionBody.classList.contains('hidden');
+
+  if (isHidden) {
+    accordionBody.classList.remove('hidden');
+    if (accordionHeader) accordionHeader.classList.add('open');
+    if (chevron) chevron.innerText = "−";
+  } else {
+    accordionBody.classList.add('hidden');
+    if (accordionHeader) accordionHeader.classList.remove('open');
+    if (chevron) chevron.innerText = "+";
+  }
+}
+
+function togglePlayerClassAccordion() {
+  const accordionBody = document.getElementById('class-accordion-body');
+  const accordionHeader = document.getElementById('class-accordion-header');
+  const chevron = document.getElementById('class-chevron');
+  if (!accordionBody) return;
+  const isHidden = accordionBody.classList.contains('hidden');
+
+  if (isHidden) {
+    accordionBody.classList.remove('hidden');
+    if (accordionHeader) accordionHeader.classList.add('open');
+    if (chevron) chevron.innerText = "−";
+  } else {
+    accordionBody.classList.add('hidden');
+    if (accordionHeader) accordionHeader.classList.remove('open');
+    if (chevron) chevron.innerText = "+";
+  }
+}
+
+function toggleProfileSettingsAccordion() {
+  const accordionBody = document.getElementById('settings-accordion-body');
+  const accordionHeader = document.getElementById('settings-accordion-header');
+  const chevron = document.getElementById('settings-chevron');
+  if (!accordionBody) return;
+  const isHidden = accordionBody.classList.contains('hidden');
+
+  if (isHidden) {
+    accordionBody.classList.remove('hidden');
+    if (accordionHeader) accordionHeader.classList.add('open');
+    if (chevron) chevron.innerText = "−";
+  } else {
+    accordionBody.classList.add('hidden');
+    if (accordionHeader) accordionHeader.classList.remove('open');
+    if (chevron) chevron.innerText = "+";
+  }
+}
+
+function renderPlayerStatsUI() {
+  const stats = currentPlayerStats || {
+    wins: 0,
+    losses: 0,
+    quests_completed: 0,
+    gold_collected: 0,
+    player_class: (currentUser?.id ? localStorage.getItem('qf_player_class_' + currentUser.id) : null) || 'Peasant',
+    theme_mode: localStorage.getItem('qf_theme_mode') || 'dark',
+    text_size: localStorage.getItem('qf_text_size') || 'normal'
+  };
+
+  const winsEl = document.getElementById('stat-lifetime-wins');
+  const lossesEl = document.getElementById('stat-lifetime-losses');
+  const questsEl = document.getElementById('stat-lifetime-quests');
+  const goldEl = document.getElementById('stat-lifetime-gold');
+
+  if (winsEl) winsEl.innerText = Number(stats.wins) || 0;
+  if (lossesEl) lossesEl.innerText = Number(stats.losses) || 0;
+  if (questsEl) questsEl.innerText = Number(stats.quests_completed) || 0;
+  if (goldEl) goldEl.innerText = Number(stats.gold_collected) || 0;
+
+  const activeClass = stats.player_class || 'Peasant';
+  const classDisplayEl = document.getElementById('display-profile-class');
+  if (classDisplayEl) classDisplayEl.innerText = activeClass;
+
+  const classSelectEl = document.getElementById('profile-class-select');
+  if (classSelectEl) {
+    const classesList = (typeof AMTGARD_PLAYER_CLASSES !== 'undefined' && Array.isArray(AMTGARD_PLAYER_CLASSES))
+      ? AMTGARD_PLAYER_CLASSES
+      : [
+          "Anti-Paladin", "Archer", "Assassin", "Barbarian", "Bard", "Druid",
+          "Healer", "Monk", "Monster", "Paladin", "Peasant", "Scout",
+          "Warrior", "Wizard", "Color", "Reeve"
+        ];
+    classSelectEl.innerHTML = classesList
+      .map(c => `<option value="${c}" ${c === activeClass ? 'selected' : ''}>${c}</option>`)
+      .join('');
+  }
+
+  const themeMode = stats.theme_mode || localStorage.getItem('qf_theme_mode') || 'dark';
+  const textSize = stats.text_size || localStorage.getItem('qf_text_size') || 'normal';
+  applyProfileSettingsToDOM(themeMode, textSize);
+}
+
+async function savePlayerClass() {
+  if (!currentUser) return;
+
+  const selectEl = document.getElementById('profile-class-select');
+  const chosenClass = selectEl ? selectEl.value : 'Peasant';
+
+  if (!currentPlayerStats) {
+    currentPlayerStats = {
+      user_id: currentUser.id,
+      wins: 0,
+      losses: 0,
+      quests_completed: 0,
+      gold_collected: 0,
+      player_class: chosenClass,
+      theme_mode: localStorage.getItem('qf_theme_mode') || 'dark',
+      text_size: localStorage.getItem('qf_text_size') || 'normal'
+    };
+  } else {
+    currentPlayerStats.player_class = chosenClass;
+  }
+
+  if (typeof saveLocalPlayerStatsFallback === 'function') {
+    saveLocalPlayerStatsFallback(currentUser.id, currentPlayerStats);
+  } else {
+    try { localStorage.setItem('qf_player_class_' + currentUser.id, chosenClass); } catch (_) {}
+  }
+
+  // Collapse the Class accordion
+  const accordionBody = document.getElementById('class-accordion-body');
+  const accordionHeader = document.getElementById('class-accordion-header');
+  const chevron = document.getElementById('class-chevron');
+  if (accordionBody) accordionBody.classList.add('hidden');
+  if (accordionHeader) accordionHeader.classList.remove('open');
+  if (chevron) chevron.innerText = "+";
+
+  // Update top banner Class display
+  const classDisplayEl = document.getElementById('display-profile-class');
+  if (classDisplayEl) classDisplayEl.innerText = chosenClass;
+
+  try {
+    await supabaseClient
+      .from('player_stats')
+      .upsert({
+        user_id: currentUser.id,
+        player_class: chosenClass,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' });
+  } catch (err) {
+    console.warn("Could not save player_class to player_stats:", err);
+  }
+}
+
+function applyProfileSettingsToDOM(themeMode = null, textSize = null) {
+  const resolvedTheme = themeMode || localStorage.getItem('qf_theme_mode') || 'dark';
+  const resolvedText = textSize || localStorage.getItem('qf_text_size') || 'normal';
+
+  const isLight = resolvedTheme === 'light';
+  const isLarge = resolvedText === 'large';
+
+  document.documentElement.classList.toggle('light-mode', isLight);
+  document.documentElement.classList.toggle('large-text', isLarge);
+
+  try {
+    localStorage.setItem('qf_theme_mode', resolvedTheme);
+    localStorage.setItem('qf_text_size', resolvedText);
+  } catch (_) {}
+
+  const btnDark = document.getElementById('btn-theme-dark');
+  const btnLight = document.getElementById('btn-theme-light');
+  if (btnDark) btnDark.classList.toggle('active', !isLight);
+  if (btnLight) btnLight.classList.toggle('active', isLight);
+
+  const btnNormal = document.getElementById('btn-text-normal');
+  const btnLarge = document.getElementById('btn-text-large');
+  if (btnNormal) btnNormal.classList.toggle('active', !isLarge);
+  if (btnLarge) btnLarge.classList.toggle('active', isLarge);
+}
+
+async function setProfileThemeMode(mode) {
+  const nextMode = mode === 'light' ? 'light' : 'dark';
+  const curText = currentPlayerStats?.text_size || localStorage.getItem('qf_text_size') || 'normal';
+  applyProfileSettingsToDOM(nextMode, curText);
+
+  if (currentPlayerStats) {
+    currentPlayerStats.theme_mode = nextMode;
+    if (typeof saveLocalPlayerStatsFallback === 'function' && currentUser?.id) {
+      saveLocalPlayerStatsFallback(currentUser.id, currentPlayerStats);
+    }
+  }
+
+  if (currentUser?.id) {
+    try {
+      await supabaseClient
+        .from('player_stats')
+        .upsert({
+          user_id: currentUser.id,
+          theme_mode: nextMode,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+    } catch (_) {}
+  }
+}
+
+async function setProfileTextSize(size) {
+  const nextSize = size === 'large' ? 'large' : 'normal';
+  const curTheme = currentPlayerStats?.theme_mode || localStorage.getItem('qf_theme_mode') || 'dark';
+  applyProfileSettingsToDOM(curTheme, nextSize);
+
+  if (currentPlayerStats) {
+    currentPlayerStats.text_size = nextSize;
+    if (typeof saveLocalPlayerStatsFallback === 'function' && currentUser?.id) {
+      saveLocalPlayerStatsFallback(currentUser.id, currentPlayerStats);
+    }
+  }
+
+  if (currentUser?.id) {
+    try {
+      await supabaseClient
+        .from('player_stats')
+        .upsert({
+          user_id: currentUser.id,
+          text_size: nextSize,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+    } catch (_) {}
   }
 }
 

@@ -353,6 +353,77 @@ BEGIN
   END LOOP;
 END $$;
 
+-- Strict Questmaster-level RLS across quests, character sheets, inventory, and QM registrations
+-- Every Questmaster only controls rows instanced under their own qm_id (auth.uid())
+
+-- 1) public.quests (Quests, Battles, and __REALM_ITEM_CONFIG__ are strictly owned by qm_id = auth.uid())
+DROP POLICY IF EXISTS "Allow insert on quests" ON public.quests;
+CREATE POLICY "Allow insert on quests"
+  ON public.quests FOR INSERT
+  WITH CHECK (qm_id = auth.uid());
+
+DROP POLICY IF EXISTS "Allow update on quests" ON public.quests;
+CREATE POLICY "Allow update on quests"
+  ON public.quests FOR UPDATE
+  USING (qm_id = auth.uid())
+  WITH CHECK (qm_id = auth.uid());
+
+DROP POLICY IF EXISTS "Allow delete on quests" ON public.quests;
+CREATE POLICY "Allow delete on quests"
+  ON public.quests FOR DELETE
+  USING (qm_id = auth.uid());
+
+-- 2) public.user_park_profiles (Players manage their own sheet; QMs can only edit sheets instanced under their qm_id)
+DROP POLICY IF EXISTS "Allow insert on user_park_profiles" ON public.user_park_profiles;
+CREATE POLICY "Allow insert on user_park_profiles"
+  ON public.user_park_profiles FOR INSERT
+  WITH CHECK (user_id = auth.uid() OR qm_id = auth.uid());
+
+DROP POLICY IF EXISTS "Allow update on user_park_profiles" ON public.user_park_profiles;
+CREATE POLICY "Allow update on user_park_profiles"
+  ON public.user_park_profiles FOR UPDATE
+  USING (user_id = auth.uid() OR qm_id = auth.uid())
+  WITH CHECK (user_id = auth.uid() OR qm_id = auth.uid());
+
+DROP POLICY IF EXISTS "Allow delete on user_park_profiles" ON public.user_park_profiles;
+CREATE POLICY "Allow delete on user_park_profiles"
+  ON public.user_park_profiles FOR DELETE
+  USING (user_id = auth.uid() OR qm_id = auth.uid());
+
+-- 3) public.user_inventory (Players manage their own items; QMs can only grant/edit/delete items instanced under their qm_id)
+DROP POLICY IF EXISTS "Allow insert on user_inventory" ON public.user_inventory;
+CREATE POLICY "Allow insert on user_inventory"
+  ON public.user_inventory FOR INSERT
+  WITH CHECK (user_id = auth.uid() OR qm_id = auth.uid());
+
+DROP POLICY IF EXISTS "Allow update on user_inventory" ON public.user_inventory;
+CREATE POLICY "Allow update on user_inventory"
+  ON public.user_inventory FOR UPDATE
+  USING (user_id = auth.uid() OR qm_id = auth.uid())
+  WITH CHECK (user_id = auth.uid() OR qm_id = auth.uid());
+
+DROP POLICY IF EXISTS "Allow delete on user_inventory" ON public.user_inventory;
+CREATE POLICY "Allow delete on user_inventory"
+  ON public.user_inventory FOR DELETE
+  USING (user_id = auth.uid() OR qm_id = auth.uid());
+
+-- 4) public.park_questmasters (Users can only register or remove their own QM reign)
+DROP POLICY IF EXISTS "Allow insert on park_questmasters" ON public.park_questmasters;
+CREATE POLICY "Allow insert on park_questmasters"
+  ON public.park_questmasters FOR INSERT
+  WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "Allow update on park_questmasters" ON public.park_questmasters;
+CREATE POLICY "Allow update on park_questmasters"
+  ON public.park_questmasters FOR UPDATE
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "Allow delete on park_questmasters" ON public.park_questmasters;
+CREATE POLICY "Allow delete on park_questmasters"
+  ON public.park_questmasters FOR DELETE
+  USING (user_id = auth.uid());
+
 -- ------------------------------------------------------------------------------
 -- 11. Automatic User Signup Trigger Function
 -- ------------------------------------------------------------------------------
@@ -439,11 +510,12 @@ FROM auth.users u
 ON CONFLICT DO NOTHING;
 
 -- ------------------------------------------------------------------------------
--- 12. Atomic Server-Side Durability Degradation Engine
+-- 12. Atomic Server-Side Durability Degradation Engine (Scoped by Park & QM)
 -- ------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.apply_combat_durability_damage(
   target_user_id UUID,
-  target_park TEXT DEFAULT NULL
+  target_park TEXT DEFAULT NULL,
+  target_qm_id UUID DEFAULT NULL
 )
 RETURNS VOID
 LANGUAGE plpgsql
@@ -452,29 +524,38 @@ SET search_path = public
 AS $$
 DECLARE
   active_park TEXT;
+  active_qm_id UUID;
 BEGIN
   IF target_park IS NOT NULL THEN
     active_park := target_park;
   ELSE
-    SELECT park INTO active_park FROM public.profiles WHERE id = target_user_id;
+    SELECT COALESCE(last_active_park, park) INTO active_park FROM public.profiles WHERE id = target_user_id;
+  END IF;
+
+  IF target_qm_id IS NOT NULL THEN
+    active_qm_id := target_qm_id;
+  ELSE
+    SELECT last_active_qm_id INTO active_qm_id FROM public.profiles WHERE id = target_user_id;
   END IF;
 
   DELETE FROM public.user_inventory
   WHERE user_id = target_user_id
-    AND (park = active_park OR active_park IS NULL OR park IS NULL)
+    AND park = active_park
+    AND (qm_id = active_qm_id OR (active_qm_id IS NULL AND qm_id IS NULL))
     AND (storage_location IS NULL OR storage_location = 'pouch')
     AND COALESCE(durability_current, durability_max, 1) <= 1;
 
   UPDATE public.user_inventory
   SET durability_current = COALESCE(durability_current, durability_max, 1) - 1
   WHERE user_id = target_user_id
-    AND (park = active_park OR active_park IS NULL OR park IS NULL)
+    AND park = active_park
+    AND (qm_id = active_qm_id OR (active_qm_id IS NULL AND qm_id IS NULL))
     AND (storage_location IS NULL OR storage_location = 'pouch')
     AND COALESCE(durability_current, durability_max, 1) > 1;
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.apply_combat_durability_damage(UUID, TEXT) TO authenticated, anon, service_role;
+GRANT EXECUTE ON FUNCTION public.apply_combat_durability_damage(UUID, TEXT, UUID) TO authenticated, anon, service_role;
 
 -- ------------------------------------------------------------------------------
 -- 14. Chronicles Table (Quest Journal, Lore & Announcements)
@@ -514,21 +595,21 @@ CREATE POLICY "Public can view chronicles"
 DROP POLICY IF EXISTS "Public and authenticated can insert chronicles" ON public.chronicles;
 CREATE POLICY "Public and authenticated can insert chronicles"
   ON public.chronicles FOR INSERT
-  TO authenticated, anon
-  WITH CHECK (true);
+  TO authenticated
+  WITH CHECK (qm_id = auth.uid() OR author_id = auth.uid());
 
 DROP POLICY IF EXISTS "Public and authenticated can update chronicles" ON public.chronicles;
 CREATE POLICY "Public and authenticated can update chronicles"
   ON public.chronicles FOR UPDATE
-  TO authenticated, anon
-  USING (true)
-  WITH CHECK (true);
+  TO authenticated
+  USING (qm_id = auth.uid() OR author_id = auth.uid())
+  WITH CHECK (qm_id = auth.uid() OR author_id = auth.uid());
 
 DROP POLICY IF EXISTS "Public and authenticated can delete chronicles" ON public.chronicles;
 CREATE POLICY "Public and authenticated can delete chronicles"
   ON public.chronicles FOR DELETE
-  TO authenticated, anon
-  USING (true);
+  TO authenticated
+  USING (qm_id = auth.uid() OR author_id = auth.uid());
 
 -- Realtime Publication for live Chronicle updates (Safe / Idempotent)
 DO $$
@@ -543,7 +624,62 @@ BEGIN
 END $$;
 
 -- ------------------------------------------------------------------------------
--- 15. Permissions & Grants
+-- 15. Player Lifetime Stats & Settings Table (public.player_stats)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.player_stats (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  wins INTEGER NOT NULL DEFAULT 0,
+  losses INTEGER NOT NULL DEFAULT 0,
+  quests_completed INTEGER NOT NULL DEFAULT 0,
+  gold_collected INTEGER NOT NULL DEFAULT 0,
+  player_class TEXT NOT NULL DEFAULT 'Peasant',
+  theme_mode TEXT NOT NULL DEFAULT 'dark',
+  text_size TEXT NOT NULL DEFAULT 'normal',
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.player_stats ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow select on player_stats" ON public.player_stats;
+CREATE POLICY "Allow select on player_stats"
+  ON public.player_stats FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Allow insert on player_stats" ON public.player_stats;
+CREATE POLICY "Allow insert on player_stats"
+  ON public.player_stats FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    user_id = auth.uid()
+    OR EXISTS (
+      SELECT 1 FROM public.park_questmasters pq WHERE pq.user_id = auth.uid()
+    )
+  );
+
+DROP POLICY IF EXISTS "Allow update on player_stats" ON public.player_stats;
+CREATE POLICY "Allow update on player_stats"
+  ON public.player_stats FOR UPDATE
+  TO authenticated
+  USING (
+    user_id = auth.uid()
+    OR EXISTS (
+      SELECT 1 FROM public.park_questmasters pq WHERE pq.user_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    user_id = auth.uid()
+    OR EXISTS (
+      SELECT 1 FROM public.park_questmasters pq WHERE pq.user_id = auth.uid()
+    )
+  );
+
+-- Backfill player_stats for existing users
+INSERT INTO public.player_stats (user_id)
+SELECT u.id FROM auth.users u
+ON CONFLICT (user_id) DO NOTHING;
+
+-- ------------------------------------------------------------------------------
+-- 16. Permissions & Grants
 -- ------------------------------------------------------------------------------
 GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, anon, authenticated, service_role;

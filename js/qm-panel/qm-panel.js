@@ -56,8 +56,10 @@ async function qmDeleteQuest(questId, questTitle) {
     // 2. Delete user quest assignments/records
     await supabaseClient.from('user_quests').delete().eq('quest_id', questId);
 
-    // 3. Delete the quest itself with .select() to verify rows affected
-    const { data: deletedRows, error } = await supabaseClient.from('quests').delete().eq('id', questId).select();
+    // 3. Delete the quest itself (scoped to the owning QM) with .select() to verify rows affected
+    let delQuery = supabaseClient.from('quests').delete().eq('id', questId);
+    if (currentUser?.id) delQuery = delQuery.eq('qm_id', currentUser.id);
+    const { data: deletedRows, error } = await delQuery.select();
     
     if (error) {
       alert("Failed to delete quest: " + error.message);

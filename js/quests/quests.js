@@ -483,6 +483,15 @@ async function completeQuest(userQuestId, rewardGold) {
 
   await updateParkGold(rewardGold, true);
 
+  if (typeof recordPlayerStatsDelta === 'function' && currentUser?.id) {
+    await recordPlayerStatsDelta(currentUser.id, {
+      wins: isCombat ? 1 : 0,
+      losses: 0,
+      quests_completed: isCombat ? 0 : 1,
+      gold_collected: Math.max(0, Number(rewardGold) || 0)
+    });
+  }
+
   await supabaseClient.from('user_quests').update({ status: 'completed' }).eq('id', userQuestId);
 
   if (isCombat) {

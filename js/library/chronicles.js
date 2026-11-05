@@ -17,33 +17,20 @@ function isValidUUID(str) {
 }
 
 /**
- * Check if the active user possesses Questmaster privileges
+ * Check if the active user possesses Questmaster privileges FOR THE CURRENTLY ACTIVE REALM
  */
 function isQMAuthorized() {
   if (typeof currentUser === 'undefined' || !currentUser) return false;
 
   const isCurrentQMHost = Boolean(
-    typeof currentQMId !== 'undefined' && currentQMId && currentUser.id === currentQMId
+    typeof currentQMId !== 'undefined' && currentQMId && String(currentUser.id) === String(currentQMId)
   );
 
-  const role = (typeof currentParkProfile !== 'undefined' && currentParkProfile?.role)
-    || (typeof currentProfile !== 'undefined' && currentProfile?.role)
-    || 'player';
+  const isAdmin =
+    (typeof currentProfile !== 'undefined' && currentProfile?.role === 'admin') ||
+    (typeof currentParkProfile !== 'undefined' && currentParkProfile?.role === 'admin');
 
-  const isQM = isCurrentQMHost 
-    || role === 'questmaster' 
-    || role === 'admin' 
-    || (typeof currentProfile !== 'undefined' && currentProfile?.role === 'admin');
-
-  if (isQM) return true;
-
-  if (typeof parkQMsList !== 'undefined' && Array.isArray(parkQMsList)) {
-    if (parkQMsList.some(q => q.user_id === currentUser.id)) {
-      return true;
-    }
-  }
-
-  return false;
+  return isCurrentQMHost || isAdmin;
 }
 
 /**
@@ -263,16 +250,12 @@ function getSortedAndFilteredChronicles() {
       }
 
       // 1. STRICT QUESTMASTER SCOPING:
-      // Author / QM always sees their own posts
-      const isMyPost = Boolean(myUserId && (entry.author_id === myUserId || entry.qm_id === myUserId));
-
+      // Must match the currently selected Questmaster's realm (activeQMId)
       if (activeQMId) {
-        // If a specific QM realm is selected, isolate strictly to that QM
-        const matchesQM = (entry.qm_id === activeQMId) || (entry.author_id === activeQMId) || isMyPost;
+        const matchesQM = String(entry.qm_id || '') === String(activeQMId) || String(entry.author_id || '') === String(activeQMId);
         if (!matchesQM) return false;
       } else {
-        // If player has not chosen a specific QM realm yet (Default Realm):
-        // Allow seeing chronicles for their park so new or unassigned players see announcements and lore
+        if (entry.qm_id) return false;
       }
 
       // 2. Expiration check for announcements
@@ -493,10 +476,10 @@ async function handleSaveChronicle(event) {
         };
       }
 
-      // Persist to Supabase if available
+      // Persist to Supabase if available (strictly scoped to the owning QM)
       if (typeof supabaseClient !== 'undefined' && supabaseClient) {
         try {
-          await supabaseClient
+          let updQuery = supabaseClient
             .from('chronicles')
             .update({
               title,
@@ -507,6 +490,8 @@ async function handleSaveChronicle(event) {
               updated_at: new Date().toISOString()
             })
             .eq('id', editId);
+          if (authorId) updQuery = updQuery.eq('qm_id', authorId);
+          await updQuery;
         } catch (dbErr) {
           console.warn('Supabase update notice:', dbErr);
         }
@@ -683,10 +668,14 @@ async function handleDeleteChronicle(id) {
 
     if (typeof supabaseClient !== 'undefined' && supabaseClient) {
       try {
-        await supabaseClient
+        let delQuery = supabaseClient
           .from('chronicles')
           .delete()
           .eq('id', id);
+        if (typeof currentUser !== 'undefined' && currentUser?.id) {
+          delQuery = delQuery.eq('qm_id', currentUser.id);
+        }
+        await delQuery;
       } catch (dbErr) {
         console.warn('Supabase delete notice:', dbErr);
       }

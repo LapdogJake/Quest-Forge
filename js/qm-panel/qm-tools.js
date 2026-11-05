@@ -78,12 +78,26 @@ async function handleEndCampaign() {
       console.warn('Chronicles campaign cleanup notice:', e);
     }
 
-    // 4. Update profile roles back to 'player'
-    await supabaseClient
-      .from('user_park_profiles')
-      .update({ role: 'player' })
-      .eq('user_id', currentUser.id)
-      .eq('park', activePark);
+    // 4. Delete all player inventory items and character sheets instanced under this QM's reign
+    try {
+      await supabaseClient
+        .from('user_inventory')
+        .delete()
+        .eq('park', activePark)
+        .eq('qm_id', currentUser.id);
+    } catch (e) {
+      console.warn('Inventory campaign cleanup notice:', e);
+    }
+
+    try {
+      await supabaseClient
+        .from('user_park_profiles')
+        .delete()
+        .eq('park', activePark)
+        .eq('qm_id', currentUser.id);
+    } catch (e) {
+      console.warn('Character sheets campaign cleanup notice:', e);
+    }
 
     await supabaseClient
       .from('profiles')
