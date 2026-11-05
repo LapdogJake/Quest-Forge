@@ -679,7 +679,53 @@ SELECT u.id FROM auth.users u
 ON CONFLICT (user_id) DO NOTHING;
 
 -- ------------------------------------------------------------------------------
--- 16. Permissions & Grants
+-- 16. Quest & Battle Archive Repository Table (public.quest_archive)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.quest_archive (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'Quest',
+  discipline TEXT DEFAULT 'Service',
+  description TEXT DEFAULT '',
+  reward_gold INTEGER NOT NULL DEFAULT 5,
+  reward_gold_defeat INTEGER NOT NULL DEFAULT 10,
+  monster_reward INTEGER NOT NULL DEFAULT 10,
+  scenario_card TEXT DEFAULT '',
+  repeatable BOOLEAN NOT NULL DEFAULT false,
+  verification_method TEXT DEFAULT 'Quest Master',
+  author_qm_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  author_qm_username TEXT NOT NULL DEFAULT 'Questmaster',
+  origin_park TEXT NOT NULL DEFAULT 'Delver''s Rest',
+  origin_kingdom TEXT NOT NULL DEFAULT 'The Freeholds of Amtgard',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_quest_archive_author ON public.quest_archive (author_qm_username);
+CREATE INDEX IF NOT EXISTS idx_quest_archive_park ON public.quest_archive (origin_park);
+CREATE INDEX IF NOT EXISTS idx_quest_archive_kingdom ON public.quest_archive (origin_kingdom);
+CREATE INDEX IF NOT EXISTS idx_quest_archive_created_at ON public.quest_archive (created_at DESC);
+
+ALTER TABLE public.quest_archive ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow select on quest_archive" ON public.quest_archive;
+CREATE POLICY "Allow select on quest_archive"
+  ON public.quest_archive FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Allow insert on quest_archive" ON public.quest_archive;
+CREATE POLICY "Allow insert on quest_archive"
+  ON public.quest_archive FOR INSERT
+  TO authenticated
+  WITH CHECK (author_qm_id = auth.uid());
+
+DROP POLICY IF EXISTS "Allow delete on quest_archive" ON public.quest_archive;
+CREATE POLICY "Allow delete on quest_archive"
+  ON public.quest_archive FOR DELETE
+  TO authenticated
+  USING (author_qm_id = auth.uid());
+
+-- ------------------------------------------------------------------------------
+-- 17. Permissions & Grants
 -- ------------------------------------------------------------------------------
 GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, anon, authenticated, service_role;

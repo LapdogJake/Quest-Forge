@@ -339,20 +339,23 @@ async function fetchQMQuests() {
             </div>
 
             <!-- 4. BOTTOM ACTIONS -->
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; gap:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-top:10px; gap:8px;">
               ${q.is_active ? `
-                <button class="btn-leave" style="flex:1; min-height:40px; font-size:13px; font-weight:bold; border-radius:6px;" onclick="toggleQuestDeployment('${q.id}', true)">
+                <button class="btn-leave" style="flex:1; min-width:80px; min-height:40px; font-size:13px; font-weight:bold; border-radius:6px;" onclick="toggleQuestDeployment('${q.id}', true)">
                   Close
                 </button>
               ` : `
-                <button class="btn-battle-action btn-battle-hero" style="flex:1; min-height:40px; font-size:13px; font-weight:bold; border-radius:6px; text-transform:none;" onclick="toggleQuestDeployment('${q.id}', false)">
+                <button class="btn-battle-action btn-battle-hero" style="flex:1; min-width:80px; min-height:40px; font-size:13px; font-weight:bold; border-radius:6px; text-transform:none;" onclick="toggleQuestDeployment('${q.id}', false)">
                   Open
                 </button>
               `}
-              <button type="button" class="btn-secondary" style="min-height:40px; padding:8px 14px; font-size:13px; font-weight:bold; border-radius:6px; background:#27272a; border:1px solid #3f3f46; color:#e4e4e7; cursor:pointer;" onclick="toggleQMQuestEdit('${q.id}')" title="Edit quest details">
+              <button type="button" class="btn-secondary" style="min-height:40px; padding:8px 12px; font-size:13px; font-weight:bold; border-radius:6px; background:#27272a; border:1px solid #3f3f46; color:#e4e4e7; cursor:pointer;" onclick="toggleQMQuestEdit('${q.id}')" title="Edit quest details">
                 ✏️ Edit
               </button>
-              <button class="btn-delete" style="min-height:40px; padding:8px 14px; font-size:13px; font-weight:bold; justify-content:center; border-radius:6px;" onclick="qmDeleteQuest('${q.id}', '${(q.title || '').replace(/'/g, "\\'")}')" title="Delete quest from catalog">
+              <button type="button" class="btn-secondary" style="min-height:40px; padding:8px 12px; font-size:13px; font-weight:bold; border-radius:6px; background:#1e293b; border:1px solid #38bdf8; color:#bae6fd; cursor:pointer;" onclick="qmArchiveQuest('${q.id}', '${(q.title || '').replace(/'/g, "\\'")}')" title="Archive quest to repository">
+                📦 Archive
+              </button>
+              <button class="btn-delete" style="min-height:40px; padding:8px 12px; font-size:13px; font-weight:bold; justify-content:center; border-radius:6px;" onclick="qmDeleteQuest('${q.id}', '${(q.title || '').replace(/'/g, "\\'")}')" title="Delete quest from catalog">
                 🗑️ Delete
               </button>
             </div>

@@ -89,3 +89,101 @@ async function qmDeleteQuest(questId, questTitle) {
 
 window.qmDeleteQuest = qmDeleteQuest;
 
+// Archive a battle or quest to public.quest_archive and remove it from the active mobile catalog
+async function qmArchiveQuest(questId, questTitle) {
+  if (!currentUser) return;
+
+  const { data: q, error: fetchErr } = await supabaseClient
+    .from('quests')
+    .select('*')
+    .eq('id', questId)
+    .maybeSingle();
+
+  if (fetchErr || !q) {
+    alert("Could not load quest details to archive: " + (fetchErr?.message || 'Not found'));
+    return;
+  }
+
+  const title = q.title || questTitle || 'Quest';
+  const isBattle = q.category === 'Battle' || q.category === 'Combat';
+  const confirmed = confirm(
+    `📦 Archive "${title}"?\n\n` +
+    `This will save it to the shared Quest & Battle Archive Repository and remove it from your active mobile catalog.`
+  );
+  if (!confirmed) return;
+
+  try {
+    const rules = (typeof getQuestDurabilityRules === 'function')
+      ? getQuestDurabilityRules(q)
+      : {};
+    const discName = (typeof getQuestDiscipline === 'function')
+      ? getQuestDiscipline(q)
+      : (q.discipline || 'Service');
+
+    const activePark = q.park || (typeof getActivePark === 'function' ? getActivePark() : (currentPark || "Delver's Rest"));
+    const activeKingdom = q.kingdom || (typeof getActiveKingdom === 'function' ? getActiveKingdom() : (currentKingdom || "The Freeholds of Amtgard"));
+    const authorName = currentProfile?.username || q.qm_username || currentQMUsername || 'Questmaster';
+
+    const archivePayload = {
+      title: title,
+      category: isBattle ? 'Battle' : 'Quest',
+      discipline: isBattle ? 'Battle' : discName,
+      description: q.description || '',
+      reward_gold: Number(q.reward_gold) || 0,
+      reward_gold_defeat: Number(rules.defeatGold ?? q.reward_gold_defeat ?? 10),
+      monster_reward: Number(rules.monsterReward ?? q.monster_reward ?? 10),
+      scenario_card: q.scenario_card || '',
+      repeatable: Boolean(q.repeatable),
+      verification_method: rules.verificationMethod || q.verification_method || 'Quest Master',
+      author_qm_id: currentUser.id,
+      author_qm_username: authorName,
+      origin_park: activePark,
+      origin_kingdom: activeKingdom
+    };
+
+    const { error: insertErr } = await supabaseClient
+      .from('quest_archive')
+      .insert(archivePayload);
+
+    if (insertErr) {
+      alert(
+        "⚠️ Could not archive to quest_archive table: " + insertErr.message +
+        "\n\nMake sure you have run the new quest_archive SQL in your Supabase SQL Editor! Your quest was kept in your active catalog."
+      );
+      return;
+    }
+
+    // Remove from active queues & quests catalog now that it is safely archived
+    const { data: queues } = await supabaseClient
+      .from('quest_queues')
+      .select('id')
+      .eq('quest_id', questId);
+
+    if (queues && queues.length > 0) {
+      const queueIds = queues.map(row => row.id);
+      await supabaseClient.from('queue_members').delete().in('queue_id', queueIds);
+      await supabaseClient.from('encounter_monsters').delete().in('queue_id', queueIds);
+      await supabaseClient.from('quest_queues').delete().in('id', queueIds);
+    }
+
+    await supabaseClient.from('user_quests').delete().eq('quest_id', questId);
+
+    let delQuery = supabaseClient.from('quests').delete().eq('id', questId);
+    if (currentUser?.id) delQuery = delQuery.eq('qm_id', currentUser.id);
+    await delQuery;
+
+    alert(`📦 "${title}" has been archived to the Quest & Battle Repository!`);
+
+    await fetchUserSlotState();
+    await fetchQuests();
+    await fetchMonsterEncounters();
+    if (typeof fetchQMQuests === 'function') await fetchQMQuests();
+    if (typeof fetchQMQueues === 'function') await fetchQMQueues();
+  } catch (err) {
+    console.error("Error archiving quest:", err);
+    alert("Error archiving quest: " + (err.message || err));
+  }
+}
+
+window.qmArchiveQuest = qmArchiveQuest;
+
