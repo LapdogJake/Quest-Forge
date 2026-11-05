@@ -6,8 +6,12 @@
 // In-memory list of active chronicles
 let chroniclesList = [];
 
-// Local storage key for offline & resilience fallback
+// In-memory map of chronicle_id -> array of comments sorted by timestamp (oldest -> newest)
+let chronicleCommentsByEntry = {};
+
+// Local storage keys for offline & resilience fallback
 const CHRONICLES_STORAGE_KEY = 'qf_chronicles_store';
+const CHRONICLE_COMMENTS_STORAGE_KEY = 'qf_chronicle_comments_store';
 
 // Standard UUID v4 regex pattern
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -147,6 +151,80 @@ function saveLocalChronicles(list) {
   }
 }
 
+function loadLocalChronicleComments() {
+  try {
+    const raw = localStorage.getItem(CHRONICLE_COMMENTS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') return parsed;
+    }
+  } catch (e) {}
+  return {};
+}
+
+function saveLocalChronicleComments(mapObj) {
+  try {
+    localStorage.setItem(CHRONICLE_COMMENTS_STORAGE_KEY, JSON.stringify(mapObj || {}));
+  } catch (e) {}
+}
+
+function formatCommentTimestamp(dateInput) {
+  if (!dateInput) return '';
+  try {
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return String(dateInput);
+    return d.toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    });
+  } catch (e) {
+    return String(dateInput);
+  }
+}
+
+function formatCommentBodyWithMentions(rawBody) {
+  const safe = escapeHTML(rawBody || '');
+  return safe.replace(/(^|\s)(@[A-Za-z0-9_.\-]+)/g, '$1<span class="chronicle-mention">$2</span>');
+}
+
+async function fetchChronicleComments(chronicleIds = []) {
+  const localMap = loadLocalChronicleComments();
+  chronicleCommentsByEntry = { ...localMap };
+
+  if (typeof supabaseClient === 'undefined' || !supabaseClient) return;
+
+  const validUuidIds = (chronicleIds || []).filter(id => isValidUUID(String(id)));
+  if (validUuidIds.length === 0) return;
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('chronicle_comments')
+      .select('*')
+      .in('chronicle_id', validUuidIds)
+      .order('created_at', { ascending: true });
+
+    if (!error && Array.isArray(data)) {
+      const grouped = {};
+      validUuidIds.forEach(cid => { grouped[cid] = []; });
+      data.forEach(row => {
+        const cid = String(row.chronicle_id);
+        if (!grouped[cid]) grouped[cid] = [];
+        grouped[cid].push(row);
+      });
+      // Sort each thread strictly by timestamp ascending
+      Object.keys(grouped).forEach(cid => {
+        grouped[cid].sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
+      });
+      chronicleCommentsByEntry = { ...localMap, ...grouped };
+      saveLocalChronicleComments(chronicleCommentsByEntry);
+    }
+  } catch (err) {
+    console.warn('Could not fetch chronicle_comments:', err);
+  }
+}
+
 /**
  * Fetch chronicles from Supabase with Questmaster scoping, graceful auto-sync, and local storage fallback
  */
@@ -209,6 +287,7 @@ async function fetchChronicles() {
         }
 
         saveLocalChronicles(chroniclesList);
+        await fetchChronicleComments(chroniclesList.map(c => c.id));
         renderChroniclesLibrary();
         return chroniclesList;
       } else if (error) {
@@ -221,6 +300,7 @@ async function fetchChronicles() {
 
   // Fallback to locally persisted entries
   chroniclesList = loadLocalChronicles();
+  chronicleCommentsByEntry = loadLocalChronicleComments();
   renderChroniclesLibrary();
   return chroniclesList;
 }
@@ -690,6 +770,135 @@ async function handleDeleteChronicle(id) {
 }
 
 /**
+ * Populate @Username into the chronicle's comment input and focus it
+ */
+function replyToChronicleComment(chronicleId, username) {
+  const inputEl = document.getElementById(`chronicle-comment-input-${chronicleId}`);
+  if (!inputEl) return;
+  const cleanUser = String(username || 'Adventurer').replace(/\s+/g, '');
+  const mentionPrefix = `@${cleanUser} `;
+  const currentVal = inputEl.value || '';
+  if (!currentVal.startsWith(mentionPrefix)) {
+    inputEl.value = mentionPrefix + currentVal;
+  }
+  inputEl.focus();
+  try {
+    inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length);
+  } catch (_) {}
+}
+
+/**
+ * Submit a new comment under a Chronicle entry
+ */
+async function handlePostChronicleComment(event, chronicleId) {
+  if (event) event.preventDefault();
+  if (!chronicleId) return;
+
+  if (typeof currentUser === 'undefined' || !currentUser) {
+    showChronicleToast('Please sign in to post a comment.', 'error');
+    return;
+  }
+
+  const inputEl = document.getElementById(`chronicle-comment-input-${chronicleId}`);
+  const submitBtn = document.getElementById(`chronicle-comment-submit-${chronicleId}`);
+  const body = inputEl ? inputEl.value.trim() : '';
+
+  if (!body) return;
+
+  const username = getChronicleAuthorName();
+  const activePark = getChronicleActivePark();
+  const activeQMId = getChronicleActiveQMId();
+  const generatedUUID = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+    ? crypto.randomUUID()
+    : ('comment_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6));
+
+  const newComment = {
+    id: generatedUUID,
+    chronicle_id: chronicleId,
+    qm_id: isValidUUID(activeQMId) ? activeQMId : null,
+    park: activePark,
+    user_id: isValidUUID(currentUser.id) ? currentUser.id : null,
+    username: username,
+    body: body,
+    created_at: new Date().toISOString()
+  };
+
+  if (submitBtn) submitBtn.disabled = true;
+
+  try {
+    if (!Array.isArray(chronicleCommentsByEntry[chronicleId])) {
+      chronicleCommentsByEntry[chronicleId] = [];
+    }
+
+    if (typeof supabaseClient !== 'undefined' && supabaseClient && isValidUUID(String(chronicleId))) {
+      const insertPayload = {
+        chronicle_id: chronicleId,
+        park: activePark,
+        user_id: isValidUUID(currentUser.id) ? currentUser.id : null,
+        username: username,
+        body: body
+      };
+      if (isValidUUID(activeQMId)) insertPayload.qm_id = activeQMId;
+
+      const { data: dbRow, error } = await supabaseClient
+        .from('chronicle_comments')
+        .insert(insertPayload)
+        .select('*')
+        .maybeSingle();
+
+      if (!error && dbRow) {
+        newComment.id = dbRow.id;
+        newComment.created_at = dbRow.created_at || newComment.created_at;
+      } else if (error) {
+        console.warn('Could not save comment to Supabase (using local fallback):', error.message);
+      }
+    }
+
+    chronicleCommentsByEntry[chronicleId].push(newComment);
+    chronicleCommentsByEntry[chronicleId].sort(
+      (a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+    );
+    saveLocalChronicleComments(chronicleCommentsByEntry);
+
+    if (inputEl) inputEl.value = '';
+    renderChroniclesLibrary();
+  } catch (err) {
+    console.error('Error posting chronicle comment:', err);
+    showChronicleToast('Could not post comment: ' + (err.message || err), 'error');
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
+}
+
+/**
+ * Delete a comment (allowed for comment author or active realm Questmaster)
+ */
+async function handleDeleteChronicleComment(commentId, chronicleId) {
+  if (!commentId || !chronicleId) return;
+  if (!confirm('Delete this comment?')) return;
+
+  try {
+    if (Array.isArray(chronicleCommentsByEntry[chronicleId])) {
+      chronicleCommentsByEntry[chronicleId] = chronicleCommentsByEntry[chronicleId].filter(
+        c => String(c.id) !== String(commentId)
+      );
+      saveLocalChronicleComments(chronicleCommentsByEntry);
+    }
+
+    if (typeof supabaseClient !== 'undefined' && supabaseClient && isValidUUID(String(commentId))) {
+      await supabaseClient
+        .from('chronicle_comments')
+        .delete()
+        .eq('id', commentId);
+    }
+
+    renderChroniclesLibrary();
+  } catch (err) {
+    console.error('Error deleting chronicle comment:', err);
+  }
+}
+
+/**
  * Render the Chronicles feed inside the Library Chronicles sub-tab (strictly QM-scoped)
  */
 function renderChroniclesLibrary() {
@@ -699,11 +908,17 @@ function renderChroniclesLibrary() {
 
   if (!container) return;
 
+  // Preserve open state of expanded chronicle cards across re-renders
+  const openCardIds = new Set(
+    Array.from(container.querySelectorAll('details.chronicle-card[open]')).map(el => el.id)
+  );
+
   // Sync QM creation button visibility
   syncChroniclesQMVisibility();
 
   const sortedEntries = getSortedAndFilteredChronicles();
   const isQM = isQMAuthorized();
+  const myUserId = (typeof currentUser !== 'undefined' && currentUser?.id) || null;
 
   // Empty state handling
   if (!sortedEntries || sortedEntries.length === 0) {
@@ -721,16 +936,53 @@ function renderChroniclesLibrary() {
     const categoryClass = 'chronicle-type-' + rawCategory.toLowerCase();
     const pinnedClass = entry.is_pinned ? 'chronicle-pinned' : '';
     const badgeClass = 'badge-' + rawCategory.toLowerCase();
+    const cardDomId = `chronicle-card-${entry.id}`;
+    const openAttr = openCardIds.has(cardDomId) ? ' open' : '';
+
+    const comments = Array.isArray(chronicleCommentsByEntry[entry.id])
+      ? chronicleCommentsByEntry[entry.id]
+      : [];
+
+    const commentsListHtml = comments.length > 0
+      ? comments.map(c => {
+          const canDelete = Boolean(isQM || (myUserId && c.user_id && String(c.user_id) === String(myUserId)));
+          const safeReplyUser = String(c.username || 'Adventurer').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+          return `
+            <div class="chronicle-comment-item">
+              <div class="chronicle-comment-header">
+                <div class="chronicle-comment-author-wrap">
+                  <strong class="chronicle-comment-author">${escapeHTML(c.username || 'Adventurer')}</strong>
+                  <span class="chronicle-comment-time">${escapeHTML(formatCommentTimestamp(c.created_at))}</span>
+                </div>
+                <div class="chronicle-comment-actions">
+                  <button type="button" class="chronicle-comment-reply-btn" onclick="replyToChronicleComment('${entry.id}', '${safeReplyUser}')">
+                    @Reply
+                  </button>
+                  ${canDelete ? `
+                    <button type="button" class="chronicle-comment-del-btn" onclick="handleDeleteChronicleComment('${c.id}', '${entry.id}')" title="Delete comment">
+                      ✕
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+              <div class="chronicle-comment-body">${formatCommentBodyWithMentions(c.body)}</div>
+            </div>
+          `;
+        }).join('')
+      : `<p class="chronicle-comments-empty">No comments yet. Start the conversation!</p>`;
 
     return `
-      <details class="store-category chronicle-card ${categoryClass} ${pinnedClass}" id="chronicle-card-${entry.id}">
-        <!-- Collapsed Card Header: Displays only Title and Posted Date -->
+      <details class="store-category chronicle-card ${categoryClass} ${pinnedClass}" id="${cardDomId}"${openAttr}>
+        <!-- Collapsed Card Header: Displays Title, Comment Count (if any), and Posted Date -->
         <summary class="store-category-summary chronicle-card-summary">
           <div class="chronicle-header-title-wrap">
             ${entry.is_pinned ? '<span title="Pinned to Top">📌</span>' : ''}
             <span class="chronicle-header-title">${escapeHTML(entry.title)}</span>
           </div>
-          <span class="chronicle-header-date">${formatChronicleDate(entry.created_at)}</span>
+          <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+            ${comments.length > 0 ? `<span style="font-size:11px; color:var(--text-muted); font-weight:600;">💬 ${comments.length}</span>` : ''}
+            <span class="chronicle-header-date">${formatChronicleDate(entry.created_at)}</span>
+          </div>
         </summary>
 
         <!-- Expanded Card Details -->
@@ -769,6 +1021,27 @@ function renderChroniclesLibrary() {
               ` : ''}
             </div>
           ` : ''}
+
+          <!-- Comments & @Reply Section -->
+          <div class="chronicle-comments-section">
+            <div class="chronicle-comments-title">Comments (${comments.length})</div>
+            <div class="chronicle-comments-list" id="chronicle-comments-list-${entry.id}">
+              ${commentsListHtml}
+            </div>
+            <form class="chronicle-comment-form" onsubmit="handlePostChronicleComment(event, '${entry.id}')">
+              <input
+                type="text"
+                id="chronicle-comment-input-${entry.id}"
+                class="form-control chronicle-comment-input"
+                placeholder="Write a comment or @reply..."
+                maxlength="500"
+                autocomplete="off"
+              >
+              <button type="submit" id="chronicle-comment-submit-${entry.id}" class="chronicle-comment-post-btn">
+                Post
+              </button>
+            </form>
+          </div>
         </div>
       </details>
     `;

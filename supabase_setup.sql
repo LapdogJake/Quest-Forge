@@ -725,7 +725,46 @@ CREATE POLICY "Allow delete on quest_archive"
   USING (author_qm_id = auth.uid());
 
 -- ------------------------------------------------------------------------------
--- 17. Permissions & Grants
+-- 17. Chronicle Comments Table (public.chronicle_comments)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.chronicle_comments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  chronicle_id UUID NOT NULL REFERENCES public.chronicles(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  username TEXT NOT NULL DEFAULT 'Adventurer',
+  body TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_chronicle_comments_chronicle_id
+  ON public.chronicle_comments (chronicle_id, created_at ASC);
+
+ALTER TABLE public.chronicle_comments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow select on chronicle_comments" ON public.chronicle_comments;
+CREATE POLICY "Allow select on chronicle_comments"
+  ON public.chronicle_comments FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Allow insert on chronicle_comments" ON public.chronicle_comments;
+CREATE POLICY "Allow insert on chronicle_comments"
+  ON public.chronicle_comments FOR INSERT
+  TO authenticated
+  WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "Allow delete on chronicle_comments" ON public.chronicle_comments;
+CREATE POLICY "Allow delete on chronicle_comments"
+  ON public.chronicle_comments FOR DELETE
+  TO authenticated
+  USING (
+    user_id = auth.uid()
+    OR EXISTS (
+      SELECT 1 FROM public.park_questmasters pq WHERE pq.user_id = auth.uid()
+    )
+  );
+
+-- ------------------------------------------------------------------------------
+-- 18. Permissions & Grants
 -- ------------------------------------------------------------------------------
 GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, anon, authenticated, service_role;

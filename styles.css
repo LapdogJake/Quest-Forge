@@ -2013,6 +2013,144 @@ details.store-category.chronicle-pinned {
   color: #ffffff;
 }
 
+/* Chronicle Comments & @Reply Thread */
+.chronicle-comments-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.chronicle-comments-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.chronicle-comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.chronicle-comments-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 2px 0 4px 0;
+}
+
+.chronicle-comment-item {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.chronicle-comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.chronicle-comment-author-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.chronicle-comment-author {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.chronicle-comment-time {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.chronicle-comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.chronicle-comment-reply-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.chronicle-comment-reply-btn:hover {
+  color: var(--text);
+}
+
+.chronicle-comment-del-btn {
+  background: transparent;
+  border: none;
+  color: #f87171;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.chronicle-comment-body {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text);
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.chronicle-mention {
+  color: #38bdf8;
+  font-weight: 700;
+}
+
+.chronicle-comment-form {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.chronicle-comment-input {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 13px;
+  border-radius: 6px;
+  margin: 0;
+}
+
+.chronicle-comment-post-btn {
+  background: var(--primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.chronicle-comment-post-btn:hover {
+  background: var(--primary-hover);
+}
+
 /* Chronicle Toast Notification Container */
 #qf-toast-container {
   position: fixed;
@@ -2175,7 +2313,9 @@ html.light-mode .battle-team-check-item,
 html.light-mode .battle-monster-reward-input,
 html.light-mode .battle-reward-field input[type="number"],
 html.light-mode .lifetime-stat-card,
-html.light-mode .profile-segment-group {
+html.light-mode .profile-segment-group,
+html.light-mode .chronicle-comment-item,
+html.light-mode .chronicle-comment-input {
   background: #ffffff !important;
   border-color: #d4d4d8 !important;
   color: var(--text) !important;
@@ -2239,6 +2379,9 @@ html.large-text .item-info small,
 html.large-text .quest-details-panel p,
 html.large-text .quest-accordion-content p,
 html.large-text .chronicle-body-content,
+html.large-text .chronicle-comment-body,
+html.large-text .chronicle-comment-author,
+html.large-text .chronicle-comment-input,
 html.large-text .library-section-body div,
 html.large-text .library-section-body p,
 html.large-text .form-control,
